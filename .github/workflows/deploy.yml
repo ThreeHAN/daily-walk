@@ -23,6 +23,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build:css
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
       - name: Prepare site
         run: |
           mkdir -p _site/assets
