@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Daily Walk · Admin Account</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <div id="buddy">
+      <button id="av" aria-label="Bible Buddy">
+        <svg
+          id="pal"
+          width="56"
+          height="64"
+          viewBox="0 0 56 64"
+          aria-hidden="true"
+        ></svg
+        ><span class="dot" id="dot"></span><span class="sb" id="sb">🔥0</span>
+      </button>
+      <div id="bubble" role="status" aria-live="polite"></div>
+    </div>
+    <main id="pg-h">
+      <div class="top">
+        <div>
+          <h1>Daily Walk</h1>
+          <p class="sub" id="date"></p>
+          <p class="clock" id="clock"></p>
+        </div>
+        <div class="pbs">
+          <button id="ixh" class="pbtn" type="button" aria-label="Buddy index">
+            <i class="ic" data-i="shapes"></i></button
+          ><button id="prof" class="pbtn" type="button" aria-label="Profile">
+            👤
+          </button>
+        </div>
+      </div>
+      <div
+        class="ubar"
+        id="ubar"
+        role="button"
+        tabindex="0"
+        aria-label="Switch user profile or check saved data"
+      >
+        <span class="ubl"
+          ><i class="ubdot"></i><span id="ubname">Default Profile</span></span
+        ><span class="ubr" id="ubstat">All data saved ✓</span>
+      </div>
+      <div class="hero" id="hero">
+        <div class="hl">
+          <span class="lvb" id="lvb">Lv 1</span><b id="lvt">Newcomer</b
+          ><span class="xpn" id="xpn">0 / 80 XP</span>
+        </div>
+        <div class="xbar"><i id="xfill"></i></div>
+      </div>
+      <div class="bar"><i id="fill"></i></div>
+      <div class="stat"><span id="count"></span><span id="streak"></span></div>
+      <div id="list"></div>
+      <div class="xc">
+        <div class="xh"><b>💧 Water</b><span id="wn">0 / 8 cups</span></div>
+        <div class="cups" id="cups"></div>
+      </div>
+      <div class="xc">
+        <div class="xh">
+          <b>🙏 Gratitude &amp; prayer journal</b><span id="jst"></span>
+        </div>
+        <textarea
+          id="jt"
+          rows="3"
+          maxlength="600"
+          placeholder="What are you thankful for today? Anything on your heart?"
+        ></textarea
+        ><button class="done" id="jsave" type="button">
+          Save today’s entry (+10 XP)
+        </button>
+        <div id="jl"></div>
+      </div>
+      <div class="xc">
+        <div class="xh"><b>📈 This week</b><span id="wavg"></span></div>
+        <div class="wk7" id="wk7"></div>
+      </div>
+      <button class="reset" id="reset">Uncheck everything</button>
+    </main>
+    <main id="pg-t" hidden>
+      <div class="top">
+        <div>
+          <h1>Faith Town</h1>
+          <p class="sub" id="tsub">Your buddies live here</p>
+        </div>
+        <span class="tlv" id="tlv">Town Lv 1</span>
+      </div>
+      <div class="hero tc">
+        <div class="hl">
+          <span class="lvb" id="tnm">Camp</span><b id="tnb">Community</b
+          ><span class="xpn" id="tnx"></span>
+        </div>
+        <div class="xbar"><i id="tbar"></i></div>
+      </div>
+      <div class="scene" id="scene">
+        <svg id="tsvg" viewBox="0 0 360 300" aria-hidden="true">
+          <defs>
+            <linearGradient id="sk" x1="0" y1="0" x2="0" y2="1">
+              <stop id="sk0" offset="0" stop-color="#8fd0ff" />
+              <stop id="sk1" offset="1" stop-color="#e6f6ff" />
+            </linearGradient>
+            <linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
+              <stop id="gg0" offset="0" stop-color="#93d684" />
+              <stop id="gg1" offset="1" stop-color="#5fb56a" />
+            </linearGradient>
+          </defs>
+          <rect width="360" height="300" fill="url(#sk)" />
+          <g id="stars" opacity="0">
+            <circle
+              class="star"
+              cx="20"
+              cy="22"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -0s"
+            />
+            <circle
+              class="star"
+              cx="48"
+              cy="60"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -0.7s"
+            />
+            <circle
+              class="star"
+              cx="75"
+              cy="18"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -1.4s"
+            />
+            <circle
+              class="star"
+              cx="110"
+              cy="44"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -2.1s"
+            />
+            <circle
+              class="star"
+              cx="140"
+              cy="14"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -2.8s"
+            />
+            <circle
+              class="star"
+              cx="168"
+              cy="70"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -3.5s"
+            />
+            <circle
+              class="star"
+              cx="196"
+              cy="28"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -0.2s"
+            />
+            <circle
+              class="star"
+              cx="226"
+              cy="56"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -0.9s"
+            />
+            <circle
+              class="star"
+              cx="252"
+              cy="16"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -1.6s"
+            />
+            <circle
+              class="star"
+              cx="270"
+              cy="80"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -2.3s"
+            />
+            <circle
+              class="star"
+              cx="30"
+              cy="92"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -3s"
+            />
+            <circle
+              class="star"
+              cx="90"
+              cy="86"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -3.7s"
+            />
+            <circle
+              class="star"
+              cx="330"
+              cy="70"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -0.4s"
+            />
+            <circle
+              class="star"
+              cx="345"
+              cy="20"
+              r="1.2"
+              fill="#fff"
+              style="animation-delay: -1.1s"
+            />
+          </g>
+          <g id="moon" opacity="0">
+            <circle cx="305" cy="40" r="13" fill="#f4f1d6" />
+            <circle cx="310" cy="37" r="11" fill="#13244d" />
+          </g>
+          <g id="sunG">
+            <g class="rays">
+              <line
+                x1="327"
+                y1="40"
+                x2="337"
+                y2="40"
+                transform="rotate(0 305 40)"
+                stroke="#ffe27a"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              />
+              <line
+                x1="327"
+                y1="40"
+                x2="337"
+                y2="40"
+                transform="rotate(45 305 40)"
+                stroke="#ffe27a"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              />
+              <line
+                x1="327"
+                y1="40"
+                x2="337"
+                y2="40"
+                transform="rotate(90 305 40)"
+                stroke="#ffe27a"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              />
+              <line
+                x1="327"
+                y1="40"
+                x2="337"
+                y2="40"
+                transform="rotate(135 305 40)"
+                stroke="#ffe27a"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              />
+              <line
+                x1="327"
+                y1="40"
+                x2="337"
+                y2="40"
+                transform="rotate(180 305 40)"
+                stroke="#ffe27a"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              />
+              <line
+                x1="327"
+                y1="40"
+                x2="337"
+                y2="40"
+                transform="rotate(225 305 40)"
+                stroke="#ffe27a"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              />
+              <line
+                x1="327"
+                y1="40"
+                x2="337"
+                y2="40"
+                transform="rotate(270 305 40)"
+                stroke="#ffe27a"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              />
+              <line
+                x1="327"
+                y1="40"
+                x2="337"
+                y2="40"
+                transform="rotate(315 305 40)"
+                stroke="#ffe27a"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              />
+            </g>
+            <circle
+              class="sunp"
+              cx="305"
+              cy="40"
+              r="26"
+              fill="#fff3b0"
+              opacity=".5"
+            />
+            <circle cx="305" cy="40" r="17" fill="#ffe27a" />
+          </g>
+          <g class="cl">
+            <ellipse cx="60" cy="40" rx="26" ry="9" fill="#fff" opacity=".9" />
+            <ellipse cx="78" cy="34" rx="16" ry="8" fill="#fff" opacity=".9" />
+          </g>
+          <g class="cl b">
+            <ellipse
+              cx="210"
+              cy="64"
+              rx="22"
+              ry="7"
+              fill="#fff"
+              opacity=".85"
+            />
+            <ellipse
+              cx="224"
+              cy="59"
+              rx="13"
+              ry="6"
+              fill="#fff"
+              opacity=".85"
+            />
+          </g>
+          <path
+            id="hillp"
+            d="M0 126 Q60 84 130 120 T260 112 T360 124 V300 H0Z"
+            fill="#a9dca0"
+          />
+          <rect y="128" width="360" height="172" fill="url(#gg)" />
+          <path
+            id="roadp"
+            d="M0 230 Q180 212 360 230 V274 Q180 258 0 274Z"
+            fill="#dccca6"
+          />
+          <g id="flw">
+            <circle cx="40" cy="285" r="2.5" fill="#fff" />
+            <circle cx="120" cy="292" r="2.5" fill="#ffd1e8" />
+            <circle cx="210" cy="288" r="2.5" fill="#fff" />
+            <circle cx="300" cy="291" r="2.5" fill="#fff3b0" />
+            <circle cx="165" cy="224" r="2" fill="#ffd1e8" />
+          </g>
+          <g id="decB"></g>
+          <g id="bld"></g>
+          <g transform="translate(0 62)">
+            <g class="fly">
+              <g class="flap">
+                <path
+                  d="M0 0q3-4 6 0q3-4 6 0"
+                  fill="none"
+                  stroke="#3a4a5a"
+                  stroke-width="1.2"
+                />
+              </g>
+            </g>
+          </g>
+          <g transform="translate(0 92) scale(.8)">
+            <g
+              class="fly"
+              style="animation-delay: -11s; animation-duration: 28s"
+            >
+              <g class="flap" style="animation-delay: -0.2s">
+                <path
+                  d="M0 0q3-4 6 0q3-4 6 0"
+                  fill="none"
+                  stroke="#3a4a5a"
+                  stroke-width="1.2"
+                />
+              </g>
+            </g>
+          </g>
+          <g id="bfs"></g>
+          <g id="decF"></g>
+          <rect
+            id="nightr"
+            width="360"
+            height="300"
+            fill="#0a1a40"
+            opacity="0"
+            style="pointer-events: none"
+          />
+        </svg>
+        <div id="walkers"></div>
+      </div>
+      <div class="tstats">
+        <div><b id="tc1">0</b><span>🏠 Houses</span></div>
+        <div><b id="tc2">0</b><span>👥 Buddies</span></div>
+        <div><b id="tc3">0</b><span>⭐ Town XP</span></div>
+      </div>
+      <button class="card2" id="wbtn" type="button">
+        <span class="ci g3"><i class="ic" data-i="globe"></i></span>
+        <div>
+          <b>World map</b><span id="wsub">Explore every neighborhood</span>
+        </div>
+        <em class="arr">›</em>
+      </button>
+      <button class="card2" id="homeb" type="button" hidden>
+        <span class="ci g2"><i class="ic" data-i="house"></i></span>
+        <div>
+          <b id="hbn">Return home</b
+          ><span>You are visiting another neighborhood</span>
+        </div>
+        <em class="arr">›</em>
+      </button>
+      <button class="card2" id="ixbtn" type="button">
+        <span class="ci g2"><i class="ic" data-i="shapes"></i></span>
+        <div>
+          <b>Buddy index</b
+          ><span id="ixsub">See every buddy type you can collect</span>
+        </div>
+        <em class="arr">›</em>
+      </button>
+      <button class="card2" id="sbtn" type="button">
+        <span class="ci g1">📊</span>
+        <div>
+          <b>Buddy stats</b
+          ><span>Time in town, taps &amp; tasks for every buddy</span>
+        </div>
+        <em class="arr">›</em>
+      </button>
+      <button class="vcard" id="vcard" type="button">
+        <div class="vh">📖 Verse of the day</div>
+        <p id="vtx"></p>
+        <b id="vref"></b>
+      </button>
+      <div class="gcard ncard" id="ncard" hidden>
+        <div><b>Neighborhood complete!</b><span id="nct"></span></div>
+        <button class="done" id="nbtn" type="button">Choose next</button>
+      </div>
+      <div class="gcard" id="gcard" hidden>
+        <div>
+          <b>🎓 Your buddy reached max level!</b
+          ><span>Move them into town and start a new buddy.</span>
+        </div>
+        <button class="done" id="gbtn" type="button">Graduate</button>
+      </div>
+    </main>
+    <main id="pg-l" hidden>
+      <div class="top">
+        <div>
+          <h1>Leaderboard</h1>
+          <p class="sub" id="lbsub">Universal rankings across every account</p>
+        </div>
+        <span class="tlv" id="lbcnt">1 Account</span>
+      </div>
+      <div class="lb-hero">
+        <div class="hl">
+          <span class="lvb" id="lbmyrk">#1</span><b id="lbmynm">Your Rank</b
+          ><span class="xpn" id="lbmyxp">0 XP</span>
+        </div>
+        <div
+          style="font-size: 12.5px; opacity: 0.92; margin-top: 6px"
+          id="lbmydet"
+        >
+          Every profile on this device &amp; imported friend codes appear
+          automatically!
+        </div>
+      </div>
+      <div class="lb-tabs">
+        <button type="button" class="lb-tab on" data-lbt="xp">
+          ⭐ Total XP
+        </button>
+        <button type="button" class="lb-tab" data-lbt="streak">
+          🔥 Streak
+        </button>
+        <button type="button" class="lb-tab" data-lbt="town">
+          🪐 Planets &amp; Towns
+        </button>
+        <button type="button" class="lb-tab" data-lbt="tasks">
+          ✅ Check-offs
+        </button>
+      </div>
+      <div id="lblist"></div>
+      <div class="lb-bar">
+        <button type="button" class="prim" id="lbshare">
+          📤 Copy My Friend Code
+        </button>
+        <button type="button" id="lbaddf">➕ Add Friend Code</button>
+      </div>
+      <button
+        type="button"
+        class="ubtn sec"
+        id="lbreset"
+        style="width: 100%; margin-top: 8px"
+      >
+        🔄 Restore All Hidden Accounts
+      </button>
+    </main>
+    <div class="modal" id="pm">
+      <div class="sheet" role="dialog" aria-label="Profile">
+        <div class="grab"></div>
+        <div id="v-menu">
+          <div class="banner">
+            <div class="stage">
+              <svg
+                class="pv"
+                width="120"
+                height="136"
+                viewBox="0 0 56 64"
+                aria-hidden="true"
+              ></svg>
+            </div>
+            <h2 id="mt">Buddy</h2>
+            <div class="mst" id="mst"></div>
+            <div class="xbar"><i id="mxf"></i></div>
+            <div class="xtxt" id="mxt"></div>
+            <div class="pills">
+              <span class="pill" id="mp1"></span
+              ><span class="pill" id="mp2"></span
+              ><span class="pill" id="mp3"></span>
+            </div>
+          </div>
+          <button class="card2" id="go-bud" type="button">
+            <span class="ci g2"><i class="ic" data-i="shapes"></i></span>
+            <div>
+              <b>Change buddy</b
+              ><span
+                >Switch between all unlocked Earth, Space &amp; Planet
+                buddies</span
+              >
+            </div>
+            <em class="arr">›</em>
+          </button>
+          <button class="card2" id="go-wd" type="button">
+            <span class="ci g1">👕</span>
+            <div>
+              <b>Change clothes</b
+              ><span>Hats, tops, bottoms, face, extras &amp; colors</span>
+            </div>
+            <em class="arr">›</em>
+          </button>
+          <button class="card2" id="go-lv" type="button">
+            <span class="ci g2">⭐</span>
+            <div>
+              <b>Levels &amp; rewards</b
+              ><span>See your progress and what you can unlock</span>
+            </div>
+            <em class="arr">›</em>
+          </button>
+          <button class="card2" id="go-info" type="button">
+            <span class="ci g3">ℹ️</span>
+            <div>
+              <b>My info</b
+              ><span>Your name, buddy’s name &amp; streak stats</span>
+            </div>
+            <em class="arr">›</em>
+          </button>
+          <button class="card2" id="go-ix" type="button">
+            <span class="ci g1"><i class="ic" data-i="shapes"></i></span>
+            <div>
+              <b>Buddy index</b><span>Your collection of buddy types</span>
+            </div>
+            <em class="arr">›</em>
+          </button>
+          <button class="card2" id="go-grad" type="button" hidden>
+            <span class="ci g2">🎓</span>
+            <div>
+              <b>Graduate to town</b
+              ><span
+                >Max level! Move your buddy into town &amp; start a new
+                one</span
+              >
+            </div>
+            <em class="arr">›</em>
+          </button>
+          <button class="done" id="pdone" type="button">Done</button>
+        </div>
+        <div id="v-wd" hidden>
+          <button class="back" type="button" data-back>‹ Back</button>
+          <div class="stage sm">
+            <svg
+              class="pv"
+              width="84"
+              height="96"
+              viewBox="0 0 56 64"
+              aria-hidden="true"
+            ></svg>
+          </div>
+          <h3 class="vt">Wardrobe</h3>
+          <div class="chips tabs" id="wtabs"></div>
+          <div id="wbody"></div>
+        </div>
+        <div id="v-lv" hidden>
+          <button class="back" type="button" data-back>‹ Back</button>
+          <h3 class="vt">Levels &amp; rewards</h3>
+          <p class="how">
+            Earn XP: <b>+10</b> per habit, <b>+15</b> for finishing a group,
+            <b>+30</b> for finishing your whole day.
+          </p>
+          <div id="lvlist"></div>
+        </div>
+        <div id="v-info" hidden>
+          <button class="back" type="button" data-back>‹ Back</button>
+          <div class="stage sm">
+            <svg
+              class="pv"
+              width="84"
+              height="96"
+              viewBox="0 0 56 64"
+              aria-hidden="true"
+            ></svg>
+          </div>
+          <h3 class="vt">My info &amp; Profiles</h3>
+          <div class="sub vs" id="pst"></div>
+          <label class="fl"
+            >Your name<input
+              id="pn"
+              maxlength="20"
+              placeholder="What should I call you?"
+          /></label>
+          <label class="fl"
+            >Name your buddy<input id="bn" maxlength="20" placeholder="Buddy"
+          /></label>
+          <div class="stats">
+            <div><b id="s1">0</b><span>🔥 Current streak</span></div>
+            <div><b id="s2">0</b><span>🏆 Best streak</span></div>
+            <div><b id="s3">0</b><span>✅ Total check-offs</span></div>
+          </div>
+          <div class="acct-box">
+            <div class="acct-h">
+              <b>👥 User Profiles</b><span id="syncst">Auto-saved ✓</span>
+            </div>
+            <div class="how" style="text-align: left; margin-bottom: 8px">
+              Each user has their own habits, buddies, towns, XP, water, and
+              journal saved separately.
+            </div>
+            <div id="ulist"></div>
+            <div class="acct-act">
+              <button type="button" class="prim" id="uadd">
+                + New User Profile (Fresh Start)
+              </button>
+              <button type="button" id="uexp">⬇️ Export Save File</button>
+              <button type="button" id="uimp">⬆️ Restore Save File</button>
+              <input
+                type="file"
+                id="ufile"
+                accept=".json,application/json"
+                hidden
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="splash" id="sp">
+      <div class="spc">
+        <div class="fstage">
+          <div class="faura"></div>
+          <div class="fring"></div>
+          <canvas
+            id="fcan"
+            width="230"
+            height="210"
+            aria-hidden="true"
+          ></canvas>
+          <svg
+            class="flame"
+            id="fsvg"
+            viewBox="0 0 80 96"
+            width="146"
+            height="175"
+            aria-hidden="true"
+          >
+            <path
+              id="fp1"
+              d="M40 4C45 24 68 34 68 60C68 81 55 94 40 94C25 94 12 81 12 60C12 47 20 40 25 32C28 42 32 45 35 45C32 30 35 16 40 4Z"
+              fill="#ff6a1a"
+            />
+            <path
+              id="fp2"
+              d="M40 26C44 40 58 47 58 64C58 80 50 90 40 90C30 90 22 80 22 64C22 52 30 46 34 38C36 44 38 44 40 26Z"
+              fill="#ff9e22"
+            />
+            <path
+              id="fp3"
+              d="M40 44C43 55 52 60 52 72C52 83 46 89 40 89C34 89 28 83 28 72C28 63 34 58 36 51C38 55 39 55 40 44Z"
+              fill="#ffd23f"
+            />
+            <path
+              id="fp4"
+              d="M40 62C42 68 47 71 47 77C47 83 43 87 40 87C37 87 33 83 33 77C33 72 37 69 40 62Z"
+              fill="#fff7c2"
+            />
+          </svg>
+        </div>
+        <div class="ftier" id="ftier">Spark Ignited</div>
+        <div class="num" id="spn">0</div>
+        <div class="lbl">day streak</div>
+        <div class="week" id="spw"></div>
+        <p id="spm"></p>
+        <button class="done" id="spgo" type="button">Continue</button>
+      </div>
+    </div>
+
+    <div class="lvup" id="lu">
+      <div class="luc">
+        <svg
+          class="pv"
+          width="110"
+          height="124"
+          viewBox="0 0 56 64"
+          aria-hidden="true"
+        ></svg>
+        <div class="lut1">LEVEL UP!</div>
+        <div class="lun" id="lun">2</div>
+        <div class="lut2" id="lut"></div>
+        <p id="luu"></p>
+        <button class="done" id="lugo" type="button">Awesome!</button>
+      </div>
+    </div>
+    <div class="cs" id="cs"><div class="csb" id="csb"></div></div>
+    <div class="modal" id="sm">
+      <div class="sheet" role="dialog" aria-label="Buddy stats">
+        <div class="grab"></div>
+        <h3 class="vt">📊 Buddy stats</h3>
+        <div class="tsum" id="ssum"></div>
+        <div id="slist"></div>
+        <button class="done" id="sdone" type="button">Done</button>
+      </div>
+    </div>
+    <div class="modal" id="bm">
+      <div class="sheet" role="dialog" aria-label="Buddy details">
+        <div class="grab"></div>
+        <div class="bslides" id="bslides">
+          <button type="button" class="bsl on" id="bsl-b">👤 Buddy Info</button
+          ><button type="button" class="bsl" id="bsl-p">🐾 Pet Info</button>
+        </div>
+        <div id="bbody"></div>
+        <button class="done" id="bdone" type="button">Done</button>
+      </div>
+    </div>
+    <nav id="nav">
+      <button class="nv on" data-p="h" type="button"><i>✅</i>Habits</button
+      ><button class="nv" data-p="t" type="button"><i>🏘️</i>Town</button
+      ><button class="nv" data-p="l" type="button"><i>🏆</i>Ranks</button>
+    </nav>
+    <div class="gl" id="gl">
+      <div class="glb">
+        <button class="back" id="glx" type="button">‹ Close</button>
+        <h3 class="vt" id="glt">Your Solar System</h3>
+        <div class="pbar" id="pbar"></div>
+        <p class="how" id="glh"></p>
+        <div class="gsv" id="gsv">
+          <svg
+            id="gsvg"
+            viewBox="-26 0 292 240"
+            aria-label="Interactive 3D Planet Globe"
+          >
+            <defs>
+              <radialGradient id="gsea" cx="35%" cy="30%" r="80%">
+                <stop id="gs0" offset="0" stop-color="#86d6ff" />
+                <stop id="gs1" offset=".6" stop-color="#3a95e0" />
+                <stop id="gs2" offset="1" stop-color="#1b5fa8" />
+              </radialGradient>
+              <radialGradient id="gshade" cx="35%" cy="30%" r="75%">
+                <stop offset=".55" stop-color="#000" stop-opacity="0" />
+                <stop offset="1" stop-color="#000" stop-opacity=".38" />
+              </radialGradient>
+              <clipPath id="gcl"><circle cx="120" cy="120" r="108" /></clipPath>
+            </defs>
+            <g id="gringb" opacity="0">
+              <ellipse
+                cx="120"
+                cy="124"
+                rx="142"
+                ry="30"
+                transform="rotate(-14 120 124)"
+                fill="none"
+                stroke="#f2d694"
+                stroke-width="14"
+                opacity=".55"
+              />
+            </g>
+            <circle
+              id="ghalo"
+              cx="120"
+              cy="120"
+              r="116"
+              fill="#9fdcff"
+              opacity=".22"
+            />
+            <circle cx="120" cy="120" r="108" fill="url(#gsea)" />
+            <g clip-path="url(#gcl)">
+              <g
+                id="ggrid"
+                fill="none"
+                stroke="#fff"
+                stroke-opacity=".16"
+                stroke-width="1"
+              ></g>
+              <g id="gisl"></g>
+              <g id="gcld"></g>
+            </g>
+            <circle
+              cx="120"
+              cy="120"
+              r="108"
+              fill="url(#gshade)"
+              style="pointer-events: none"
+            />
+            <g id="gringf" opacity="0" style="pointer-events: none">
+              <path
+                d="M-18 148 A142 30 -14 0 0 258 100"
+                fill="none"
+                stroke="#ffe4a3"
+                stroke-width="12"
+                opacity=".72"
+              />
+            </g>
+            <g id="gpins"></g>
+          </svg>
+        </div>
+        <div id="glist"></div>
+      </div>
+    </div>
+    <div class="tv" id="tv">
+      <div class="tvc">
+        <i class="ic bal" data-i="balloon"></i>
+        <div class="tvn" id="tvn"></div>
+        <div id="tvd"></div>
+      </div>
+    </div>
+    <button class="fab" id="fab" type="button" aria-label="Add a new habit">
+      <i class="ic" data-i="plus"></i><span>New habit</span>
+    </button>
+    <div class="modal" id="hm">
+      <div class="sheet" role="dialog" aria-label="New habit">
+        <div class="grab"></div>
+        <h3 class="vt">New habit</h3>
+        <div class="hprev" id="hprev"></div>
+        <label class="fl"
+          >What do you want to do?<input
+            id="hn"
+            maxlength="40"
+            placeholder="e.g. Read 10 pages"
+        /></label>
+        <div class="fl">
+          Group
+          <div class="gtiles" id="hg"></div>
+        </div>
+        <div class="fl">
+          Pick an icon
+          <div class="itiles" id="hi"></div>
+        </div>
+        <label class="fl"
+          >Why it matters (optional)<input
+            id="hw"
+            maxlength="50"
+            placeholder="e.g. Fill my mind with good things"
+        /></label>
+        <button class="done" id="hadd" type="button">Add habit</button>
+      </div>
+    </div>
+    <div class="modal" id="ix">
+      <div class="sheet" role="dialog" aria-label="Buddy index">
+        <div class="grab"></div>
+        <h3 class="vt">Buddy Index</h3>
+        <div class="ixtabs">
+          <button type="button" class="ixtab on" id="ixt-b">🔷 Buddies</button
+          ><button type="button" class="ixtab" id="ixt-p">🐾 Pets</button>
+        </div>
+        <div class="ixs" id="ixs"></div>
+        <div class="ixbar"><i id="ixbar"></i></div>
+        <div class="ixg" id="ixl"></div>
+        <button class="done" id="ixdone" type="button">Done</button>
+      </div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script src="assets/js/app.js"></script>
+  </body>
+</html>
