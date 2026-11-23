@@ -1,4 +1,12 @@
 const petById = (id) => PETS.find((x) => x.id === id);
+function petArt(pt) {
+  if (!pt || !pt.art) return "";
+  return (
+    '<image href="' +
+    pt.art +
+    '" x="4" y="5" width="20" height="18" preserveAspectRatio="xMidYMid meet"/>'
+  );
+}
 function petSvg(id, w, h) {
   const pt = petById(id);
   if (!pt) return "";
@@ -8,7 +16,7 @@ function petSvg(id, w, h) {
     '" height="' +
     (h || 26) +
     '" aria-hidden="true">' +
-    pt.svg +
+    petArt(pt) +
     "</svg>"
   );
 }
@@ -54,7 +62,7 @@ function headPetLayer(p, k) {
     '<g class="head-pet" transform="translate(16 ' +
     topY +
     ') scale(.86)">' +
-    pt.svg +
+    petArt(pt) +
     "</g>"
   );
 }
