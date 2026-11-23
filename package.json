@@ -1,0 +1,13 @@
+{
+  "name": "daily-walk",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "build:css": "sass assets/scss/main.scss assets/css/styles.css --style=expanded --no-source-map",
+    "watch:css": "sass --watch assets/scss/main.scss:assets/css/styles.css --style=expanded --no-source-map"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "sass": "^1.93.2"
+  }
+}

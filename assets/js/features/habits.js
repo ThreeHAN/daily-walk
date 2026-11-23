@@ -1,5 +1,48 @@
 let PG = "h";
 const PG_ORD = ["h", "t", "l"];
+
+function getHabitGroupProgress(tasks, checks, groupId) {
+  const groupTasks = tasks.filter((task) => (task.g || "more") === groupId);
+  return {
+    tasks: groupTasks,
+    completed: groupTasks.filter((task) => checks[task.id]).length,
+  };
+}
+
+function handleHabitCheck(task, checked, day) {
+  S.checks[day] = S.checks[day] || {};
+  S.checks[day][task.id] = checked;
+  const completed = S.tasks.filter((item) => S.checks[day][item.id]).length;
+  S.days[day] = completed === S.tasks.length;
+  save();
+
+  const effects = {};
+  if (checked) {
+    effects.completedHabitId = task.id;
+    const groupId = task.g || "more";
+    const group = getHabitGroupProgress(S.tasks, S.checks[day], groupId);
+    if (group.completed === group.tasks.length) effects.completedGroupId = groupId;
+    effects.allDone = S.days[day];
+    const previousBuildings = builtN();
+    const previousLevel = lvOf(S.xp);
+    let gained = award("t:" + task.id, 10);
+    if (gained) {
+      S.bs.tasks = (S.bs.tasks || 0) + 1;
+      save();
+    }
+    if (effects.completedGroupId) gained += award("g:" + groupId, 15);
+    if (effects.allDone) gained += award("all", 30);
+    effects.xpGain = gained;
+    if (lvOf(S.xp) > previousLevel) effects.levelUp = lvOf(S.xp);
+    if (builtN() > previousBuildings)
+      effects.newBuilding = BLD[builtN() - 1].n;
+    hop();
+  }
+
+  render(effects);
+  if (checked) cheer(task, S.days[day]);
+}
+
 setInterval(() => {
   if (PG === "t") dayShade();
 }, 60000);
@@ -301,11 +344,10 @@ $("hadd").onclick = () => {
   }
   const id = "c" + Date.now();
   S.tasks.push({ id, g: hd.g, ic: hd.ic, t: v, s: $("hw").value.trim() });
-  justAdded = id;
   shut[hd.g] = false;
   save();
   $("hm").classList.remove("show");
-  render();
+  render({ addedHabitId: id });
   toast("Habit added!");
   const r = document.querySelector(".newrow");
   if (r) {

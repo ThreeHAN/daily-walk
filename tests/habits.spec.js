@@ -1,0 +1,115 @@
+const { test, expect } = require("@playwright/test");
+const { pathToFileURL } = require("node:url");
+const path = require("node:path");
+
+test.beforeEach(async ({ page }) => {
+  await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
+});
+
+async function clickHabit(page, id) {
+  await page.locator(`input[data-id="${id}"]`).evaluate((input) => input.click());
+}
+
+async function habitState(page) {
+  return page.evaluate(() => ({
+    xp: S.xp,
+    taskAwards: S.bs.tasks || 0,
+    awards: { ...S.aw.k },
+    checks: { ...S.checks[today()] },
+    dayComplete: S.days[today()],
+    tasks: S.tasks.map(({ id, g }) => ({ id, group: g || "more" })),
+  }));
+}
+
+test("task and group rewards are awarded only once", async ({ page }) => {
+  const initial = await habitState(page);
+
+  await clickHabit(page, "wake");
+  let state = await habitState(page);
+  expect(state.xp).toBe(initial.xp + 10);
+  expect(state.dayComplete).toBe(false);
+  await expect(page.locator("#count")).toHaveText("1 of 12 done");
+  await expect(page.locator(".fxp")).toHaveText("+10 XP");
+
+  await clickHabit(page, "cold");
+  state = await habitState(page);
+  expect(state.xp).toBe(initial.xp + 35);
+  expect(state.awards["g:morning"]).toBeTruthy();
+
+  await clickHabit(page, "wake");
+  state = await habitState(page);
+  expect(state.checks.wake).toBe(false);
+  expect(state.xp).toBe(initial.xp + 35);
+
+  await clickHabit(page, "wake");
+  state = await habitState(page);
+  expect(state.xp).toBe(initial.xp + 35);
+  expect(state.taskAwards).toBe(initial.taskAwards + 2);
+});
+
+test("finishing all habits persists progress and rewards across reloads", async ({
+  page,
+}) => {
+  const initial = await habitState(page);
+  for (const task of initial.tasks) await clickHabit(page, task.id);
+
+  const completed = await habitState(page);
+  const groupCount = new Set(initial.tasks.map((task) => task.group)).size;
+  expect(completed.xp).toBe(
+    initial.xp + initial.tasks.length * 10 + groupCount * 15 + 30,
+  );
+  expect(completed.dayComplete).toBe(true);
+  expect(completed.awards.all).toBeTruthy();
+  await expect(page.locator("#count")).toHaveText(
+    `${initial.tasks.length} of ${initial.tasks.length} done`,
+  );
+
+  await page.reload();
+  expect(await habitState(page)).toEqual(completed);
+  await expect(page.locator('input[data-id="wake"]')).toBeChecked();
+});
+
+test("group progress and collapse preserve the checked habit", async ({ page }) => {
+  await clickHabit(page, "wake");
+  const morning = page
+    .locator("#list .grp")
+    .filter({ has: page.locator(".gn", { hasText: "Morning" }) });
+  await expect(morning.locator(".gc")).toHaveText("1/2");
+  await morning.locator(".gh").evaluate((button) => button.click());
+  await expect(page.locator('input[data-id="wake"]')).toHaveCount(0);
+  await morning.locator(".gh").evaluate((button) => button.click());
+  await expect(page.locator('input[data-id="wake"]')).toBeChecked();
+  await expect(morning.locator(".gb")).toHaveClass(/fx/);
+});
+
+test("a new habit is highlighted and can still be removed", async ({ page }) => {
+  await page.locator("#fab").evaluate((button) => button.click());
+  await page.locator("#hn").fill("Take a walk");
+  await page.locator("#hadd").evaluate((button) => button.click());
+
+  const row = page.locator("#list .item").filter({ hasText: "Take a walk" });
+  await expect(row).toHaveClass(/newrow/);
+  const remove = row.getByRole("button", { name: "Remove habit" });
+  await remove.evaluate((button) => button.click());
+  await remove.evaluate((button) => button.click());
+  await expect(row).toHaveCount(0);
+});
+
+test("crossing a level threshold shows the level-up effect", async ({ page }) => {
+  await page.evaluate(() => {
+    S.xp = 79;
+  });
+  await clickHabit(page, "wake");
+  await expect(page.locator("#lun")).toHaveText("2");
+  await expect(page.locator("#lu")).toHaveClass(/show/);
+});
+
+test("crossing a town building threshold announces the new building", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    S.nb.xp[S.nb.cur] = 55;
+  });
+  await clickHabit(page, "wake");
+  await expect(page.locator("#toast")).toContainText("Your town built: Garden");
+});

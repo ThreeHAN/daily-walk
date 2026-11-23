@@ -1,17 +1,7 @@
-let justAdded = null;
 const shut = {};
 // State hydrated and verified on load
 let curStreak = 0,
-  newB = "",
-  xpGain = 0,
-  lvUp = 0,
-  justId = null,
-  fullG = null,
-  allDone = false,
-  openedG = null,
-  firstR = true,
   popTok = null;
-const prevW = {};
 function rerun(el, c) {
   el.classList.remove(c);
   el.getBoundingClientRect();

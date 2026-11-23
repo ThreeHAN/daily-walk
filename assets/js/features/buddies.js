@@ -2156,7 +2156,7 @@ const PETS = [
     n: "Hermit Crab",
     st: 24,
     d: "Curious shell-dwelling explorer",
-    svg: '<path d="M7.5 18.2l-2.2 1.6m3.2-1.2L6.8 22m13.7-3.8 2.2 1.6m-3.2-1.2 1.7 3.4" stroke="#df6b4f" stroke-width="1.3" stroke-linecap="round"/><ellipse cx="14" cy="17.6" rx="5.1" ry="3.2" fill="#f28a63"/><path d="M9.5 17.2C6.8 15.5 7.1 11.5 9.9 11.7c-1.3-1.4-.2-3.3 1.6-2.6 1.1-2.7 5.1-1.5 5.1 1.3 2.8-.3 3.5 3.4 1.2 4.5-1.9-2.5-5.9-2.4-8.3 2.3Z" fill="#d6b777" stroke="#9d7548" stroke-width=".8"/><path d="M13.1 9.3c4.5 1.3 3.4 6.4-.8 5.8" fill="none" stroke="#9d7548" stroke-width="1.1" stroke-linecap="round"/><path d="M11.2 17.1 9.2 14.8m7.6 2.3 2-2.3" stroke="#df6b4f" stroke-width="1.2" stroke-linecap="round"/><path d="M8.9 14.8c-2.1-2.5-3.2-1.2-2.5.3.5 1 1.8.9 2.5-.3Zm10.2 0c2.1-2.5 3.2-1.2 2.5.3-.5 1-1.8.9-2.5-.3Z" fill="#f28a63" stroke="#c94f3c" stroke-width=".6"/><circle cx="12" cy="16.8" r="1.2" fill="#f28a63"/><circle cx="16" cy="16.8" r="1.2" fill="#f28a63"/><circle cx="12" cy="16.6" r=".65" fill="#222"/><circle cx="16" cy="16.6" r=".65" fill="#222"/>',
+    svg: '<g transform="translate(1 -.4)"><path d="M9.4 19.2 6 21.1m4.6-1.4-2 2.6m5-2.8-.9 2.8m5-3.6 1.1 2.6" fill="none" stroke="#d55e3d" stroke-width="1.25" stroke-linecap="round"/><path d="M8.7 18.3C5.8 14.4 8.5 8.7 13.7 7c4.9-1.6 8.8 1.7 8.4 6.1-.5 5.2-5.5 7.8-10.2 6.3Z" fill="#c8b99a" stroke="#766956" stroke-width=".9"/><path d="M17.5 8.2c-3.9-.9-7.2 2.4-4.9 5.4 1.5 2 5.1.9 4.2-1.3-.6-1.5-2.5-1-2.5.2" fill="none" stroke="#8b7c66" stroke-width="1.15" stroke-linecap="round"/><ellipse cx="10.6" cy="16.8" rx="4.7" ry="3.2" transform="rotate(-16 10.6 16.8)" fill="#74523c"/><path d="M10.4 19.7c-3.2.5-5.7-1.3-4.7-3.4.7-1.4 2.6-2 4.6-1.7 1.7.2 3.2 1.1 3.6 2.4.5 1.5-1.4 2.3-3.5 2.7Z" fill="#ed8054"/><path d="m7.5 17.2-2.4-2.1m3.6 2.1L7 14.4" fill="none" stroke="#ed8054" stroke-width="1.05" stroke-linecap="round"/><ellipse cx="5" cy="14.6" rx="1.05" ry="1.35" fill="#f28b5b"/><ellipse cx="7" cy="14" rx="1.05" ry="1.35" fill="#f28b5b"/><ellipse cx="5" cy="14.5" rx=".5" ry=".65" fill="#222"/><ellipse cx="7" cy="13.9" rx=".5" ry=".65" fill="#222"/><path d="M7.8 19 4.9 19.8m8.2-4.1 2.2-1.7" fill="none" stroke="#c95338" stroke-width="1.1" stroke-linecap="round"/><path d="M4.7 19.3c-1.5-.9-2.2.5-1.3 1.2.5.5 1.3.2 1.8-.3m10.3-4.2c1.2-1.5 2.8-.5 2.1.6-.4.7-1.5.6-2.1-.1" fill="#f18a5a" stroke="#c95338" stroke-width=".65"/><path d="m4.9 15.1-1.3-1.2m4.2.1.8-1.5" fill="none" stroke="#c95338" stroke-width=".7" stroke-linecap="round"/></g>',
   },
   {
     id: "owl",
@@ -2246,66 +2246,6 @@ const PETS = [
     svg: '<polygon points="9.5,12 8,7.5 12.2,11" fill="#ffd23f"/><polygon points="18.5,12 20,7.5 15.8,11" fill="#ffd23f"/><circle cx="14" cy="16" r="5.4" fill="#6a5fd6"/><circle cx="12" cy="15.2" r=".95" fill="#ffe27a"/><circle cx="16" cy="15.2" r=".95" fill="#ffe27a"/><path d="M12 17.6q2 1.2 4 0" stroke="#fff" stroke-width="1.1" fill="none" stroke-linecap="round"/>',
   },
 ];
-const petById = (id) => PETS.find((x) => x.id === id);
-function petSvg(id, w, h) {
-  const pt = petById(id);
-  if (!pt) return "";
-  return (
-    '<svg viewBox="4 5 20 18" width="' +
-    (w || 28) +
-    '" height="' +
-    (h || 26) +
-    '" aria-hidden="true">' +
-    pt.svg +
-    "</svg>"
-  );
-}
-function isPetUnlocked(pt, best) {
-  if (!pt) return false;
-  if (S.pets && S.pets[pt.id]) return true;
-  if (pt.st && best >= pt.st) return true;
-  if (pt.nb && S.nb && S.nb.xp && S.nb.xp[pt.nb] !== undefined) return true;
-  return false;
-}
-function syncPetUnlocks(streak) {
-  let newly = [];
-  const best = Math.max(
-    streak || 0,
-    typeof streakBest === "function" ? streakBest() : 0,
-  );
-  PETS.forEach((pt) => {
-    if (!S.pets[pt.id] && isPetUnlocked(pt, best)) {
-      S.pets[pt.id] = 1;
-      newly.push(pt);
-    }
-  });
-  if (newly.length) {
-    if (!S.p.pet || S.p.pet === "none") S.p.pet = newly[newly.length - 1].id;
-    save();
-    const last = newly[newly.length - 1];
-    setTimeout(() => {
-      toast("🐾 Unlocked pet: " + last.n + "! Check Wardrobe → Pets.");
-      burst(innerWidth / 2, innerHeight / 3, 36, CONF);
-    }, 1300);
-  }
-}
-function headPetLayer(p, k) {
-  const id = p && p.pet;
-  const pt = petById(id);
-  if (!pt) return "";
-  // Position pet resting comfortably on top of the buddy's head/hat
-  const hatOff = p.hat && p.hat !== "none" ? -5.5 : 0;
-  const topY =
-    (k === "rectangle" ? -6 : k === "triangle" ? -2 : k === "duck" ? -3 : -4) +
-    hatOff;
-  return (
-    '<g class="head-pet" transform="translate(16 ' +
-    topY +
-    ') scale(.86)">' +
-    pt.svg +
-    "</g>"
-  );
-}
 function freshLook(k) {
   return {
     kind: k,

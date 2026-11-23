@@ -19,30 +19,51 @@ function updateUserBar(justSaved) {
       }) +
       " ✓";
 }
+function reportPersistenceError(message, error) {
+  console.error(message, error);
+  const status = $("ubstat");
+  if (status) {
+    clearTimeout(status._t);
+    status.textContent = message;
+  }
+  if ($("syncst")) $("syncst").textContent = message;
+}
+
 function save() {
+  if (stateLoadError) {
+    reportPersistenceError(
+      "Could not load saved profiles. Changes are not saved; reload to retry.",
+      stateLoadError,
+    );
+    return false;
+  }
+  S.lastSaved = Date.now();
+  const idx = USERS.findIndex((x) => x.id === CUR_UID);
+  const meta = {
+    id: CUR_UID,
+    label:
+      (S.p.name || "").trim() ||
+      (idx >= 0 ? USERS[idx].label : "Player " + (USERS.length + 1)),
+    updated: S.lastSaved,
+    lv: typeof lvOf === "function" ? lvOf(S.xp) : 1,
+    buddy: S.p.buddy || "Buddy",
+    town:
+      typeof NB !== "undefined" && NB[S.nb.cur]
+        ? NB[S.nb.cur].n
+        : "Meadow Valley",
+  };
+  const updatedUsers = USERS.slice();
+  if (idx >= 0) updatedUsers[idx] = meta;
+  else updatedUsers.push(meta);
   try {
-    S.lastSaved = Date.now();
-    localStorage.setItem(uKey(CUR_UID), JSON.stringify(S));
-    localStorage.setItem(K_CUR, CUR_UID);
-    const idx = USERS.findIndex((x) => x.id === CUR_UID);
-    const meta = {
-      id: CUR_UID,
-      label:
-        (S.p.name || "").trim() ||
-        (idx >= 0 ? USERS[idx].label : "Player " + (USERS.length + 1)),
-      updated: S.lastSaved,
-      lv: typeof lvOf === "function" ? lvOf(S.xp) : 1,
-      buddy: S.p.buddy || "Buddy",
-      town:
-        typeof NB !== "undefined" && NB[S.nb.cur]
-          ? NB[S.nb.cur].n
-          : "Meadow Valley",
-    };
-    if (idx >= 0) USERS[idx] = meta;
-    else USERS.push(meta);
-    localStorage.setItem(K_USERS, JSON.stringify(USERS));
-    updateUserBar(true);
-  } catch (e) {}
+    writeStoredProfile(CUR_UID, S, updatedUsers);
+  } catch (e) {
+    reportPersistenceError("Changes not saved. Check browser storage and retry.", e);
+    return false;
+  }
+  USERS = updatedUsers;
+  updateUserBar(true);
+  return true;
 }
 function renderUsers() {
   const L = $("ulist");
@@ -84,11 +105,14 @@ function renderUsers() {
         dl.setAttribute("aria-label", "Delete profile");
         dl.onclick = () => {
           if (dl.classList.contains("arm")) {
-            USERS = USERS.filter((x) => x.id !== u.id);
+            const remainingUsers = USERS.filter((x) => x.id !== u.id);
             try {
-              localStorage.removeItem(uKey(u.id));
-              localStorage.setItem(K_USERS, JSON.stringify(USERS));
-            } catch (e) {}
+              deleteStoredProfile(u.id, remainingUsers, USERS);
+            } catch (e) {
+              reportPersistenceError("Could not remove profile. Check browser storage.", e);
+              return;
+            }
+            USERS = remainingUsers;
             renderUsers();
             toast("Profile removed");
           } else {
@@ -107,16 +131,24 @@ function renderUsers() {
   });
 }
 function switchUser(id) {
-  save();
-  let raw = null;
+  if (!save()) return;
+  let nextState;
   try {
-    const r = localStorage.getItem(uKey(id));
-    if (r) raw = JSON.parse(r);
-  } catch (e) {}
+    nextState = hydrateState(readStoredProfile(id));
+  } catch (e) {
+    reportPersistenceError("Could not load profile. Current profile unchanged.", e);
+    return;
+  }
+  const previousId = CUR_UID;
+  const previousState = S;
   CUR_UID = id;
-  S = hydrateState(raw);
+  S = nextState;
+  if (!save()) {
+    CUR_UID = previousId;
+    S = previousState;
+    return;
+  }
   Object.keys(shut).forEach((k) => delete shut[k]);
-  save();
   paint();
   render();
   drawWater();
@@ -129,13 +161,20 @@ function switchUser(id) {
   );
 }
 function createNewUser() {
-  save();
+  if (!save()) return;
   const num = USERS.length + 1;
   const id = "u_" + Date.now();
+  const previousId = CUR_UID;
+  const previousState = S;
+  const nextState = freshState("Player " + num);
   CUR_UID = id;
-  S = freshState("Player " + num);
+  S = nextState;
+  if (!save()) {
+    CUR_UID = previousId;
+    S = previousState;
+    return;
+  }
   Object.keys(shut).forEach((k) => delete shut[k]);
-  save();
   paint();
   render();
   drawWater();
@@ -480,14 +519,18 @@ $("ufile").onchange = (e) => {
       if (!data || typeof data !== "object" || !data.tasks)
         throw new Error("Invalid file");
       S = hydrateState(data);
-      save();
+      const saved = save();
       paint();
       render();
       drawWater();
       drawJr();
       if (PG === "t") townOpen();
       view("info");
-      toast("Save file restored! ✓");
+      toast(
+        saved
+          ? "Save file restored! ✓"
+          : "Restored in memory, but changes are not saved",
+      );
     } catch (err) {
       toast("Could not read that backup file");
     }

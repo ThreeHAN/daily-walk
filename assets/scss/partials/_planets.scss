@@ -1,0 +1,73 @@
+.pbar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+  margin: 0 0 8px;
+  scrollbar-width: none;
+}
+.pbar::-webkit-scrollbar {
+  display: none;
+}
+.pchip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #d6e4ff;
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.pchip.on {
+  background: linear-gradient(135deg, #ffc83d, #e8941a);
+  color: #2b2622;
+  border-color: #ffc83d;
+  box-shadow: 0 3px 10px rgba(255, 200, 61, 0.35);
+}
+.pchip.lk {
+  opacity: 0.48;
+}
+.pchip i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.launch-card {
+  background: linear-gradient(135deg, #4f6df5, #8a56c9);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(79, 109, 245, 0.45);
+}
+.launch-card .done {
+  background: #fff;
+  color: #2b2622;
+}
+.ixpbar {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+.ixpchip {
+  flex: none;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--mute);
+  border-radius: 12px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ixpchip.on {
+  background: var(--acc);
+  color: #fff;
+  border-color: var(--acc);
+}
+.sp-helmet {
+  pointer-events: none;
+}

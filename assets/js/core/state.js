@@ -456,50 +456,34 @@ function hydrateState(raw) {
 }
 
 let USERS = [];
-try {
-  const ul = localStorage.getItem(K_USERS);
-  if (ul) USERS = JSON.parse(ul);
-} catch (e) {}
-if (!Array.isArray(USERS)) USERS = [];
 let CUR_UID = "";
-try {
-  CUR_UID = localStorage.getItem(K_CUR) || "";
-} catch (e) {}
-
 let S;
-if (!USERS.length) {
+let stateLoadError = null;
+try {
+  USERS = readStoredUsers();
+  CUR_UID = localStorage.getItem(K_CUR) || "";
+  if (!USERS.length) {
+    if (CUR_UID) throw new Error("Saved profile index is missing or empty");
+    CUR_UID = "u_" + Date.now();
+    S = hydrateState(readStoredJson(K_LEGACY));
+    USERS = [
+      {
+        id: CUR_UID,
+        label: S.p.name || "Admin",
+        updated: Date.now(),
+        lv: 1,
+        streak: 0,
+      },
+    ];
+  } else {
+    if (!USERS.some((u) => u.id === CUR_UID)) CUR_UID = USERS[0].id;
+    S = hydrateState(readStoredProfile(CUR_UID));
+  }
+} catch (e) {
+  stateLoadError = e;
   CUR_UID = "u_" + Date.now();
-  let legacy = null;
-  try {
-    const r = localStorage.getItem(K_LEGACY);
-    if (r) legacy = JSON.parse(r);
-  } catch (e) {}
-  S = hydrateState(legacy);
-  USERS = [
-    {
-      id: CUR_UID,
-      label: S.p.name || "Admin",
-      updated: Date.now(),
-      lv: 1,
-      streak: 0,
-    },
-  ];
-  try {
-    localStorage.setItem(uKey(CUR_UID), JSON.stringify(S));
-    localStorage.setItem(K_USERS, JSON.stringify(USERS));
-    localStorage.setItem(K_CUR, CUR_UID);
-  } catch (e) {}
-} else {
-  if (!USERS.some((u) => u.id === CUR_UID)) CUR_UID = USERS[0].id;
-  let loaded = null;
-  try {
-    const r = localStorage.getItem(uKey(CUR_UID));
-    if (r) loaded = JSON.parse(r);
-  } catch (e) {}
-  S = hydrateState(loaded);
-  try {
-    localStorage.setItem(K_CUR, CUR_UID);
-  } catch (e) {}
+  S = hydrateState(null);
+  USERS = [{ id: CUR_UID, label: S.p.name || "Admin" }];
 }
 const G = [
   { id: "morning", n: "Morning", e: "☀️", c: "#f5a623" },
