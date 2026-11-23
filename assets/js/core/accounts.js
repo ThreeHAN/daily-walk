@@ -1,0 +1,497 @@
+function updateUserBar(justSaved) {
+  const u = USERS.find((x) => x.id === CUR_UID);
+  const nm = (S.p.name || "").trim() || (u && u.label) || "Player 1";
+  if ($("ubname"))
+    $("ubname").textContent = nm + " · " + (S.p.buddy || "Buddy");
+  if ($("ubstat")) {
+    $("ubstat").textContent = justSaved ? "Saved just now ✓" : "Synced ✓";
+    clearTimeout($("ubstat")._t);
+    $("ubstat")._t = setTimeout(() => {
+      if ($("ubstat")) $("ubstat").textContent = "All data saved ✓";
+    }, 1800);
+  }
+  if ($("syncst"))
+    $("syncst").textContent =
+      "Saved " +
+      new Date().toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      }) +
+      " ✓";
+}
+function save() {
+  try {
+    S.lastSaved = Date.now();
+    localStorage.setItem(uKey(CUR_UID), JSON.stringify(S));
+    localStorage.setItem(K_CUR, CUR_UID);
+    const idx = USERS.findIndex((x) => x.id === CUR_UID);
+    const meta = {
+      id: CUR_UID,
+      label:
+        (S.p.name || "").trim() ||
+        (idx >= 0 ? USERS[idx].label : "Player " + (USERS.length + 1)),
+      updated: S.lastSaved,
+      lv: typeof lvOf === "function" ? lvOf(S.xp) : 1,
+      buddy: S.p.buddy || "Buddy",
+      town:
+        typeof NB !== "undefined" && NB[S.nb.cur]
+          ? NB[S.nb.cur].n
+          : "Meadow Valley",
+    };
+    if (idx >= 0) USERS[idx] = meta;
+    else USERS.push(meta);
+    localStorage.setItem(K_USERS, JSON.stringify(USERS));
+    updateUserBar(true);
+  } catch (e) {}
+}
+function renderUsers() {
+  const L = $("ulist");
+  if (!L) return;
+  L.innerHTML = "";
+  USERS.forEach((u, i) => {
+    const row = document.createElement("div");
+    row.className = "uitem" + (u.id === CUR_UID ? " cur" : "");
+    const inf = document.createElement("div");
+    inf.className = "uinf";
+    const b = document.createElement("b");
+    b.textContent =
+      (u.label || "Player " + (i + 1)) + (u.id === CUR_UID ? " (Active)" : "");
+    const sm = document.createElement("small");
+    sm.textContent =
+      "Lv " +
+      (u.lv || 1) +
+      " · Buddy: " +
+      (u.buddy || "Buddy") +
+      " · " +
+      (u.town || "Meadow Valley");
+    inf.append(b, sm);
+    inf.onclick = () => {
+      if (u.id !== CUR_UID) switchUser(u.id);
+    };
+    row.appendChild(inf);
+    if (u.id !== CUR_UID) {
+      const sw = document.createElement("button");
+      sw.type = "button";
+      sw.className = "ubtn";
+      sw.textContent = "Switch";
+      sw.onclick = () => switchUser(u.id);
+      row.appendChild(sw);
+      if (USERS.length > 1) {
+        const dl = document.createElement("button");
+        dl.type = "button";
+        dl.className = "ubtn delu";
+        dl.textContent = "✕";
+        dl.setAttribute("aria-label", "Delete profile");
+        dl.onclick = () => {
+          if (dl.classList.contains("arm")) {
+            USERS = USERS.filter((x) => x.id !== u.id);
+            try {
+              localStorage.removeItem(uKey(u.id));
+              localStorage.setItem(K_USERS, JSON.stringify(USERS));
+            } catch (e) {}
+            renderUsers();
+            toast("Profile removed");
+          } else {
+            dl.classList.add("arm");
+            dl.textContent = "Delete?";
+            setTimeout(() => {
+              dl.classList.remove("arm");
+              dl.textContent = "✕";
+            }, 2600);
+          }
+        };
+        row.appendChild(dl);
+      }
+    }
+    L.appendChild(row);
+  });
+}
+function switchUser(id) {
+  save();
+  let raw = null;
+  try {
+    const r = localStorage.getItem(uKey(id));
+    if (r) raw = JSON.parse(r);
+  } catch (e) {}
+  CUR_UID = id;
+  S = hydrateState(raw);
+  Object.keys(shut).forEach((k) => delete shut[k]);
+  save();
+  paint();
+  render();
+  drawWater();
+  drawJr();
+  if (PG === "t") townOpen();
+  view("info");
+  toast(
+    "Switched to " +
+      (S.p.name || USERS.find((x) => x.id === id)?.label || "User"),
+  );
+}
+function createNewUser() {
+  save();
+  const num = USERS.length + 1;
+  const id = "u_" + Date.now();
+  CUR_UID = id;
+  S = freshState("Player " + num);
+  Object.keys(shut).forEach((k) => delete shut[k]);
+  save();
+  paint();
+  render();
+  drawWater();
+  drawJr();
+  if (PG === "t") townOpen();
+  view("info");
+  toast("Created fresh profile: Player " + num);
+  setTimeout(() => {
+    const inp = $("pn");
+    if (inp) {
+      inp.focus();
+      inp.select();
+    }
+  }, 150);
+}
+$("ubar").onclick = () => {
+  view("info");
+  $("pm").classList.add("show");
+};
+$("uadd").onclick = createNewUser;
+$("uexp").onclick = () => {
+  save();
+  const blob = new Blob(
+    [
+      JSON.stringify(
+        {
+          exportedAt: new Date().toISOString(),
+          user: USERS.find((x) => x.id === CUR_UID),
+          data: S,
+        },
+        null,
+        2,
+      ),
+    ],
+    { type: "application/json" },
+  );
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const slug =
+    (S.p.name || "daily-walk").toLowerCase().replace(/[^a-z0-9]+/g, "-") ||
+    "backup";
+  a.download = slug + "-" + today() + ".json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast("Save file downloaded!");
+};
+
+const K_FRIENDS = "dailywalk_universal:friends:v1";
+let lbSort = "xp";
+function calcStreakForState(stObj) {
+  if (!stObj || !stObj.days) return 0;
+  let st = 0,
+    dt = new Date();
+  if (!stObj.days[today()]) dt.setDate(dt.getDate() - 1);
+  while (stObj.days[dkey(dt)]) {
+    st++;
+    dt.setDate(dt.getDate() - 1);
+  }
+  return st;
+}
+function calcTotalTasksForState(stObj) {
+  if (!stObj) return 0;
+  let tot = 0;
+  if (stObj.checks)
+    Object.values(stObj.checks).forEach((o) => {
+      if (o && typeof o === "object")
+        Object.values(o).forEach((v) => {
+          if (v) tot++;
+        });
+    });
+  return Math.max(tot, Number(stObj.bs && stObj.bs.tasks) || 0);
+}
+function calcTownsDoneForState(stObj) {
+  if (!stObj || !stObj.nb || !stObj.nb.xp) return 0;
+  return Object.values(stObj.nb.xp).filter((v) => (Number(v) || 0) >= MAXAT)
+    .length;
+}
+function gatherUniversalAccounts() {
+  const map = new Map();
+  // 1. Scan all localStorage keys for any Daily Walk account (Starter, Admin Account, legacy, or any user)
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k.includes(":u:") || k === K_LEGACY) {
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || !parsed.p) continue;
+        const isMe = k === uKey(CUR_UID);
+        const stObj = isMe ? S : parsed;
+        const uid = isMe ? CUR_UID : k;
+        const name = ((stObj.p && stObj.p.name) || "").trim() || "Walker";
+        const buddy = ((stObj.p && stObj.p.buddy) || "Buddy").trim();
+        const xp = Math.max(Number(stObj.life) || 0, Number(stObj.xp) || 0);
+        const lv = lvOf(Number(stObj.xp) || 0);
+        const streak = calcStreakForState(stObj);
+        const bestStreak = Math.max(streak, 0);
+        const towns = calcTownsDoneForState(stObj);
+        const tasks = calcTotalTasksForState(stObj);
+        const edition = k.startsWith("dailywalk_admin")
+          ? "Admin Account"
+          : "Starter";
+        map.set(uid, {
+          id: uid,
+          name,
+          buddy,
+          look: stObj.p,
+          xp,
+          lv,
+          streak,
+          towns,
+          tasks,
+          edition,
+          isMe,
+          updated: stObj.lastSaved || Date.now(),
+        });
+      }
+    }
+  } catch (e) {}
+  // 2. Merge any universally imported Friend Codes
+  try {
+    const fr = JSON.parse(localStorage.getItem(K_FRIENDS) || "[]");
+    if (Array.isArray(fr)) {
+      fr.forEach((f) => {
+        if (f && f.id && !map.has(f.id)) {
+          map.set(
+            f.id,
+            Object.assign({ isMe: false, edition: "Friend Code" }, f),
+          );
+        }
+      });
+    }
+  } catch (e) {}
+  // Ensure current active account is always present & up-to-date
+  map.set(CUR_UID, {
+    id: CUR_UID,
+    name: (S.p.name || "").trim() || "You",
+    buddy: (S.p.buddy || "Buddy").trim(),
+    look: S.p,
+    xp: Math.max(Number(S.life) || 0, Number(S.xp) || 0),
+    lv: lvOf(S.xp),
+    streak: curStreak,
+    towns: calcTownsDoneForState(S),
+    tasks: calcTotalTasksForState(S),
+    edition: K_USERS.includes("master") ? "Admin Account" : "Starter",
+    isMe: true,
+    updated: Date.now(),
+  });
+  return Array.from(map.values());
+}
+function renderLeaderboard() {
+  const listEl = $("lblist");
+  if (!listEl) return;
+  document
+    .querySelectorAll(".lb-tab")
+    .forEach((b) => b.classList.toggle("on", b.dataset.lbt === lbSort));
+  const all = gatherUniversalAccounts();
+  all.sort((a, b) => {
+    if (lbSort === "streak") return b.streak - a.streak || b.xp - a.xp;
+    if (lbSort === "town") return b.towns - a.towns || b.xp - a.xp;
+    if (lbSort === "tasks") return b.tasks - a.tasks || b.xp - a.xp;
+    return b.xp - a.xp || b.streak - a.streak;
+  });
+  const K_HIDDEN = "dailywalk_admin:hidden_ids:v1";
+  let hiddenIds = [];
+  try {
+    hiddenIds = JSON.parse(localStorage.getItem(K_HIDDEN) || "[]");
+  } catch (e) {}
+  const filteredAll = all.filter((u) => !hiddenIds.includes(u.id));
+  $("lbcnt").textContent =
+    filteredAll.length + (filteredAll.length === 1 ? " Account" : " Accounts");
+  const myIdx = filteredAll.findIndex((x) => x.isMe);
+  const me = filteredAll[myIdx] || filteredAll[0] || all[0];
+  $("lbmyrk").textContent = myIdx >= 0 ? "#" + (myIdx + 1) : "-";
+  $("lbmynm").textContent = me.name + " · " + me.buddy;
+  $("lbmyxp").textContent =
+    lbSort === "streak"
+      ? "🔥 " + me.streak + "d"
+      : lbSort === "town"
+        ? "🪐 " + me.towns + "/48"
+        : lbSort === "tasks"
+          ? "✅ " + me.tasks
+          : "⭐ " + me.xp.toLocaleString() + " XP";
+  listEl.innerHTML = "";
+  filteredAll.forEach((u, idx) => {
+    const rank = idx + 1;
+    const card = document.createElement("div");
+    card.className =
+      "lb-card" +
+      (u.isMe ? " me" : "") +
+      (rank === 1 ? " top1" : rank === 2 ? " top2" : rank === 3 ? " top3" : "");
+    card.style.setProperty("--i", idx);
+    const rk = document.createElement("div");
+    rk.className = "lb-rk";
+    rk.textContent =
+      rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "#" + rank;
+    const av = document.createElement("div");
+    av.className = "lb-av";
+    av.appendChild(svgOf(u.look || freshLook("square"), 36, 40));
+    const inf = document.createElement("div");
+    inf.className = "lb-inf";
+    const b = document.createElement("b");
+    b.textContent = u.name + (u.isMe ? " (You)" : "");
+    const sm = document.createElement("small");
+    sm.textContent =
+      "Lv " +
+      u.lv +
+      " " +
+      u.buddy +
+      " · 🔥 " +
+      u.streak +
+      "d · 🪐 " +
+      u.towns +
+      " towns";
+    inf.append(b, sm);
+    const val = document.createElement("div");
+    val.className = "lb-val";
+    if (lbSort === "streak") {
+      val.innerHTML = "🔥 " + u.streak + "<small>day streak</small>";
+    } else if (lbSort === "town") {
+      val.innerHTML = "🪐 " + u.towns + "<small>ecosystems</small>";
+    } else if (lbSort === "tasks") {
+      val.innerHTML = "✅ " + u.tasks + "<small>habits done</small>";
+    } else {
+      val.innerHTML = u.xp.toLocaleString() + "<small>total XP</small>";
+    }
+    card.append(rk, av, inf, val);
+    const rmBtn = document.createElement("button");
+    rmBtn.type = "button";
+    rmBtn.className = "ubtn delu";
+    rmBtn.textContent = "✕";
+    rmBtn.title = "Admin: Remove from Leaderboard";
+    rmBtn.style.marginLeft = "8px";
+    rmBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (rmBtn.classList.contains("arm")) {
+        hiddenIds.push(u.id);
+        try {
+          localStorage.setItem(
+            "dailywalk_admin:hidden_ids:v1",
+            JSON.stringify(hiddenIds),
+          );
+        } catch (e) {}
+        renderLeaderboard();
+        toast("Removed " + u.name + " from Leaderboard");
+      } else {
+        rmBtn.classList.add("arm");
+        rmBtn.textContent = "Remove?";
+        setTimeout(() => {
+          rmBtn.classList.remove("arm");
+          rmBtn.textContent = "✕";
+        }, 2600);
+      }
+    };
+    card.appendChild(rmBtn);
+    listEl.appendChild(card);
+  });
+}
+document.querySelectorAll(".lb-tab").forEach((b) => {
+  b.onclick = () => {
+    lbSort = b.dataset.lbt;
+    renderLeaderboard();
+  };
+});
+$("lbshare").onclick = () => {
+  const me = gatherUniversalAccounts().find((x) => x.isMe);
+  if (!me) return;
+  const payload = {
+    id:
+      "fr_" +
+      (me.name || "walker").toLowerCase().replace(/[^a-z0-9]/g, "") +
+      "_" +
+      me.xp,
+    name: me.name,
+    buddy: me.buddy,
+    look: me.look,
+    xp: me.xp,
+    lv: me.lv,
+    streak: me.streak,
+    towns: me.towns,
+    tasks: me.tasks,
+  };
+  const code =
+    "DW1:" + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard
+      .writeText(code)
+      .then(() =>
+        toast(
+          "📋 Friend Code copied! Anyone can paste it on their Leaderboard.",
+        ),
+      )
+      .catch(() => prompt("Copy your Universal Friend Code:", code));
+  } else {
+    prompt("Copy your Universal Friend Code:", code);
+  }
+};
+$("lbreset").onclick = () => {
+  try {
+    localStorage.removeItem("dailywalk_admin:hidden_ids:v1");
+    renderLeaderboard();
+    toast("All hidden accounts restored!");
+  } catch (e) {}
+};
+$("lbaddf").onclick = () => {
+  const raw = prompt(
+    "Paste a friend's Universal Friend Code (starts with DW1:) to add them to your Leaderboard:",
+  );
+  if (!raw) return;
+  try {
+    const clean = raw.trim().replace(/^DW1:/, "");
+    const parsed = JSON.parse(decodeURIComponent(escape(atob(clean))));
+    if (!parsed || !parsed.name || typeof parsed.xp !== "number")
+      throw new Error("Bad code");
+    const fr = JSON.parse(localStorage.getItem(K_FRIENDS) || "[]");
+    const idx = fr.findIndex(
+      (x) => x.id === parsed.id || x.name === parsed.name,
+    );
+    if (idx >= 0) fr[idx] = parsed;
+    else fr.push(parsed);
+    localStorage.setItem(K_FRIENDS, JSON.stringify(fr));
+    renderLeaderboard();
+    toast("🎉 Added " + parsed.name + " to the Universal Leaderboard!");
+  } catch (e) {
+    toast("❌ Invalid Friend Code — please paste the full DW1:... code");
+  }
+};
+addEventListener("storage", () => {
+  if (PG === "l") renderLeaderboard();
+});
+
+$("uimp").onclick = () => $("ufile").click();
+$("ufile").onchange = (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const parsed = JSON.parse(rd.result);
+      const data = parsed && parsed.data ? parsed.data : parsed;
+      if (!data || typeof data !== "object" || !data.tasks)
+        throw new Error("Invalid file");
+      S = hydrateState(data);
+      save();
+      paint();
+      render();
+      drawWater();
+      drawJr();
+      if (PG === "t") townOpen();
+      view("info");
+      toast("Save file restored! ✓");
+    } catch (err) {
+      toast("Could not read that backup file");
+    }
+    $("ufile").value = "";
+  };
+  rd.readAsText(f);
+};
