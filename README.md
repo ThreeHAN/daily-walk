@@ -22,6 +22,18 @@ current static app.
 You can still open `index.html` directly or serve the folder with a normal
 static server for a production-like run.
 
+## Publish on GitHub Pages
+
+In the repository's **Settings > Pages**, set **Build and deployment > Source**
+to **GitHub Actions**. Push the workflow to `main` to deploy; subsequent pushes
+to `main` deploy automatically. You can also run **Deploy to GitHub Pages**
+manually from the Actions tab. The workflow rebuilds the CSS from Sass before
+publishing.
+
+Once the deployment succeeds, the site should be available at
+<https://threehan.github.io/daily-walk/>. Progress is stored in each browser,
+not synchronized across devices; use Profile export and restore to move it.
+
 ## Project structure
 
 ```text
