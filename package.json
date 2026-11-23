@@ -3,11 +3,14 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
+    "dev": "concurrently -k -n sass,web \"npm:watch:css\" \"vite --host 127.0.0.1 --port 8123 --strictPort\"",
     "build:css": "sass assets/scss/main.scss assets/css/styles.css --style=expanded --no-source-map",
     "watch:css": "sass --watch assets/scss/main.scss:assets/css/styles.css --style=expanded --no-source-map"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
-    "sass": "^1.93.2"
+    "concurrently": "^9.2.1",
+    "sass": "^1.93.2",
+    "vite": "^8.3.8"
   }
 }

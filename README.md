@@ -5,16 +5,22 @@ leaderboard, and solar-system exploration.
 
 ## Run locally
 
-Open `index.html` directly in a browser, or serve the folder with any static web
-server.
-
-For example:
+For development with automatic browser refresh:
 
 ```sh
-python3 -m http.server 8000
+npm install
+npm run dev
 ```
 
-Then open <http://localhost:8000>.
+Open <http://127.0.0.1:8123/>.
+
+The development command watches both Sass and the app files. Saving HTML, CSS,
+JavaScript, or SVG changes automatically reloads the browser. React-style hot
+component state is not used; this is a fast full-page refresh suitable for the
+current static app.
+
+You can still open `index.html` directly or serve the folder with a normal
+static server for a production-like run.
 
 ## Project structure
 

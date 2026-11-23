@@ -58,7 +58,10 @@ function save() {
   try {
     writeStoredProfile(CUR_UID, S, updatedUsers);
   } catch (e) {
-    reportPersistenceError("Changes not saved. Check browser storage and retry.", e);
+    reportPersistenceError(
+      "Changes not saved. Check browser storage and retry.",
+      e,
+    );
     return false;
   }
   USERS = updatedUsers;
@@ -109,7 +112,10 @@ function renderUsers() {
             try {
               deleteStoredProfile(u.id, remainingUsers, USERS);
             } catch (e) {
-              reportPersistenceError("Could not remove profile. Check browser storage.", e);
+              reportPersistenceError(
+                "Could not remove profile. Check browser storage.",
+                e,
+              );
               return;
             }
             USERS = remainingUsers;
@@ -136,7 +142,10 @@ function switchUser(id) {
   try {
     nextState = hydrateState(readStoredProfile(id));
   } catch (e) {
-    reportPersistenceError("Could not load profile. Current profile unchanged.", e);
+    reportPersistenceError(
+      "Could not load profile. Current profile unchanged.",
+      e,
+    );
     return;
   }
   const previousId = CUR_UID;
@@ -159,6 +168,9 @@ function switchUser(id) {
     "Switched to " +
       (S.p.name || USERS.find((x) => x.id === id)?.label || "User"),
   );
+  setTimeout(() => {
+    if (typeof maybeStartTour === "function") maybeStartTour();
+  }, 200);
 }
 function createNewUser() {
   if (!save()) return;
@@ -182,6 +194,9 @@ function createNewUser() {
   if (PG === "t") townOpen();
   view("info");
   toast("Created fresh profile: Player " + num);
+  setTimeout(() => {
+    if (typeof maybeStartTour === "function") maybeStartTour();
+  }, 200);
   setTimeout(() => {
     const inp = $("pn");
     if (inp) {

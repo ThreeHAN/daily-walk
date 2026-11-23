@@ -230,7 +230,7 @@ function freshState(userName) {
     saturnowl: 1,
     iceaxolotl: 1,
     cometpup: 1,
-    nebula: 1,
+    royalpig: 1,
   };
   const allSeenK = {
     square: 1,
@@ -353,7 +353,7 @@ function freshState(userName) {
       mouth: "smile",
       body: "yellow",
       kind: "cosmo",
-      pet: "nebula",
+      pet: "royalpig",
       ex: {
         scarf: true,
         bowtie: true,
@@ -384,6 +384,7 @@ function freshState(userName) {
     tseen: 12,
     splash: "",
     vday: "",
+    tutorialDone: false,
   };
 }
 
@@ -413,12 +414,20 @@ function hydrateState(raw) {
   s.p.ex = s.p.ex && typeof s.p.ex === "object" ? s.p.ex : {};
   if (typeof s.p.pet !== "string") s.p.pet = "none";
   s.pets = s.pets && typeof s.pets === "object" ? s.pets : {};
+  if (s.p.pet === "nebula") s.p.pet = "royalpig";
+  if (s.pets.nebula) {
+    s.pets.royalpig = 1;
+    delete s.pets.nebula;
+  }
   s.water = s.water && typeof s.water === "object" ? s.water : { d: "", n: 0 };
   s.jr = s.jr && typeof s.jr === "object" ? s.jr : {};
   s.xp = Number(s.xp) || 0;
   s.aw = s.aw && typeof s.aw === "object" ? s.aw : { d: "", k: {} };
   s.aw.k = s.aw.k && typeof s.aw.k === "object" ? s.aw.k : {};
   s.res = Array.isArray(s.res) ? s.res : [];
+  s.res.forEach((resident) => {
+    if (resident?.l?.pet === "nebula") resident.l.pet = "royalpig";
+  });
   s.life = Math.max(Number(s.life) || 0, s.xp);
   if (!s.nb || typeof s.nb !== "object") {
     s.nb = {
@@ -451,6 +460,7 @@ function hydrateState(raw) {
     s.bs = { born: mn ? Date.parse(mn) : Date.now(), clicks: 0, tasks: tc };
   }
   s.tseen = Number(s.tseen) || 0;
+  s.tutorialDone = !!s.tutorialDone;
   s.lastSeen = Date.now();
   return s;
 }

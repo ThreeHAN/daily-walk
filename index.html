@@ -33,8 +33,17 @@
         <div class="pbs">
           <button id="ixh" class="pbtn" type="button" aria-label="Buddy index">
             <i class="ic" data-i="shapes"></i></button
-          ><button id="prof" class="pbtn" type="button" aria-label="Profile">
-            👤
+          ><button
+            id="prof"
+            class="pbtn profile-avatar"
+            type="button"
+            aria-label="Profile"
+          >
+            <svg
+              id="profile-buddy"
+              viewBox="0 -8 56 70"
+              aria-hidden="true"
+            ></svg>
           </button>
         </div>
       </div>
@@ -47,7 +56,9 @@
       >
         <span class="ubl"
           ><i class="ubdot"></i><span id="ubname">Default Profile</span></span
-        ><span class="ubr" id="ubstat" role="status" aria-live="polite">All data saved ✓</span>
+        ><span class="ubr" id="ubstat" role="status" aria-live="polite"
+          >All data saved ✓</span
+        >
       </div>
       <div class="hero" id="hero">
         <div class="hl">
@@ -575,6 +586,14 @@
             </div>
             <em class="arr">›</em>
           </button>
+          <button class="card2" id="go-tour" type="button">
+            <span class="ci g3">👋</span>
+            <div>
+              <b>Show app tour</b
+              ><span>Replay the quick interactive guide</span>
+            </div>
+            <em class="arr">›</em>
+          </button>
           <button class="card2" id="go-grad" type="button" hidden>
             <span class="ci g2">🎓</span>
             <div>
@@ -888,18 +907,40 @@
         <button class="done" id="ixdone" type="button">Done</button>
       </div>
     </div>
+    <div class="tour" id="tour" hidden>
+      <div
+        class="tour-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tour-title"
+      >
+        <div class="tour-top">
+          <span class="tour-step" id="tour-step"></span>
+          <button class="tour-skip" id="tour-skip" type="button">Skip</button>
+        </div>
+        <div class="tour-icon" id="tour-icon" aria-hidden="true"></div>
+        <h2 id="tour-title"></h2>
+        <p id="tour-text"></p>
+        <div class="tour-actions">
+          <button class="ubtn sec" id="tour-back" type="button">Back</button>
+          <button class="done" id="tour-open" type="button">Open page</button>
+          <button class="done" id="tour-next" type="button">Next</button>
+        </div>
+      </div>
+    </div>
     <div class="toast" id="toast"></div>
     <script src="assets/js/core/storage.js"></script>
-    <script src="assets/js/core/state.js"></script>
+    <script src="assets/js/core/state.js?v=royal-pig"></script>
     <script src="assets/js/ui/icons.js"></script>
     <script src="assets/js/core/runtime.js"></script>
-    <script src="assets/js/features/buddies.js"></script>
-    <script src="assets/js/features/pets.js"></script>
+    <script src="assets/js/features/buddies.js?v=normal-pig-1"></script>
+    <script src="assets/js/features/pets.js?v=royal-pig"></script>
     <script src="assets/js/features/profile.js"></script>
-    <script src="assets/js/features/town.js"></script>
+    <script src="assets/js/features/town.js?v=normal-pig-farm-1"></script>
     <script src="assets/js/features/town-progress.js"></script>
     <script src="assets/js/features/habits.js"></script>
-    <script src="assets/js/features/collection.js"></script>
+    <script src="assets/js/features/collection.js?v=static-pet-scenes-1"></script>
+    <script src="assets/js/features/tutorial.js"></script>
     <script src="assets/js/core/accounts.js"></script>
     <script src="assets/js/app.js"></script>
   </body>

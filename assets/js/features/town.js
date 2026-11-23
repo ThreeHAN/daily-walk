@@ -452,7 +452,7 @@ const SPACE_CFG = {
       "Violet-amber nebula arboretum.",
       "Twin-star observatory ridge.",
       "Deep sapphire crystal cavern.",
-      "The ultimate outer-rim sky citadel.",
+      "A block-built royal pig kingdom above the clouds.",
     ],
   },
 };
@@ -487,6 +487,20 @@ const SPACE_CFG = {
     };
   });
 });
+
+NB.neptune_sky.n = "Pigpatch Sky Farm";
+NB.neptune_sky.d = "A cheerful grassland farm beneath a bright blue sky.";
+NB.neptune_sky.sky = ["#76c9ef", "#dff5ff"];
+NB.neptune_sky.hill = "#83bb69";
+NB.neptune_sky.gr = ["#92cf6c", "#4f9556"];
+NB.neptune_sky.road = "#e5c789";
+NB.neptune_sky.hc = [
+  ["#ffd5df", "#d45f86"],
+  ["#ffe0e7", "#8f5bd6"],
+  ["#f7b6cb", "#e39b25"],
+  ["#ffe6b3", "#cf668c"],
+  ["#f3c5dc", "#6e72cb"],
+];
 
 const planetNbs = (pl) =>
   BASE_ECO.map((e) => (pl === "earth" ? e : pl + "_" + e));
@@ -975,7 +989,14 @@ function applyBiome(id) {
   $("hillp").setAttribute("fill", c.hill);
   $("roadp").setAttribute("fill", c.road);
   $("flw").style.display = id === "meadow" ? "" : "none";
-  const bg = BG[eco] || {};
+  const royalPig =
+    id === "neptune_sky"
+      ? {
+          back: () =>
+            '<g><ellipse cx="55" cy="52" rx="38" ry="12" fill="#fff" opacity=".85"/><ellipse cx="305" cy="64" rx="44" ry="13" fill="#fff" opacity=".82"/><g transform="translate(35 62) scale(.82)"><path d="M0 40 36 8 72 40" fill="#7f3130"/><path d="M8 37 36 15 64 37V84H8Z" fill="#b9473f"/><path d="M20 84V54L36 40 52 54V84Z" fill="#7a2e2c" stroke="#fff5e8" stroke-width="4"/><path d="m21 55 30 28m0-28L21 83" stroke="#fff5e8" stroke-width="3"/><path d="M31 25h10v10H31z" fill="#dff3fa" stroke="#fff5e8" stroke-width="3"/></g><g fill="#fff"><circle cx="240" cy="101" r="5"/><circle cx="276" cy="109" r="4"/><circle cx="320" cy="105" r="5"/></g></g>',
+        }
+      : {};
+  const bg = royalPig.back ? royalPig : BG[eco] || {};
   $("decB").innerHTML = bg.back ? bg.back() : "";
   $("decF").innerHTML = bg.front ? bg.front() : "";
   $("bfs").innerHTML =

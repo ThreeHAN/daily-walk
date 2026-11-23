@@ -534,12 +534,6 @@
   filter: brightness(0);
   opacity: 0.45;
 }
-.ixc:last-child {
-  grid-column: auto;
-}
-.ixc.span2 {
-  grid-column: 1/-1;
-}
 .wc {
   display: flex;
   align-items: center;

@@ -2101,6 +2101,7 @@ const PETS = [
     st: 1,
     d: "A glowing evening spark",
     art: "assets/svg/pets/firefly.svg",
+    eco: "meadow-night",
   },
   {
     id: "chick",
@@ -2108,6 +2109,7 @@ const PETS = [
     st: 3,
     d: "Sunny chirping friend",
     art: "assets/svg/pets/chick.svg",
+    eco: "farm",
   },
   {
     id: "bunny",
@@ -2115,6 +2117,7 @@ const PETS = [
     st: 5,
     d: "Soft ears & gentle hops",
     art: "assets/svg/pets/bunny.svg",
+    eco: "meadow",
   },
   {
     id: "lamb",
@@ -2122,6 +2125,7 @@ const PETS = [
     st: 7,
     d: "Gentle shepherd’s companion",
     art: "assets/svg/pets/lamb.svg",
+    eco: "pasture",
   },
   {
     id: "puppy",
@@ -2129,6 +2133,7 @@ const PETS = [
     st: 10,
     d: "Tail-wagging trail buddy",
     art: "assets/svg/pets/puppy.svg",
+    eco: "trail",
   },
   {
     id: "dove",
@@ -2136,6 +2141,7 @@ const PETS = [
     st: 14,
     d: "Messenger of calm & hope",
     art: "assets/svg/pets/dove.svg",
+    eco: "sky",
   },
   {
     id: "kitten",
@@ -2143,6 +2149,7 @@ const PETS = [
     st: 18,
     d: "Purring pocket friend",
     art: "assets/svg/pets/kitten.svg",
+    eco: "cozy",
   },
   {
     id: "turtle",
@@ -2150,6 +2157,7 @@ const PETS = [
     st: 21,
     d: "Slow, faithful & persistent",
     art: "assets/svg/pets/turtle.svg",
+    eco: "pond",
   },
   {
     id: "hermitcrab",
@@ -2157,6 +2165,8 @@ const PETS = [
     st: 24,
     d: "Curious shell-dwelling explorer",
     art: "assets/svg/pets/hermitcrab.svg",
+    scale: 1.04,
+    eco: "beach",
   },
   {
     id: "owl",
@@ -2164,6 +2174,7 @@ const PETS = [
     st: 25,
     d: "Night-watch scripture reader",
     art: "assets/svg/pets/owl.svg",
+    eco: "forest-night",
   },
   {
     id: "lion",
@@ -2171,6 +2182,7 @@ const PETS = [
     st: 30,
     d: "Bold & courageous champion",
     art: "assets/svg/pets/lion.svg",
+    eco: "savanna",
   },
   // Space Pets unlocked by settling space ecosystems
   {
@@ -2180,6 +2192,8 @@ const PETS = [
     pl: "mars",
     d: "Beep-boop Mars explorer",
     art: "assets/svg/pets/astrobot.svg",
+    eco: "mars",
+    scale: 1.3,
   },
   {
     id: "stardust",
@@ -2188,6 +2202,7 @@ const PETS = [
     pl: "mars",
     d: "Twinkling cosmic sprite",
     art: "assets/svg/pets/stardust.svg",
+    eco: "space",
   },
   {
     id: "mooncat",
@@ -2196,6 +2211,7 @@ const PETS = [
     pl: "jupiter",
     d: "Space-helmet purring pal",
     art: "assets/svg/pets/mooncat.svg",
+    eco: "jupiter",
   },
   {
     id: "cloudwhale",
@@ -2204,6 +2220,7 @@ const PETS = [
     pl: "jupiter",
     d: "Gentle gas-giant glider",
     art: "assets/svg/pets/cloudwhale.svg",
+    eco: "jupiter-sky",
   },
   {
     id: "ringfox",
@@ -2212,6 +2229,7 @@ const PETS = [
     pl: "saturn",
     d: "Golden-tailed ring runner",
     art: "assets/svg/pets/ringfox.svg",
+    eco: "saturn",
   },
   {
     id: "saturnowl",
@@ -2220,6 +2238,7 @@ const PETS = [
     pl: "saturn",
     d: "Stargazer of Saturn’s rings",
     art: "assets/svg/pets/saturnowl.svg",
+    eco: "saturn-rings",
   },
   {
     id: "iceaxolotl",
@@ -2228,6 +2247,7 @@ const PETS = [
     pl: "uranus",
     d: "Smiling cyan crystal swimmer",
     art: "assets/svg/pets/iceaxolotl.svg",
+    eco: "uranus",
   },
   {
     id: "cometpup",
@@ -2236,14 +2256,17 @@ const PETS = [
     pl: "neptune",
     d: "Sapphire space-suit hound",
     art: "assets/svg/pets/cometpup.svg",
+    eco: "neptune",
   },
   {
-    id: "nebula",
-    n: "Nebula Dragon",
+    id: "royalpig",
+    n: "Pig",
     nb: "neptune_sky",
     pl: "neptune",
-    d: "Cosmic guardian of the outer rim",
-    art: "assets/svg/pets/nebula.svg",
+    d: "Friendly farm companion with a cheerful snort",
+    art: "assets/svg/pets/royalpig.svg",
+    scale: 1.05,
+    eco: "pig-farm",
   },
 ];
 function freshLook(k) {
@@ -2413,6 +2436,7 @@ function layers(pp) {
 function paint() {
   const l = layers();
   $("pal").innerHTML = l;
+  $("profile-buddy") && ($("profile-buddy").innerHTML = l);
   document.querySelectorAll(".pv").forEach((e) => {
     e.innerHTML = l;
   });

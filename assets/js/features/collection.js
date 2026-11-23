@@ -78,11 +78,16 @@ function fillIndex() {
           (unlocked ? "own" : "unk") +
           ((k === "duck" || k === "cosmo" || k.endsWith("planet")) && own
             ? " gold"
-            : "") +
-          (i === kinds.length - 1 && kinds.length % 2 === 1 ? " span2" : ""),
+            : ""),
       );
       c.style.setProperty("--i", i);
-      const pv = el("div", "ixp");
+      const buddyEco =
+        kd.nb && NB[kd.nb]
+          ? NB[kd.nb].pl === "earth"
+            ? NB[kd.nb].eco || "meadow"
+            : NB[kd.nb].pl
+          : kd.pl || "meadow";
+      const pv = el("div", "ixp buddy-scene pet-eco-" + buddyEco);
       if (unlocked) {
         pv.appendChild(svgOf(own ? hv[hv.length - 1].p : freshLook(k), 64, 72));
       } else {
@@ -156,13 +161,10 @@ function fillIndex() {
       const eq = S.p.pet === pt.id;
       const c = el(
         "div",
-        "ixc " +
-          (unlPt ? "own" : "unk") +
-          (eq ? " gold" : "") +
-          (i === PETS.length - 1 && PETS.length % 2 === 1 ? " span2" : ""),
+        "ixc " + (unlPt ? "own" : "unk") + (eq ? " gold" : ""),
       );
       c.style.setProperty("--i", i);
-      const pv = el("div", "ixp");
+      const pv = el("div", "ixp pet-scene pet-eco-" + (pt.eco || "meadow"));
       if (unlPt) {
         pv.innerHTML = petSvg(pt.id, 56, 52);
       } else {

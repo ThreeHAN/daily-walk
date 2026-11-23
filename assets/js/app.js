@@ -265,6 +265,7 @@ drawJr();
 showSplash();
 hydrate();
 iconize(document.body);
+initTutorial();
 icMO.observe(document.body, {
   childList: true,
   subtree: true,
