@@ -19,6 +19,20 @@ JavaScript, or SVG changes automatically reloads the browser. React-style hot
 component state is not used; this is a fast full-page refresh suitable for the
 current static app.
 
+### A note for Declan
+
+`npm run dev` is like starting your app's workshop. It opens a local web server
+for Daily Walk and starts a helper that watches your files for changes. Keep the
+terminal running while you work, then open <http://127.0.0.1:8123/> in your
+browser.
+
+Whenever you save an HTML, JavaScript, SVG, or Sass change, the helper notices
+and refreshes the browser for you (or updates the CSS directly). That is called
+**live refresh**. It means you can change one thing, save it, and immediately see
+what happened instead of manually refreshing every time. Make small changes and
+save often—it's one of the best ways to learn, experiment, and catch mistakes
+quickly. To stop the workshop, press `Ctrl+C` in the terminal.
+
 You can still open `index.html` directly or serve the folder with a normal
 static server for a production-like run.
 
@@ -99,15 +113,15 @@ The scripts in `index.html` are loaded in dependency order without a build step.
 
 ## Feature map and behavior
 
-| Feature | Main implementation |
-| --- | --- |
-| Habit checklist, groups, water, and journal | [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js) |
-| XP, levels, and wardrobe | [`profile.js`](assets/js/features/profile.js) |
-| Towns, ecosystems, and planets | [`town.js`](assets/js/features/town.js), [`town-progress.js`](assets/js/features/town-progress.js) |
-| Buddy and pet definitions, unlocks, and index | [`buddies.js`](assets/js/features/buddies.js), [`pets.js`](assets/js/features/pets.js), [`collection.js`](assets/js/features/collection.js) |
-| Profiles, backup/restore, and leaderboard | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js) |
-| Guided introduction | [`tutorial.js`](assets/js/features/tutorial.js) |
-| Defaults, saved-state hydration, and migrations | [`state.js`](assets/js/core/state.js) |
+| Feature                                         | Main implementation                                                                                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Habit checklist, groups, water, and journal     | [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js)                                                                   |
+| XP, levels, and wardrobe                        | [`profile.js`](assets/js/features/profile.js)                                                                                               |
+| Towns, ecosystems, and planets                  | [`town.js`](assets/js/features/town.js), [`town-progress.js`](assets/js/features/town-progress.js)                                          |
+| Buddy and pet definitions, unlocks, and index   | [`buddies.js`](assets/js/features/buddies.js), [`pets.js`](assets/js/features/pets.js), [`collection.js`](assets/js/features/collection.js) |
+| Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js)                                                      |
+| Guided introduction                             | [`tutorial.js`](assets/js/features/tutorial.js)                                                                                             |
+| Defaults, saved-state hydration, and migrations | [`state.js`](assets/js/core/state.js)                                                                                                       |
 
 - Habit checks and awards use the browser's local date. Checking a habit awards
   XP; completing a group or the whole checklist awards bonuses. Each award key
