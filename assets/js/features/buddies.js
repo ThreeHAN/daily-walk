@@ -2152,11 +2152,18 @@ const PETS = [
     svg: '<path d="M8.5 17.5a5.5 5 0 0 1 11 0z" fill="#3f9d63"/><path d="M11 14.5h6M14 12.5v5" stroke="#2a6e44" stroke-width="1"/><circle cx="20.2" cy="16.5" r="2.3" fill="#7fd49a"/><circle cx="20.9" cy="16" r=".7" fill="#222"/><rect x="9.5" y="17.5" width="2.2" height="2.6" rx="1" fill="#7fd49a"/><rect x="16.3" y="17.5" width="2.2" height="2.6" rx="1" fill="#7fd49a"/>',
   },
   {
+    id: "hermitcrab",
+    n: "Hermit Crab",
+    st: 24,
+    d: "Curious shell-dwelling explorer",
+    svg: '<path d="M7.5 18.2l-2.2 1.6m3.2-1.2L6.8 22m13.7-3.8 2.2 1.6m-3.2-1.2 1.7 3.4" stroke="#df6b4f" stroke-width="1.3" stroke-linecap="round"/><ellipse cx="14" cy="17.6" rx="5.1" ry="3.2" fill="#f28a63"/><path d="M9.5 17.2C6.8 15.5 7.1 11.5 9.9 11.7c-1.3-1.4-.2-3.3 1.6-2.6 1.1-2.7 5.1-1.5 5.1 1.3 2.8-.3 3.5 3.4 1.2 4.5-1.9-2.5-5.9-2.4-8.3 2.3Z" fill="#d6b777" stroke="#9d7548" stroke-width=".8"/><path d="M13.1 9.3c4.5 1.3 3.4 6.4-.8 5.8" fill="none" stroke="#9d7548" stroke-width="1.1" stroke-linecap="round"/><path d="M11.2 17.1 9.2 14.8m7.6 2.3 2-2.3" stroke="#df6b4f" stroke-width="1.2" stroke-linecap="round"/><path d="M8.9 14.8c-2.1-2.5-3.2-1.2-2.5.3.5 1 1.8.9 2.5-.3Zm10.2 0c2.1-2.5 3.2-1.2 2.5.3-.5 1-1.8.9-2.5-.3Z" fill="#f28a63" stroke="#c94f3c" stroke-width=".6"/><circle cx="12" cy="16.8" r="1.2" fill="#f28a63"/><circle cx="16" cy="16.8" r="1.2" fill="#f28a63"/><circle cx="12" cy="16.6" r=".65" fill="#222"/><circle cx="16" cy="16.6" r=".65" fill="#222"/>',
+  },
+  {
     id: "owl",
     n: "Wise Owl",
     st: 25,
     d: "Night-watch scripture reader",
-    svg: '<polygon points="9.5,12 10.5,8.5 13,11.5" fill="#7c5a42"/><polygon points="18.5,12 17.5,8.5 15,11.5" fill="#7c5a42"/><circle cx="14" cy="16" r="5.5" fill="#7c5a42"/><circle cx="11.8" cy="15.2" r="2.1" fill="#fff3b0"/><circle cx="16.2" cy="15.2" r="2.1" fill="#fff3b0"/><circle cx="11.8" cy="15.2" r="1" fill="#222"/><circle cx="16.2" cy="15.2" r="1" fill="#222"/><polygon points="14,16.5 12.8,18.2 15.2,18.2" fill="#f0a830"/>',
+    svg: '<polygon points="9.5,12 10.5,8.5 13,11.5" fill="#7c5a42"/><polygon points="18.5,12 17.5,8.5 15,11.5" fill="#7c5a42"/><circle cx="14" cy="16" r="5.5" fill="#7c5a42"/><circle cx="11.8" cy="15.2" r="2.1" fill="#fff3b0"/><circle cx="16.2" cy="15.2" r="2.1" fill="#fff3b0"/><circle cx="11.8" cy="15.2" r="1" fill="#222"/><circle cx="16.2" cy="15.2" r="1" fill="#222"/><polygon points="14,16.4 13,17.8 15,17.8" fill="#f0a830"/>',
   },
   {
     id: "lion",

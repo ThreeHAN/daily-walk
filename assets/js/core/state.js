@@ -219,6 +219,7 @@ function freshState(userName) {
     dove: 1,
     kitten: 1,
     turtle: 1,
+    hermitcrab: 1,
     owl: 1,
     lion: 1,
     astrobot: 1,
