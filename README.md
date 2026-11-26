@@ -14,10 +14,9 @@ npm run dev
 
 Open <http://127.0.0.1:8123/>.
 
-The development command watches both Sass and the app files. Saving HTML, CSS,
-JavaScript, or SVG changes automatically reloads the browser. React-style hot
-component state is not used; this is a fast full-page refresh suitable for the
-current static app.
+The development command watches Sass, the React source, and the app files.
+Saving HTML, CSS, JavaScript, JSX, or SVG changes rebuilds as needed and reloads
+the browser. React hot component state is not used.
 
 ### A note for Declan
 
@@ -26,7 +25,7 @@ for Daily Walk and starts a helper that watches your files for changes. Keep the
 terminal running while you work, then open <http://127.0.0.1:8123/> in your
 browser.
 
-Whenever you save an HTML, JavaScript, SVG, or Sass change, the helper notices
+Whenever you save an HTML, JavaScript, JSX, SVG, or Sass change, the helper notices
 and refreshes the browser for you (or updates the CSS directly). That is called
 **live refresh**. It means you can change one thing, save it, and immediately see
 what happened instead of manually refreshing every time. Make small changes and
@@ -41,8 +40,8 @@ static server for a production-like run.
 In the repository's **Settings > Pages**, set **Build and deployment > Source**
 to **GitHub Actions**. Push the workflow to `main` to deploy; subsequent pushes
 to `main` deploy automatically. You can also run **Deploy to GitHub Pages**
-manually from the Actions tab. The workflow rebuilds the CSS from Sass before
-running the browser tests and publishing. A failed build or test prevents
+manually from the Actions tab. The workflow rebuilds the CSS and React bundle
+before running the browser tests and publishing. A failed build or test prevents
 deployment.
 
 Once the deployment succeeds, the site should be available at
@@ -55,6 +54,7 @@ not synchronized across devices; use Profile export and restore to move it.
 .
 ├── index.html
 ├── package.json
+├── vite.react.config.mjs
 └── assets
     ├── css
     │   └── styles.css
@@ -71,8 +71,12 @@ not synchronized across devices; use Profile export and restore to move it.
     │       ├── _pixel.scss
     │       ├── _planets.scss
     │       └── _town.scss
+    ├── react
+    │   └── habit-list.jsx
     └── js
         ├── app.js
+        ├── generated
+        │   └── habit-list.js
         ├── core
         │   ├── accounts.js
         │   ├── runtime.js
@@ -102,7 +106,12 @@ not synchronized across devices; use Profile export and restore to move it.
   partials.
 - `assets/css/styles.css` is generated from Sass and remains the stylesheet
   loaded by Chrome and other browsers.
-- `assets/js/app.js` is the final bootstrap and main habit renderer.
+- `assets/react/habit-list.jsx` owns the habit list UI. Its generated classic
+  script, `assets/js/generated/habit-list.js`, is checked in so the site also
+  works directly from `index.html`. The bundle includes the MIT license for
+  React, React DOM, and Scheduler.
+- `assets/js/app.js` is the final bootstrap and bridges existing state and
+  actions to the React habit list. The legacy app remains the state owner.
 - `assets/js/core/` contains application state, shared UI helpers, profile
   storage, account UI, and leaderboard logic.
 - `assets/js/features/` contains the habits, profile, buddy, collection,
@@ -127,15 +136,16 @@ not synchronized across devices; use Profile export and restore to move it.
   ([project](https://github.com/Gissio/font_tiny5)).
 - `tests/` contains browser tests for habits, profiles, pets, and town progression.
 
-The scripts in `index.html` are classic scripts loaded in dependency order
-without a build step. Keep that order when moving code, and update the version
-in a changed script's URL so browsers do not use a stale cached copy.
+The scripts in `index.html` are classic scripts loaded in dependency order.
+Keep that order when moving code, and update the version in a changed script's
+URL so browsers do not use a stale cached copy. React exclusively owns the
+contents of `#list`; legacy code must not mutate that subtree.
 
 ## Feature map and behavior
 
 | Feature                                         | Main implementation                                                                                                                         |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Habit checklist, groups, water, and journal     | [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js)                                                                   |
+| Habit checklist, groups, water, and journal     | [`habit-list.jsx`](assets/react/habit-list.jsx), [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js)                   |
 | Pixel traveler and appearance                   | [`buddy-render.js`](assets/js/features/buddy-render.js), [`buddies.js`](assets/js/features/buddies.js), [`profile.js`](assets/js/features/profile.js) |
 | Town data, rewards, and progression            | [`town-data.js`](assets/js/features/town-data.js), [`town-progress.js`](assets/js/features/town-progress.js)                               |
 | Town buildings, scenery, and cast               | [`town-scene.js`](assets/js/features/town-scene.js)                                                                                        |
@@ -247,6 +257,13 @@ For automatic rebuilding while you work:
 ```sh
 npm run watch:css
 ```
+
+## Build React
+
+After editing `assets/react/` or the React build configuration, run
+`npm run build:react` and include the updated generated bundle. The bundle is
+a classic script so direct-file usage does not depend on a module server.
+`npm run dev` also rebuilds it automatically while developing.
 
 All user data remains in the browser's local storage. Use the export and restore
 controls in the Profile screen to move a save to another browser.

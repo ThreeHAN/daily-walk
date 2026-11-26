@@ -3,9 +3,15 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
-    "dev": "concurrently -k -n sass,web \"npm:watch:css\" \"vite --host 127.0.0.1 --port 8123 --strictPort\"",
+    "dev": "npm run build:react && concurrently -k -n sass,react,web \"npm:watch:css\" \"npm:watch:react\" \"vite --host 127.0.0.1 --port 8123 --strictPort\"",
+    "build:react": "vite build --config vite.react.config.mjs",
+    "watch:react": "npm run build:react -- --watch",
     "build:css": "sass assets/scss/main.scss assets/css/styles.css --style=expanded --no-source-map",
     "watch:css": "sass --watch assets/scss/main.scss:assets/css/styles.css --style=expanded --no-source-map"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

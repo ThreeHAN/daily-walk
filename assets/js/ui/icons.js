@@ -49,6 +49,8 @@ const EMO = {
   "🌍": "globe",
 };
 const ICRE = new RegExp("(" + Object.keys(EMO).join("|") + ")\uFE0F?", "gu");
+const iconTextParts = (text) =>
+  text.split(ICRE).map((part, i) => (i % 2 ? { icon: EMO[part] } : { text: part }));
 const icoSvg = (n) =>
   '<svg viewBox="0 0 24 24" aria-hidden="true">' +
   (ICONS[n] || ICONS.star) +
@@ -62,11 +64,11 @@ function icoSpan(n) {
 }
 function fixText(t) {
   const v = t.nodeValue;
-  if (!v || v.search(ICRE) < 0 || !t.parentNode) return;
+  if (!v || v.search(ICRE) < 0 || !t.parentNode || t.parentElement?.closest("#list")) return;
   const f = document.createDocumentFragment();
-  v.split(ICRE).forEach((x, i) => {
-    if (i % 2) f.appendChild(icoSpan(EMO[x]));
-    else if (x) f.appendChild(document.createTextNode(x));
+  iconTextParts(v).forEach((part) => {
+    if (part.icon) f.appendChild(icoSpan(part.icon));
+    else if (part.text) f.appendChild(document.createTextNode(part.text));
   });
   t.parentNode.replaceChild(f, t);
 }

@@ -66,127 +66,31 @@ async function cheer(t, all) {
 const prevW = {};
 let firstR = true;
 
-function renderHabitRow(t, d, c, effects) {
-  const el = document.createElement("div");
-  el.className = "item" + (c[t.id] ? " done" : "");
-  const lb = document.createElement("label");
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  cb.dataset.id = t.id;
-  cb.checked = !!c[t.id];
-  if (t.id === effects.completedHabitId) cb.className = "just";
-  cb.onchange = () => handleHabitCheck(t, cb.checked, d);
-  const tx = document.createElement("span");
-  tx.className = "t";
-  tx.textContent = t.t;
-  if (t.m) {
-    const hr = new Date().getHours() + new Date().getMinutes() / 60;
-    if (hr >= t.m[0] && hr < t.m[1] && !c[t.id]) {
-      const nb = document.createElement("span");
-      nb.className = "nowb";
-      nb.textContent = "NOW";
-      tx.append(" ", nb);
-    }
-  }
-  if (t.s) {
-    const sm = document.createElement("small");
-    sm.textContent = t.s;
-    tx.appendChild(sm);
-  }
-  const hi = document.createElement("span");
-  hi.className = "hi";
-  hi.innerHTML = icoSvg(t.ic || DEFIC[t.id] || GIC[t.g || "more"]);
-  lb.append(cb, hi, tx);
-  el.appendChild(lb);
-  if (t.id === effects.addedHabitId) el.classList.add("newrow");
-  if (/^c\d+$/.test(String(t.id))) {
-    el.classList.add("itrow");
-    const dl = document.createElement("button");
-    dl.type = "button";
-    dl.className = "del";
-    dl.setAttribute("aria-label", "Remove habit");
-    dl.innerHTML = icoSvg("trash");
-    dl.onclick = (ev) => {
-      ev.stopPropagation();
-      if (dl.classList.contains("arm")) {
-        S.tasks = S.tasks.filter((x) => x.id !== t.id);
-        save();
-        render();
-        toast("Habit removed");
-      } else {
-        dl.classList.add("arm");
-        setTimeout(() => dl.classList.remove("arm"), 2600);
-      }
-    };
-    el.appendChild(dl);
-  }
-  return el;
-}
-
 function renderHabitGroups(d, c, effects) {
-  let fullEl = null,
-    idx = 0;
-  const L = $("list");
-  L.innerHTML = "";
-  G.forEach((g) => {
-    const group = getHabitGroupProgress(S.tasks, c, g.id);
-    const ts = group.tasks;
-    if (!ts.length) return;
-    const dn = group.completed;
-    const sec = document.createElement("section");
-    sec.className =
-      "grp" +
-      (shut[g.id] ? " shut" : "") +
-      (dn === ts.length ? " full" : "") +
-      (g.id === effects.completedGroupId ? " bounceG" : "") +
-      (firstR ? " enter" : "");
-    sec.style.setProperty("--i", idx++);
-    sec.style.setProperty("--gc", g.c);
-    if (g.id === effects.completedGroupId) fullEl = sec;
-    const h = document.createElement("button");
-    h.type = "button";
-    h.className = "gh";
-    const mk = (cl, tx) => {
-      const e = document.createElement("span");
-      e.className = cl;
-      e.textContent = tx;
-      return e;
-    };
-    const icon = mk("ge", "");
-    icon.setAttribute("aria-hidden", "true");
-    icon.innerHTML = icoSvg(g.e);
-    h.append(
-      icon,
-      mk("gn", g.n),
-      mk("gc", dn === ts.length ? "✓ Done" : dn + "/" + ts.length),
-      mk("chev", "⌄"),
-    );
-    h.onclick = () => {
-      shut[g.id] = !shut[g.id];
-      render({ openedGroupId: !shut[g.id] ? g.id : null });
-    };
-    const bar = document.createElement("div");
-    bar.className = "gbar";
-    const bi = document.createElement("i");
-    bi.style.width = (prevW[g.id] || 0) + "%";
-    const nw = (dn / ts.length) * 100;
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        bi.style.width = nw + "%";
-      }),
-    );
-    prevW[g.id] = nw;
-    bar.appendChild(bi);
-    sec.append(h, bar);
-    if (!shut[g.id]) {
-      const body = document.createElement("div");
-      body.className = "gb" + (effects.openedGroupId === g.id ? " fx" : "");
-      ts.forEach((t) => body.appendChild(renderHabitRow(t, d, c, effects)));
-      sec.appendChild(body);
-    }
-    L.appendChild(sec);
+  return DailyWalkHabitList.render({
+    groups: G,
+    tasks: S.tasks,
+    checks: c,
+    closedGroups: shut,
+    effects,
+    firstRender: firstR,
+    previousWidths: prevW,
+    icon: icoSvg,
+    iconTextParts,
+    defaultIcons: DEFIC,
+    groupIcons: GIC,
+    onCheck: (task, checked) => handleHabitCheck(task, checked, d),
+    onToggle: (id) => {
+      shut[id] = !shut[id];
+      render({ openedGroupId: !shut[id] ? id : null });
+    },
+    onRemove: (task) => {
+      S.tasks = S.tasks.filter((item) => item.id !== task.id);
+      save();
+      render();
+      toast("Habit removed");
+    },
   });
-  return fullEl;
 }
 
 function renderHabitProgress(c) {

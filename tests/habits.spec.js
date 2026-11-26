@@ -82,6 +82,55 @@ test("group progress and collapse preserve the checked habit", async ({ page }) 
   await expect(morning.locator(".gb")).toHaveClass(/fx/);
 });
 
+test("the legacy water goal opens the React group and checks the habit", async ({ page }) => {
+  const nutrition = page.locator("#list .grp").filter({
+    has: page.locator(".gn", { hasText: "Nutrition" }),
+  });
+  await nutrition.locator(".gh").evaluate((button) => button.click());
+  await expect(page.locator('input[data-id="water"]')).toHaveCount(0);
+  await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
+  await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
+  await expect(page.locator('input[data-id="water"]')).toBeChecked();
+  await expect(page.locator("#count")).toHaveText("1 of 12 done");
+  await page.reload();
+  await expect(page.locator('input[data-id="water"]')).toBeChecked();
+});
+
+test("React renders habit text and emoji icons through repeated updates", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.evaluate(() => {
+    S.tasks.push({ id: "c999", g: "morning", t: "Walk 🌙", s: "Give thanks 🙏" });
+    render();
+  });
+  const row = page.locator("#list .item").filter({ hasText: "Walk" });
+  await expect(row.locator(".t .ic svg")).toHaveCount(2);
+  await row.locator("input").evaluate((input) => input.click());
+  await expect(row.locator("input")).toBeChecked();
+  await expect(row.locator(".t .ic svg")).toHaveCount(2);
+  await page.locator("#reset").evaluate((button) => button.click());
+  await expect(row.locator("input")).not.toBeChecked();
+  expect(errors).toEqual([]);
+});
+
+test("restoring a backup refreshes the React habit list", async ({ page }) => {
+  const backup = await page.evaluate(() => {
+    const data = structuredClone(S);
+    data.tasks.push({ id: "c999", g: "morning", t: "Restored habit" });
+    data.checks[today()] = { c999: true };
+    return JSON.stringify({ data });
+  });
+  await page.locator("#ufile").setInputFiles({
+    name: "backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(backup),
+  });
+  const restored = page.locator("#list .item").filter({ hasText: "Restored habit" });
+  await expect(restored.locator("input")).toBeChecked();
+  await page.reload();
+  await expect(restored.locator("input")).toBeChecked();
+});
+
 test("category and navigation icons stay pixel art after rerender and navigation", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
