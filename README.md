@@ -282,6 +282,35 @@ receives current tasks and per-day checks from the legacy state owner.
   activate it before continuing. Completion is stored per profile; users can
   skip or reopen it from their profile.
 
+## Supabase database foundation
+
+The migration in `supabase/migrations/` defines an initial Supabase schema:
+`walk_profiles` holds each account's profiles, habits, appearance, and overall
+progress; `walk_daily_activity` holds one row per profile and local calendar
+date, including habit checks, water, and journal entries. A null water count
+means the value is unknown, rather than zero. Row-level security restricts both
+tables to the owning authenticated user; project administrators can still access
+the data. The profile foreign key also prevents activity from being assigned to
+another user's profile. Deleting a profile removes its daily rows, and deleting
+an Auth user removes their profiles.
+
+This schema is a foundation only: the app does not yet read or write these
+tables, migrate existing profiles, retain journals beyond 30 entries, or resolve
+cross-device conflicts. `updated_at` records the server's update time; it does
+not by itself implement the chosen latest-save-wins policy.
+
+To validate the migration against a local Supabase database:
+
+```sh
+supabase db start
+supabase migration up
+docker exec -i supabase_db_daily-walk psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/cloud_profiles.sql
+```
+
+The test uses synthetic accounts inside a rolled-back transaction. It does not
+connect to the hosted project. The Docker container name is based on the
+`project_id` in the local Supabase configuration.
+
 ## Test
 
 Install dependencies and the Playwright browser once:
