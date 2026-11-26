@@ -299,6 +299,7 @@ test("people sleep in built homes overnight and wake in every town", async ({ pa
   await page.clock.install({ time: new Date(2026, 0, 1, 19, 59) });
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
   await page.evaluate(() => {
+    S.res = freshState("").res;
     S.nb.cur = "meadow";
     S.nb.xp.meadow = 0;
     S.vday = today();

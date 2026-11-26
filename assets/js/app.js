@@ -159,7 +159,7 @@ function render(effects = {}) {
 }
 $("reset").onclick = () => {
   S.checks[today()] = {};
-  S.days[today()] = true;
+  S.days[today()] = false;
   save();
   render();
 };

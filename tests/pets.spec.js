@@ -68,6 +68,7 @@ test("equipped pets sit beside the traveler in profile previews and update when 
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
   await page.evaluate(() => {
     S.pets.royalpig = 1;
+    S.pets.chick = 1;
     S.p.pet = "royalpig";
     save();
     paint();

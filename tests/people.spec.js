@@ -301,6 +301,8 @@ test("saved blush is preserved without rendering or offering it", async ({ page 
 
 test("pixel artwork responds to appearance and gear choices throughout the app", async ({ page }) => {
   await page.evaluate(() => {
+    S.xp = 99999;
+    S.nb.xp = freshState("").nb.xp;
     S.p.hat = "none";
     S.p.pet = "none";
     S.p.eyeColor = "brown";
@@ -447,7 +449,7 @@ test("gender can be changed repeatedly with distinct appearance and without chan
   await click(page, "#uadd");
   expect(await page.evaluate(() => S.p.gender)).toBe("unspecified");
   await click(page, "#ubar");
-  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+  await page.locator("#ulist .uitem").filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Switch" })
     .evaluate((button) => button.click());
   expect(await page.evaluate(() => S.p.gender)).toBe("female");
@@ -708,6 +710,7 @@ test("the people index records only people tapped and keeps encounters across to
   noon.setHours(12, 0, 0, 0);
   await page.clock.setFixedTime(noon);
   await page.evaluate(() => {
+    S.res = freshState("").res;
     S.peopleMet = [];
     S.nb.cur = "meadow";
     S.nb.xp.meadow = MAXAT;
@@ -756,7 +759,7 @@ test("the people index records only people tapped and keeps encounters across to
   await click(page, "#uadd");
   expect(await page.evaluate(() => S.peopleMet)).toEqual([]);
   await click(page, "#ubar");
-  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+  await page.locator("#ulist .uitem").filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Switch" })
     .evaluate((button) => button.click());
   expect(await page.evaluate(() => S.peopleMet)).toEqual(met);

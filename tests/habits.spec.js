@@ -124,7 +124,6 @@ test("the water goal opens the group and checks the habit without clicking its c
   await nutrition.locator(".gh").evaluate((button) => button.click());
   await expect(page.locator('input[data-id="water"]')).toHaveCount(0);
   await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
-  await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
   await expect(page.locator('input[data-id="water"]')).toBeChecked();
   await expect(page.locator("#wn")).toHaveText("8 / 8 cups");
   await expect(page.locator("#cups .full")).toHaveCount(8);
@@ -165,7 +164,7 @@ test("dashboard heading updates greeting, clock, and date without losing its ico
   await page.clock.install({ time: new Date(2026, 0, 1, 4, 59, 50) });
   await page.reload();
   await expect(page.locator("#dashboard-heading h1")).toHaveText("Daily Walk");
-  await expect(page.locator("#clock")).toContainText("Good night, Admin");
+  await expect(page.locator("#clock")).toContainText("Good night, Player 1");
   const expectedTime = await page.evaluate(() =>
     new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
   );
@@ -173,7 +172,7 @@ test("dashboard heading updates greeting, clock, and date without losing its ico
   await expect(page.locator("#clock .ic svg")).toHaveCount(1);
   const initialDate = await page.locator("#date").textContent();
   await page.clock.fastForward(25000);
-  await expect(page.locator("#clock")).toContainText("Good morning, Admin");
+  await expect(page.locator("#clock")).toContainText("Good morning, Player 1");
   await expect(page.locator("#clock .ic svg")).toHaveCount(1);
 
   for (const [hour, greeting] of [[12, "Good afternoon"], [17, "Good evening"], [20, "Good evening"]]) {

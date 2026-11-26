@@ -264,10 +264,10 @@ receives current tasks and per-day checks from the legacy state owner.
 - Water and journal entries are daily. Reaching the water goal checks the water
   habit; the first journal save of the day awards XP. The app keeps up to 30
   journal entries.
-- **Development default:** `freshState()` intentionally creates a highly
-  progressed profile with completed towns, unlocked rewards, and historical
-  activity. Keep this setup while the app is being established; it is not the
-  intended new-player experience.
+- A new browser or newly created profile starts at level 1 in Meadow Valley,
+  with no progress, journal history, pets, or rewards. Existing local profiles
+  and legacy saves are preserved. `freshState()` remains a highly progressed
+  development fixture with completed towns, rewards, and historical activity.
 - Each profile is stored separately in browser local storage. Export creates a
   JSON backup; restoring a backup replaces the active profile's in-memory state
   and saves it. `hydrateState()` supplies missing fields and migrates older

@@ -210,7 +210,6 @@ setInterval(() => {
   tickClock();
   if (today() !== lastKey) {
     lastKey = today();
-    S.days[today()] = true;
     save();
     render();
     drawWater();

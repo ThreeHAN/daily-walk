@@ -144,7 +144,7 @@ function createNewUser() {
   const id = "u_" + Date.now();
   const previousId = CUR_UID;
   const previousState = S;
-  const nextState = freshState("Player " + num);
+  const nextState = newPlayerState("Player " + num);
   CUR_UID = id;
   S = nextState;
   if (!save()) {

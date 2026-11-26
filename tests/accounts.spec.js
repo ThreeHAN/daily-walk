@@ -121,7 +121,7 @@ test("profile changes and separate habit progress survive switching and reload",
   await click(page, 'input[data-id="cold"]');
 
   await click(page, "#ubar");
-  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+  await page.locator("#ulist .uitem").filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Switch" })
     .evaluate((button) => button.click());
   expect(await page.evaluate(() => CUR_UID)).toBe(firstId);
@@ -190,13 +190,12 @@ test("the level hero refreshes when switching and restoring profiles", async ({ 
   await expect(page.locator("#xpn")).toHaveText("40 / 80 XP");
   await click(page, "#ubar");
   await click(page, "#uadd");
-  await expect(page.locator("#lvb")).toHaveText("Lv 10");
-  await expect(page.locator("#xpn")).toContainText("MAX");
-  await expect(page.locator("#xpn .ic svg")).toHaveCount(1);
-  await expect(page.locator("#xfill")).toHaveAttribute("style", "width: 100%;");
+  await expect(page.locator("#lvb")).toHaveText("Lv 1");
+  await expect(page.locator("#xpn")).toHaveText("0 / 80 XP");
+  await expect(page.locator("#xfill")).toHaveAttribute("style", "width: 0%;");
 
   await click(page, "#ubar");
-  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+  await page.locator("#ulist .uitem").filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Switch" })
     .evaluate((button) => button.click());
   await expect(page.locator("#xpn")).toHaveText("40 / 80 XP");
@@ -217,15 +216,15 @@ test("the level hero refreshes when switching and restoring profiles", async ({ 
 });
 
 test("the dashboard greeting follows the active profile and restored name", async ({ page }) => {
-  await expect(page.locator("#clock")).toContainText("Admin");
+  await expect(page.locator("#clock")).toContainText("Player 1");
   await click(page, "#ubar");
   await click(page, "#uadd");
   await expect(page.locator("#clock")).toContainText("Player 2");
   await click(page, "#ubar");
-  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+  await page.locator("#ulist .uitem").filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Switch" })
     .evaluate((button) => button.click());
-  await expect(page.locator("#clock")).toContainText("Admin");
+  await expect(page.locator("#clock")).toContainText("Player 1");
   const backup = await page.evaluate(() => {
     const data = structuredClone(S);
     data.p.name = "Restored 🌙";
@@ -246,10 +245,10 @@ test("water progress stays separate when switching profiles", async ({ page }) =
   await click(page, '#cups button[aria-label="Cup 3"]');
   await click(page, "#ubar");
   await click(page, "#uadd");
-  await expect(page.locator("#wn")).toHaveText("8 / 8 cups");
+  await expect(page.locator("#wn")).toHaveText("0 / 8 cups");
   await click(page, '#cups button[aria-label="Cup 5"]');
   await click(page, "#ubar");
-  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+  await page.locator("#ulist .uitem").filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Switch" })
     .evaluate((button) => button.click());
   await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
@@ -266,7 +265,7 @@ test("journal drafts are replaced with the selected profile's saved entry", asyn
   const playerEntry = await page.locator("#jt").inputValue();
   await page.locator("#jt").fill("Unsaved player draft");
   await click(page, "#ubar");
-  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+  await page.locator("#ulist .uitem").filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Switch" })
     .evaluate((button) => button.click());
   await expect(page.locator("#jt")).toHaveValue("Admin journal");
@@ -343,7 +342,7 @@ test("a profile read failure does not replace or switch the current profile", as
     };
   }, firstId);
   await click(page, "#ubar");
-  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+  await page.locator("#ulist .uitem").filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Switch" })
     .evaluate((button) => button.click());
   expect(await page.evaluate(() => CUR_UID)).toBe(secondId);
@@ -366,7 +365,7 @@ test("a failed destination save leaves the current profile active", async ({ pag
     };
   }, firstId);
   await click(page, "#ubar");
-  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+  await page.locator("#ulist .uitem").filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Switch" })
     .evaluate((button) => button.click());
   expect(await page.evaluate(() => CUR_UID)).toBe(secondId);
@@ -390,7 +389,7 @@ test("a failed new-profile save leaves the current profile active", async ({ pag
   }, firstId);
   await click(page, "#uadd");
   expect(await page.evaluate(() => CUR_UID)).toBe(firstId);
-  await expect(page.locator("#ubname")).toContainText("Admin");
+  await expect(page.locator("#ubname")).toContainText("Player 1");
   await expect(page.locator("#ubstat")).toContainText("not saved");
 });
 
@@ -462,7 +461,7 @@ test("a failed profile deletion keeps its data and index", async ({ page }) => {
   await click(page, "#ubar");
   const remove = page
     .locator("#ulist .uitem")
-    .filter({ hasText: "Admin" })
+    .filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Delete profile" });
   await remove.evaluate((button) => button.click());
   await remove.evaluate((button) => button.click());
@@ -474,5 +473,5 @@ test("a failed profile deletion keeps its data and index", async ({ page }) => {
   expect(intact).toEqual({ listed: true, exists: true });
   await page.reload();
   await click(page, "#ubar");
-  await expect(page.locator("#ulist .uitem").filter({ hasText: "Admin" })).toHaveCount(1);
+  await expect(page.locator("#ulist .uitem").filter({ hasText: "Player 1" })).toHaveCount(1);
 });

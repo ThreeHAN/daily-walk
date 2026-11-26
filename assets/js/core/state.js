@@ -99,6 +99,65 @@ const dkey = (d) =>
   String(d.getDate()).padStart(2, "0");
 const today = () => dkey(new Date());
 
+function newPlayerState(userName) {
+  const now = Date.now();
+  return {
+    v: 3,
+    createdAt: now,
+    lastSaved: now,
+    tasks: DEFAULTS.map((d) => ({ ...d })),
+    checks: {},
+    days: {},
+    p: {
+      name: userName || "Player 1",
+      buddy: "Buddy",
+      hat: "none",
+      topStyle: "tee",
+      topColor: "blue",
+      pants: "black",
+      shoes: "white",
+      pantsStyle: "classic",
+      shoeStyle: "classic",
+      eyes: "happy",
+      glasses: "none",
+      mouth: "smile",
+      body: "yellow",
+      kind: "square",
+      pet: "none",
+      gender: "unspecified",
+      skin: "medium",
+      hair: "short",
+      hairColor: "brown",
+      eyeColor: "brown",
+      ex: {},
+    },
+    pets: {},
+    water: { d: today(), n: 0 },
+    jr: {},
+    xp: 0,
+    life: 0,
+    aw: { d: today(), k: {} },
+    res: [],
+    peopleMet: [],
+    nb: {
+      planet: "earth",
+      vplanet: "earth",
+      cur: "meadow",
+      view: "meadow",
+      xp: {},
+      seen: {},
+      cel: {},
+      pcel: {},
+    },
+    seenK: {},
+    bs: { born: now, clicks: 0, tasks: 0 },
+    tseen: 0,
+    splash: "",
+    vday: "",
+    tutorialDone: false,
+  };
+}
+
 function freshState(userName) {
   const days = {},
     checks = {},
@@ -410,7 +469,6 @@ function hydrateState(raw) {
   });
   s.checks = s.checks && typeof s.checks === "object" ? s.checks : {};
   s.days = s.days && typeof s.days === "object" ? s.days : {};
-  s.days[today()] = true;
   s.p = Object.assign(freshState("").p, s.p || {});
   delete s.p.genderLocked;
   if (s.p.topStyle === "none") s.p.topStyle = "tee";
@@ -487,11 +545,12 @@ try {
   if (!USERS.length) {
     if (CUR_UID) throw new Error("Saved profile index is missing or empty");
     CUR_UID = "u_" + Date.now();
-    S = hydrateState(readStoredJson(K_LEGACY));
+    const legacy = readStoredJson(K_LEGACY);
+    S = legacy === null ? newPlayerState("Player 1") : hydrateState(legacy);
     USERS = [
       {
         id: CUR_UID,
-        label: S.p.name || "Admin",
+        label: S.p.name || "Player 1",
         updated: Date.now(),
         lv: 1,
         streak: 0,
@@ -504,8 +563,8 @@ try {
 } catch (e) {
   stateLoadError = e;
   CUR_UID = "u_" + Date.now();
-  S = hydrateState(null);
-  USERS = [{ id: CUR_UID, label: S.p.name || "Admin" }];
+  S = newPlayerState("Player 1");
+  USERS = [{ id: CUR_UID, label: S.p.name || "Player 1" }];
 }
 const G = [
   { id: "morning", n: "Morning", e: "sun", c: "#f5a623" },
