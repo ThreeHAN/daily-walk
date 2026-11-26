@@ -10,6 +10,85 @@ async function click(page, selector) {
   await page.locator(selector).evaluate((element) => element.click());
 }
 
+test("leaderboard cards sort, import friends, and persist hidden accounts", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.evaluate(() => {
+    S.xp = 50;
+    S.life = 50;
+    S.checks = {};
+    S.bs.tasks = 1;
+    S.nb.xp = {};
+    curStreak = 2;
+    localStorage.setItem("dailywalk_universal:friends:v1", JSON.stringify([
+      { id: "friend-a", name: "Amy 🌙 <b>", buddy: "Pal", xp: 500, lv: 3, streak: 0, towns: 1, tasks: 0 },
+      { id: "friend-b", name: "Bea", buddy: "Pal", xp: 100, lv: 2, streak: 8, towns: 0, tasks: 10 },
+    ]));
+  });
+  await click(page, '.nv[data-p="l"]');
+  const cards = page.locator("#lblist .lb-card");
+  await expect(cards).toHaveCount(3);
+  await expect(cards.nth(0).locator(".lb-inf b")).toContainText("Amy");
+  await expect(cards.nth(0).locator(".lb-inf b .ic svg")).toHaveCount(1);
+  await expect(cards.nth(0).locator(".lb-inf b")).toContainText("<b>");
+  await expect(cards.nth(0).locator(".lb-av svg")).toHaveCount(1);
+  await expect(cards.nth(0).locator(".lb-rk")).toHaveText("🥇");
+  await expect(cards.nth(0).locator(".lb-val")).toContainText("500");
+  await expect(page.locator("#lbcnt")).toHaveText("3 Accounts");
+  await expect(page.locator("#lbmyrk")).toHaveText("#3");
+
+  await click(page, '.lb-tab[data-lbt="streak"]');
+  await expect(cards.nth(0).locator(".lb-inf b")).toHaveText("Bea");
+  await expect(cards.nth(0).locator(".lb-val")).toContainText("8");
+  await expect(cards.nth(0).locator(".lb-val .ic svg")).toHaveCount(1);
+  await click(page, '.lb-tab[data-lbt="town"]');
+  await expect(cards.nth(0).locator(".lb-inf b")).toContainText("Amy");
+  await click(page, '.lb-tab[data-lbt="tasks"]');
+  await expect(cards.nth(0).locator(".lb-inf b")).toHaveText("Bea");
+
+  const friendCode = "DW1:" + Buffer.from(JSON.stringify({
+    id: "friend-c", name: "Cara", buddy: "Pal", xp: 30, lv: 1, streak: 1, towns: 0, tasks: 3,
+  })).toString("base64");
+  page.once("dialog", (dialog) => dialog.accept(friendCode));
+  await click(page, "#lbaddf");
+  await expect(cards).toHaveCount(4);
+  const cara = cards.filter({ hasText: "Cara" });
+  await cara.locator("button").evaluate((button) => button.click());
+  await expect(cara.locator("button")).toHaveText("Remove?");
+  await cara.locator("button").evaluate((button) => button.click());
+  await expect(cara).toHaveCount(0);
+  await expect(page.locator("#lbcnt")).toHaveText("3 Accounts");
+  await page.reload();
+  await click(page, '.nv[data-p="l"]');
+  await expect(cards.filter({ hasText: "Cara" })).toHaveCount(0);
+  await click(page, "#lbreset");
+  await expect(cards.filter({ hasText: "Cara" })).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
+test("leaderboard removal expires and reports storage failures", async ({ page }) => {
+  await page.clock.install();
+  await click(page, '.nv[data-p="l"]');
+  const card = page.locator("#lblist .lb-card.me");
+  const remove = card.locator("button");
+  await remove.evaluate((button) => button.click());
+  await expect(remove).toHaveText("Remove?");
+  await page.clock.fastForward(2700);
+  await expect(remove).toHaveText("✕");
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "dailywalk_admin:hidden_ids:v1") throw new Error("Write blocked");
+      return original.call(this, key, value);
+    };
+  });
+  await remove.evaluate((button) => button.click());
+  await remove.evaluate((button) => button.click());
+  await expect(page.locator("#toast")).toContainText("Could not hide account");
+  await expect(card).toHaveCount(1);
+  expect(await page.evaluate(() => localStorage.getItem("dailywalk_admin:hidden_ids:v1"))).toBeNull();
+});
+
 test("profile status updates after a save and the bar still opens profile settings", async ({ page }) => {
   await page.clock.install();
   await page.evaluate(() => {

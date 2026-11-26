@@ -384,79 +384,25 @@ function renderLeaderboard() {
         : lbSort === "tasks"
           ? "✅ " + me.tasks
           : "⭐ " + me.xp.toLocaleString() + " XP";
-  listEl.innerHTML = "";
-  filteredAll.forEach((u, idx) => {
-    const rank = idx + 1;
-    const card = document.createElement("div");
-    card.className =
-      "lb-card" +
-      (u.isMe ? " me" : "") +
-      (rank === 1 ? " top1" : rank === 2 ? " top2" : rank === 3 ? " top3" : "");
-    card.style.setProperty("--i", idx);
-    const rk = document.createElement("div");
-    rk.className = "lb-rk";
-    rk.textContent =
-      rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "#" + rank;
-    const av = document.createElement("div");
-    av.className = "lb-av";
-    av.appendChild(svgOf(u.look || freshLook("square"), 36, 40));
-    const inf = document.createElement("div");
-    inf.className = "lb-inf";
-    const b = document.createElement("b");
-    b.textContent = u.name + (u.isMe ? " (You)" : "");
-    const sm = document.createElement("small");
-    sm.textContent =
-      "Lv " +
-      u.lv +
-      " " +
-      u.buddy +
-      " · 🔥 " +
-      u.streak +
-      "d · 🪐 " +
-      u.towns +
-      " towns";
-    inf.append(b, sm);
-    const val = document.createElement("div");
-    val.className = "lb-val";
-    if (lbSort === "streak") {
-      val.innerHTML = "🔥 " + u.streak + "<small>day streak</small>";
-    } else if (lbSort === "town") {
-      val.innerHTML = "🌍 " + u.towns + "<small>towns helped</small>";
-    } else if (lbSort === "tasks") {
-      val.innerHTML = "✅ " + u.tasks + "<small>habits done</small>";
-    } else {
-      val.innerHTML = u.xp.toLocaleString() + "<small>total XP</small>";
-    }
-    card.append(rk, av, inf, val);
-    const rmBtn = document.createElement("button");
-    rmBtn.type = "button";
-    rmBtn.className = "ubtn delu";
-    rmBtn.textContent = "✕";
-    rmBtn.title = "Admin: Remove from Leaderboard";
-    rmBtn.style.marginLeft = "8px";
-    rmBtn.onclick = (e) => {
-      e.stopPropagation();
-      if (rmBtn.classList.contains("arm")) {
-        hiddenIds.push(u.id);
-        try {
-          localStorage.setItem(
-            "dailywalk_admin:hidden_ids:v1",
-            JSON.stringify(hiddenIds),
-          );
-        } catch (e) {}
-        renderLeaderboard();
-        toast("Removed " + u.name + " from Leaderboard");
-      } else {
-        rmBtn.classList.add("arm");
-        rmBtn.textContent = "Remove?";
-        setTimeout(() => {
-          rmBtn.classList.remove("arm");
-          rmBtn.textContent = "✕";
-        }, 2600);
+  DailyWalkReact.renderLeaderboardList({
+    accounts: filteredAll.map((u) => ({
+      ...u,
+      avatar: svgOf(u.look || freshLook("square"), 36, 40).outerHTML,
+    })),
+    sort: lbSort,
+    icon: icoSvg,
+    iconTextParts,
+    onRemove: (u) => {
+      try {
+        localStorage.setItem(K_HIDDEN, JSON.stringify([...hiddenIds, u.id]));
+      } catch (error) {
+        console.error("Could not hide leaderboard account", error);
+        toast("Could not hide account. Check browser storage and retry.");
+        return;
       }
-    };
-    card.appendChild(rmBtn);
-    listEl.appendChild(card);
+      renderLeaderboard();
+      toast("Removed " + u.name + " from Leaderboard");
+    },
   });
 }
 document.querySelectorAll(".lb-tab").forEach((b) => {

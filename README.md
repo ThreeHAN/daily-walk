@@ -78,6 +78,7 @@ not synchronized across devices; use Profile export and restore to move it.
     │   ├── habit-list.jsx
     │   ├── icon-text.jsx
     │   ├── journal.jsx
+    │   ├── leaderboard-list.jsx
     │   ├── level-hero.jsx
     │   ├── profile-status.jsx
     │   ├── progress-summary.jsx
@@ -117,7 +118,7 @@ not synchronized across devices; use Profile export and restore to move it.
 - `assets/css/styles.css` is generated from Sass and remains the stylesheet
   loaded by Chrome and other browsers.
 - `assets/react/` contains the dashboard heading, profile status, level hero, habit list and editor,
-  progress summary, water tracker, journal, and weekly chart React components.
+  progress summary, water tracker, journal, weekly chart, and leaderboard list React components.
   Their generated classic script,
   `assets/js/generated/react-ui.js`, is checked in so the site also works
   directly from `index.html`. The bundle includes the MIT license for React,
@@ -151,7 +152,7 @@ not synchronized across devices; use Profile export and restore to move it.
 The scripts in `index.html` are classic scripts loaded in dependency order.
 Keep that order when moving code, and update the version in a changed script's
 URL so browsers do not use a stale cached copy. React exclusively owns the
-contents of `#dashboard-heading`, `#ubar`, `#hero`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, and
+contents of `#dashboard-heading`, `#ubar`, `#hero`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, `#lblist`, and
 `#progress-summary`; legacy code must not mutate those subtrees. The water tracker and habit list call the same
 habit-check action. The journal keeps an editable React draft and reloads the
 saved entry when the profile, backup, or local date changes. The weekly chart
@@ -173,7 +174,7 @@ receives current tasks and per-day checks from the legacy state owner.
 | World map and travel                            | [`world-map.js`](assets/js/features/world-map.js)                                                                                          |
 | People met, pet definitions, and unlocks        | [`town.js`](assets/js/features/town.js), [`buddy-render.js`](assets/js/features/buddy-render.js), [`pets.js`](assets/js/features/pets.js), [`collection.js`](assets/js/features/collection.js) |
 | Shared icon artwork and rendering               | [`icon-art.js`](assets/js/ui/icon-art.js), [`icons.js`](assets/js/ui/icons.js)                                                             |
-| Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js)                                                      |
+| Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js), [`leaderboard-list.jsx`](assets/react/leaderboard-list.jsx) |
 | Guided introduction                             | [`tutorial.js`](assets/js/features/tutorial.js)                                                                                             |
 | Defaults, saved-state hydration, and migrations | [`state.js`](assets/js/core/state.js)                                                                                                       |
 
