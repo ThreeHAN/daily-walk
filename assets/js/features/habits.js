@@ -117,24 +117,12 @@ addEventListener("resize", () => {
   }
 });
 function tickClock() {
-  const d = new Date(),
-    h = d.getHours();
-  const e = h < 5 ? "🌙" : h < 12 ? "🌅" : h < 17 ? "☀️" : h < 20 ? "🌇" : "🌙",
-    g =
-      h < 5
-        ? "Good night"
-        : h < 12
-          ? "Good morning"
-          : h < 17
-            ? "Good afternoon"
-            : "Good evening";
-  $("clock").textContent =
-    e +
-    " " +
-    g +
-    (S.p.name ? ", " + S.p.name : "") +
-    " · " +
-    d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  DailyWalkReact.renderDashboardHeading({
+    now: new Date(),
+    name: S.p.name,
+    icon: icoSvg,
+    iconTextParts,
+  });
 }
 let lastKey = today(),
   lastCup = -1;

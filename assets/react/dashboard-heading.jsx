@@ -1,0 +1,31 @@
+import { flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
+import { IconText } from "./icon-text.jsx";
+
+const root = createRoot(document.getElementById("dashboard-heading"));
+
+function DashboardHeading({ now, name, icon, iconTextParts }) {
+  const hour = now.getHours();
+  const symbol = hour < 5 ? "🌙" : hour < 12 ? "🌅" : hour < 17 ? "☀️" : hour < 20 ? "🌇" : "🌙";
+  const greeting = hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const date = now.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const clock = symbol + " " + greeting + (name ? ", " + name : "") +
+    " · " + now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+  return (
+    <>
+      <h1>Daily Walk</h1>
+      <p className="sub" id="date">{date}</p>
+      <p className="clock" id="clock"><IconText text={clock} icon={icon} iconTextParts={iconTextParts} /></p>
+    </>
+  );
+}
+
+export function renderDashboardHeading(props) {
+  flushSync(() => root.render(<DashboardHeading {...props} />));
+}

@@ -148,12 +148,6 @@ function showHabitCompletionEffects(effects, fullEl) {
 function render(effects = {}) {
   const d = today();
   const c = S.checks[d] || {};
-  $("date").textContent = new Date().toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
   tickClock();
   const fullEl = renderHabitGroups(d, c, effects);
   renderHabitProgress(c);

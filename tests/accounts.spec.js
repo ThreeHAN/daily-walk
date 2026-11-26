@@ -42,6 +42,67 @@ test("profile changes and separate habit progress survive switching and reload",
   await expect(page.locator('input[data-id="wake"]')).not.toBeChecked();
 });
 
+test("the level hero refreshes when switching and restoring profiles", async ({ page }) => {
+  await page.evaluate(() => {
+    S.xp = 40;
+    save();
+    drawHero();
+  });
+  await expect(page.locator("#xpn")).toHaveText("40 / 80 XP");
+  await click(page, "#ubar");
+  await click(page, "#uadd");
+  await expect(page.locator("#lvb")).toHaveText("Lv 10");
+  await expect(page.locator("#xpn")).toContainText("MAX");
+  await expect(page.locator("#xpn .ic svg")).toHaveCount(1);
+  await expect(page.locator("#xfill")).toHaveAttribute("style", "width: 100%;");
+
+  await click(page, "#ubar");
+  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+    .getByRole("button", { name: "Switch" })
+    .evaluate((button) => button.click());
+  await expect(page.locator("#xpn")).toHaveText("40 / 80 XP");
+  const backup = await page.evaluate(() => {
+    const data = structuredClone(S);
+    data.xp = 100;
+    return JSON.stringify({ data });
+  });
+  await page.locator("#ufile").setInputFiles({
+    name: "backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(backup),
+  });
+  await expect(page.locator("#lvb")).toHaveText("Lv 2");
+  await expect(page.locator("#xpn")).toHaveText("20 / 160 XP");
+  await page.reload();
+  await expect(page.locator("#xpn")).toHaveText("20 / 160 XP");
+});
+
+test("the dashboard greeting follows the active profile and restored name", async ({ page }) => {
+  await expect(page.locator("#clock")).toContainText("Admin");
+  await click(page, "#ubar");
+  await click(page, "#uadd");
+  await expect(page.locator("#clock")).toContainText("Player 2");
+  await click(page, "#ubar");
+  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+    .getByRole("button", { name: "Switch" })
+    .evaluate((button) => button.click());
+  await expect(page.locator("#clock")).toContainText("Admin");
+  const backup = await page.evaluate(() => {
+    const data = structuredClone(S);
+    data.p.name = "Restored 🌙";
+    return JSON.stringify({ data });
+  });
+  await page.locator("#ufile").setInputFiles({
+    name: "backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(backup),
+  });
+  await expect(page.locator("#clock")).toContainText("Restored");
+  await expect(page.locator("#clock .ic svg")).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator("#clock")).toContainText("Restored");
+});
+
 test("water progress stays separate when switching profiles", async ({ page }) => {
   await click(page, '#cups button[aria-label="Cup 3"]');
   await click(page, "#ubar");

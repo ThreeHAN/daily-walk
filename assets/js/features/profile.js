@@ -73,11 +73,17 @@ function award(k, amt) {
   return amt;
 }
 function drawHero() {
-  const I = lvInfo();
-  $("lvb").textContent = "Lv " + I.n;
-  $("lvt").textContent = ttl(I.n);
-  $("xpn").textContent = I.max ? "MAX 🎓" : I.into + " / " + I.need + " XP";
-  $("xfill").style.width = I.pct + "%";
+  const info = lvInfo();
+  DailyWalkReact.renderLevelHero({
+    level: info.n,
+    title: ttl(info.n),
+    into: info.into,
+    need: info.need,
+    percent: info.pct,
+    max: info.max,
+    icon: icoSvg,
+    iconTextParts,
+  });
 }
 function toast(t) {
   const e = $("toast");

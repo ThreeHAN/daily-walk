@@ -159,6 +159,35 @@ test("water resets when the local date changes", async ({ page }) => {
   await expect(page.locator("#cups .full")).toHaveCount(0);
 });
 
+test("dashboard heading updates greeting, clock, and date without losing its icons", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.clock.install({ time: new Date(2026, 0, 1, 4, 59, 50) });
+  await page.reload();
+  await expect(page.locator("#dashboard-heading h1")).toHaveText("Daily Walk");
+  await expect(page.locator("#clock")).toContainText("Good night, Admin");
+  const expectedTime = await page.evaluate(() =>
+    new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+  );
+  await expect(page.locator("#clock")).toContainText(expectedTime);
+  await expect(page.locator("#clock .ic svg")).toHaveCount(1);
+  const initialDate = await page.locator("#date").textContent();
+  await page.clock.fastForward(25000);
+  await expect(page.locator("#clock")).toContainText("Good morning, Admin");
+  await expect(page.locator("#clock .ic svg")).toHaveCount(1);
+
+  for (const [hour, greeting] of [[12, "Good afternoon"], [17, "Good evening"], [20, "Good evening"]]) {
+    await page.clock.setFixedTime(new Date(2026, 0, 1, hour));
+    await page.evaluate(() => tickClock());
+    await expect(page.locator("#clock")).toContainText(greeting);
+  }
+  await page.clock.setFixedTime(new Date(2026, 0, 2, 0, 1));
+  await page.evaluate(() => tickClock());
+  await expect(page.locator("#clock")).toContainText("Good night");
+  expect(await page.locator("#date").textContent()).not.toBe(initialDate);
+  expect(errors).toEqual([]);
+});
+
 test("journal drafts survive other updates and saving awards XP only once", async ({ page }) => {
   const initial = await page.evaluate(() => {
     S.jr = {};
@@ -342,11 +371,42 @@ test("a new habit is highlighted and can still be removed", async ({ page }) => 
   await expect(row).toHaveCount(0);
 });
 
-test("crossing a level threshold shows the level-up effect", async ({ page }) => {
+test("the level hero updates for habit and journal rewards and keeps its profile shortcut", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.evaluate(() => {
+    S.xp = 0;
+    S.aw = { d: today(), k: {} };
+    drawHero();
+  });
+  await expect(page.locator("#lvb")).toHaveText("Lv 1");
+  await expect(page.locator("#lvt")).toHaveText("Newcomer");
+  await expect(page.locator("#xpn")).toHaveText("0 / 80 XP");
+  await expect(page.locator("#xfill")).toHaveAttribute("style", "width: 0%;");
+
+  await clickHabit(page, "wake");
+  await expect(page.locator("#xpn")).toHaveText("10 / 80 XP");
+  await expect(page.locator("#xfill")).toHaveAttribute("style", "width: 12.5%;");
+  await page.locator("#jt").fill("Thankful");
+  await page.locator("#jsave").evaluate((button) => button.click());
+  await expect(page.locator("#xpn")).toHaveText("20 / 80 XP");
+  await expect(page.locator("#xfill")).toHaveAttribute("style", "width: 25%;");
+  await page.reload();
+  await expect(page.locator("#xpn")).toHaveText("20 / 80 XP");
+  await page.locator("#hero").evaluate((element) => element.click());
+  await expect(page.locator("#pm")).toHaveClass(/show/);
+  expect(errors).toEqual([]);
+});
+
+test("crossing a level threshold updates the hero and shows the level-up effect", async ({ page }) => {
   await page.evaluate(() => {
     S.xp = 79;
   });
   await clickHabit(page, "wake");
+  await expect(page.locator("#lvb")).toHaveText("Lv 2");
+  await expect(page.locator("#lvt")).toHaveText("Adventurer");
+  await expect(page.locator("#xpn")).toHaveText("9 / 160 XP");
+  await expect(page.locator("#xfill")).toHaveAttribute("style", "width: 5.625%;");
   await expect(page.locator("#lun")).toHaveText("2");
   await expect(page.locator("#lu")).toHaveClass(/show/);
 });
