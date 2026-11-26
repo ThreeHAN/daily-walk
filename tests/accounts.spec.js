@@ -140,6 +140,47 @@ test("profile changes and separate habit progress survive switching and reload",
   await expect(page.locator('input[data-id="wake"]')).not.toBeChecked();
 });
 
+test("profile list renders names safely, switches from the row, and deletes after confirmation", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const firstId = await page.evaluate(() => CUR_UID);
+  await click(page, "#ubar");
+  await page.locator("#pn").fill("Walker 🌙 <b>");
+  await page.locator("#bn").fill("Buddy ⭐");
+  await click(page, "#uadd");
+  const secondId = await page.evaluate(() => CUR_UID);
+  const rows = page.locator("#ulist .uitem");
+  const first = rows.filter({ hasText: "Walker" });
+  await expect(first.locator("b")).toContainText("<b>");
+  await expect(first.locator("b .ic svg")).toHaveCount(1);
+  await expect(first.locator("small .ic svg")).toHaveCount(1);
+  await expect(rows.filter({ hasText: "Player 2" })).toHaveClass(/cur/);
+  await expect(rows.filter({ hasText: "Player 2" }).locator("button")).toHaveCount(0);
+  await first.locator(".uinf").evaluate((element) => element.click());
+  expect(await page.evaluate(() => CUR_UID)).toBe(firstId);
+  await expect(rows.filter({ hasText: "Walker" })).toHaveClass(/cur/);
+
+  await page.clock.install();
+  const second = rows.filter({ hasText: "Player 2" });
+  const remove = second.getByRole("button", { name: "Delete profile" });
+  await remove.evaluate((button) => button.click());
+  await expect(remove).toHaveText("Delete?");
+  await page.clock.fastForward(2700);
+  await expect(remove).toHaveText("✕");
+  await remove.evaluate((button) => button.click());
+  await remove.evaluate((button) => button.click());
+  await expect(second).toHaveCount(0);
+  expect(await page.evaluate((id) => ({
+    listed: JSON.parse(localStorage.getItem(K_USERS)).some((user) => user.id === id),
+    exists: localStorage.getItem(uKey(id)) !== null,
+  }), secondId)).toEqual({ listed: false, exists: false });
+  await page.reload();
+  await click(page, "#ubar");
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toHaveClass(/cur/);
+  expect(errors).toEqual([]);
+});
+
 test("the level hero refreshes when switching and restoring profiles", async ({ page }) => {
   await page.evaluate(() => {
     S.xp = 40;

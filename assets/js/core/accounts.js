@@ -79,71 +79,27 @@ function save() {
   return true;
 }
 function renderUsers() {
-  const L = $("ulist");
-  if (!L) return;
-  L.innerHTML = "";
-  USERS.forEach((u, i) => {
-    const row = document.createElement("div");
-    row.className = "uitem" + (u.id === CUR_UID ? " cur" : "");
-    const inf = document.createElement("div");
-    inf.className = "uinf";
-    const b = document.createElement("b");
-    b.textContent =
-      (u.label || "Player " + (i + 1)) + (u.id === CUR_UID ? " (Active)" : "");
-    const sm = document.createElement("small");
-    sm.textContent =
-      "Lv " +
-      (u.lv || 1) +
-      " · Buddy: " +
-      (u.buddy || "Buddy") +
-      " · " +
-      (u.town || "Meadow Valley");
-    inf.append(b, sm);
-    inf.onclick = () => {
-      if (u.id !== CUR_UID) switchUser(u.id);
-    };
-    row.appendChild(inf);
-    if (u.id !== CUR_UID) {
-      const sw = document.createElement("button");
-      sw.type = "button";
-      sw.className = "ubtn";
-      sw.textContent = "Switch";
-      sw.onclick = () => switchUser(u.id);
-      row.appendChild(sw);
-      if (USERS.length > 1) {
-        const dl = document.createElement("button");
-        dl.type = "button";
-        dl.className = "ubtn delu";
-        dl.textContent = "✕";
-        dl.setAttribute("aria-label", "Delete profile");
-        dl.onclick = () => {
-          if (dl.classList.contains("arm")) {
-            const remainingUsers = USERS.filter((x) => x.id !== u.id);
-            try {
-              deleteStoredProfile(u.id, remainingUsers, USERS);
-            } catch (e) {
-              reportPersistenceError(
-                "Could not remove profile. Check browser storage.",
-                e,
-              );
-              return;
-            }
-            USERS = remainingUsers;
-            renderUsers();
-            toast("Profile removed");
-          } else {
-            dl.classList.add("arm");
-            dl.textContent = "Delete?";
-            setTimeout(() => {
-              dl.classList.remove("arm");
-              dl.textContent = "✕";
-            }, 2600);
-          }
-        };
-        row.appendChild(dl);
+  DailyWalkReact.renderProfileList({
+    users: USERS,
+    currentId: CUR_UID,
+    icon: icoSvg,
+    iconTextParts,
+    onSwitch: switchUser,
+    onDelete: (id) => {
+      const remainingUsers = USERS.filter((user) => user.id !== id);
+      try {
+        deleteStoredProfile(id, remainingUsers, USERS);
+      } catch (error) {
+        reportPersistenceError(
+          "Could not remove profile. Check browser storage.",
+          error,
+        );
+        return;
       }
+      USERS = remainingUsers;
+      renderUsers();
+      toast("Profile removed");
     }
-    L.appendChild(row);
   });
 }
 function switchUser(id) {

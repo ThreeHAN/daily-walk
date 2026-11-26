@@ -390,6 +390,57 @@ test("equipped warrior armor and helmet can be removed and re-equipped", async (
   await expect(helmet).toBeDisabled();
 });
 
+test("the people index preserves search during updates and resets it when reopened", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.evaluate(() => {
+    S.peopleMet = [
+      { id: "a", name: "Amy 🌙 <b>", town: "meadow", look: structuredClone(S.p) },
+      { id: "b", name: "Bea", town: "seaside", look: structuredClone(S.p) },
+      { id: "invalid", name: "Ignored", town: "unknown", look: structuredClone(S.p) },
+    ];
+    save();
+  });
+  await click(page, "#ixh");
+  await expect(page.locator("#ixs")).toHaveText("2 people met in 2 towns");
+  await expect(page.locator("#ixsub")).toHaveText("2 people met");
+  await expect(page.locator("#ixl .ixp svg")).toHaveCount(2);
+  await expect(page.locator("#ixl .ixc").first().locator("b")).toContainText("<b>");
+  await expect(page.locator("#ixl .ixc").first().locator("b .ic svg")).toHaveCount(1);
+  await page.locator("#ixsearch").fill("  MEADOW ");
+  await expect(page.locator("#ixl .ixc")).toHaveCount(1);
+  await page.evaluate(() => {
+    S.peopleMet.push({ id: "c", name: "Cal", town: "meadow", look: structuredClone(S.p) });
+    fillIndex();
+  });
+  await expect(page.locator("#ixsearch")).toHaveValue("  MEADOW ");
+  await expect(page.locator("#ixl .ixc")).toHaveCount(2);
+  await expect(page.locator("#ixs")).toHaveText("3 people met in 2 towns");
+  await page.locator("#ixsearch").fill("no matches");
+  await expect(page.locator("#ixempty")).toBeVisible();
+  await click(page, "#ixdone");
+  await click(page, "#ixh");
+  await expect(page.locator("#ixsearch")).toHaveValue("");
+  await expect(page.locator("#ixl .ixc")).toHaveCount(3);
+  await page.locator("#ix").evaluate((modal) => modal.click());
+  await expect(page.locator("#ix")).not.toHaveClass(/show/);
+  expect(errors).toEqual([]);
+});
+
+test("the guided tour can still open and highlight the people index", async ({ page }) => {
+  await page.evaluate(() => startTour());
+  for (let step = 0; step < 3; step++) {
+    await click(page, "#tour-open");
+    await click(page, "#tour-next");
+  }
+  await expect(page.locator("#tour-title")).toHaveText("People you meet");
+  await click(page, "#tour-open");
+  await expect(page.locator("#ix")).toHaveClass(/show/);
+  await expect(page.locator("#ix .sheet")).toHaveClass(/tour-highlight/);
+  await click(page, "#tour-skip");
+  await expect(page.locator("#ix")).not.toHaveClass(/show/);
+});
+
 test("the people index records only people tapped and keeps encounters across towns", async ({ page }) => {
   const noon = new Date();
   noon.setHours(12, 0, 0, 0);
@@ -404,6 +455,8 @@ test("the people index records only people tapped and keeps encounters across to
   expect(await page.evaluate(() => townCast().filter((person) => person.k === "res").map((person) => person.id))).toEqual(["resident:0"]);
   await click(page, "#ixbtn");
   await expect(page.locator("#ixs")).toContainText("Tap a person");
+  await expect(page.locator("#ixsearch")).toBeHidden();
+  await expect(page.locator("#ixempty")).toBeHidden();
   await expect(page.locator("#ixl .ixc")).toHaveCount(0);
   await click(page, "#ixdone");
   await click(page, '#walkers [role="button"]:nth-child(2)');

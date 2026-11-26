@@ -1,52 +1,32 @@
-function fillIndex() {
+function fillIndex(reset = false) {
   const people = S.peopleMet.filter(
     (person) => person && person.name && person.look && NB[person.town],
   );
-  const towns = new Set(people.map((person) => person.town));
-  const query = $("ixsearch").value.trim().toLocaleLowerCase();
   $("ixsub").textContent = people.length + (people.length === 1 ? " person met" : " people met");
-  $("ixs").textContent = people.length
-    ? people.length + (people.length === 1 ? " person" : " people") +
-      " met in " + towns.size + (towns.size === 1 ? " town" : " towns")
-    : "Tap a person in a town to meet them.";
-  const list = $("ixl");
-  list.innerHTML = "";
-  const matches = people.filter((person) =>
-    (person.name + " " + NB[person.town].n).toLocaleLowerCase().includes(query),
-  );
-  $("ixsearch").parentElement.hidden = !people.length;
-  $("ixempty").hidden = !people.length || matches.length > 0;
-  $("ixempty").textContent = "No people found. Try another name or town.";
-  NBK.forEach((town) => {
-    const residents = matches.filter((person) => person.town === town);
-    if (!residents.length) return;
-    const group = el("section", "index-town");
-    const heading = el("h4", "", NB[town].n);
-    const cards = el("div", "index-cards");
-    residents.forEach((person) => {
-      const card = el("div", "ixc own");
-      const portrait = el("div", "ixp buddy-scene pet-eco-meadow");
-      portrait.appendChild(svgOf(person.look, 64, 72));
-      card.append(portrait, el("b", "", person.name), el("div", "ixo", "Met in " + NB[town].n));
-      cards.appendChild(card);
-    });
-    group.append(heading, cards);
-    list.appendChild(group);
-  });
+  DailyWalkReact.renderPeopleIndex({
+    people: people.map((person, index) => ({
+      index,
+      name: person.name,
+      town: person.town,
+      townName: NB[person.town].n,
+      portrait: svgOf(person.look, 64, 72).outerHTML,
+    })),
+    towns: NBK.map((id) => ({ id, name: NB[id].n })),
+    icon: icoSvg,
+    iconTextParts,
+    onClose: () => $("ix").classList.remove("show"),
+  }, reset);
 }
 function openIx() {
-  $("ixsearch").value = "";
-  fillIndex();
+  fillIndex(true);
   $("ix").classList.add("show");
 }
-$("ixsearch").oninput = fillIndex;
 $("ixh").onclick = openIx;
 $("ixbtn").onclick = openIx;
 $("go-ix").onclick = () => {
   $("pm").classList.remove("show");
   openIx();
 };
-$("ixdone").onclick = () => $("ix").classList.remove("show");
 $("ix").onclick = (e) => {
   if (e.target === $("ix")) $("ix").classList.remove("show");
 };

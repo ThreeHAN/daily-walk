@@ -22,87 +22,23 @@ function renderBuddyModal() {
   tabs.hidden = !pt;
   $("bsl-b").classList.toggle("on", bmSlide === "b");
   $("bsl-p").classList.toggle("on", bmSlide === "p");
-  const body = $("bbody");
-  body.innerHTML = "";
-  if (bmSlide === "b" || !pt) {
-    const card = el("div", "bcard");
-    const stg = el("div", "bstage");
-    const lookNoHeadPet = Object.assign({}, w.p, { pet: "none" });
-    stg.appendChild(svgOf(lookNoHeadPet, 76, 84));
-    card.appendChild(stg);
-    card.appendChild(el("h4", "", w.n));
-    const tags = el("div", "stags");
-    tags.style.justifyContent = "center";
-    const kt = el("span", "stag", w.k === "me" ? "Traveler" : "Person met");
-    kt.style.background = "#3f9d63";
-    tags.appendChild(kt);
-    tags.appendChild(
-      el(
-        "span",
-        "stag lvt",
-        w.k === "me" ? "⭐ Level " + lvOf(S.xp) : "📍 " + NB[w.town].n,
-      ),
-    );
-    if (pt) tags.appendChild(el("span", "stag", "🐾 Pet: " + pt.n));
-    card.appendChild(tags);
-    const meta = el("div", "bmeta");
-    const addM = (k, v) => {
-      const d = document.createElement("div");
-      d.append(el("small", "", k), el("b", "", v));
-      meta.appendChild(d);
-    };
-    if (w.ref) {
-      addM("⏱ Time together", fmtDur(Date.now() - (w.ref.born || Date.now())));
-      addM("👆 Times Tapped", String(w.ref.clicks || 0));
-      addM("✅ Tasks Together", String(w.ref.tasks || 0));
-    }
-    addM("🐾 Companion", pt ? pt.n : "None");
-    card.appendChild(meta);
-    const quote =
-      w.k === "me"
-        ? "“Hi" +
-          (S.p.name ? ", " + S.p.name : "") +
-          "! We’re on a 🔥 " +
-          curStreak +
-          "-day streak!”"
-        : "“Welcome to " + NB[w.town].n + "! It’s nice to meet you.”";
-    card.appendChild(el("div", "bquote", quote));
-    body.appendChild(card);
-  } else {
-    const card = el("div", "bcard");
-    const stg = el("div", "bstage");
-    stg.innerHTML = petSvg(pt.id, 66, 60);
-    card.appendChild(stg);
-    card.appendChild(el("h4", "", pt.n));
-    const tags = el("div", "stags");
-    tags.style.justifyContent = "center";
-    const stgBadge = el("span", "stag", w.k === "me" ? "🔥 " + pt.st + "-Day Streak Reward" : "🐾 Town companion");
-    stgBadge.style.background = "#3f9d63";
-    tags.appendChild(stgBadge);
-    tags.appendChild(el("span", "stag lvt", "Partner: " + w.n));
-    card.appendChild(tags);
-    const meta = el("div", "bmeta");
-    const addM = (k, v) => {
-      const d = document.createElement("div");
-      d.append(el("small", "", k), el("b", "", v));
-      meta.appendChild(d);
-    };
-    addM("✨ Trait", pt.d);
-    if (w.k === "me") {
-      addM("🏆 Unlock Streak", pt.st + (pt.st === 1 ? " day" : " days"));
-      addM("📍 Favorite Spot", "Rests on " + w.n + "’s head");
-    }
-    addM("🏘 Town Role", "Follows " + w.n);
-    card.appendChild(meta);
-    card.appendChild(
-      el(
-        "div",
-        "bquote",
-        "“" + pt.n + " faithfully walks alongside " + w.n + " every day!”",
-      ),
-    );
-    body.appendChild(card);
-  }
+  const showPet = bmSlide === "p" && !!pt;
+  const portrait = showPet
+    ? petSvg(pt.id, 66, 60)
+    : svgOf(Object.assign({}, w.p, { pet: "none" }), 76, 84).outerHTML;
+  DailyWalkReact.renderBuddyDetails({
+    walker: w,
+    pet: pt,
+    showPet,
+    portrait,
+    townName: !showPet && w.k !== "me" ? NB[w.town].n : "",
+    level: !showPet && w.k === "me" ? lvOf(S.xp) : 0,
+    streak: curStreak,
+    profileName: S.p.name,
+    duration: !showPet && w.ref ? fmtDur(Date.now() - (w.ref.born || Date.now())) : "",
+    icon: icoSvg,
+    iconTextParts,
+  });
 }
 function openBuddyModal(w, slide) {
   bmData = w;
