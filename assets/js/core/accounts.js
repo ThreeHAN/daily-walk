@@ -1,15 +1,27 @@
+let userBarName = "Default Profile";
+let userBarStatus = "All data saved ✓";
+let userBarStatusTimer;
+
+function renderUserBar() {
+  DailyWalkReact.renderProfileStatus({
+    name: userBarName,
+    status: userBarStatus,
+    icon: icoSvg,
+    iconTextParts,
+  });
+}
+
 function updateUserBar(justSaved) {
   const u = USERS.find((x) => x.id === CUR_UID);
   const nm = (S.p.name || "").trim() || (u && u.label) || "Player 1";
-  if ($("ubname"))
-    $("ubname").textContent = nm + " · " + (S.p.buddy || "Buddy");
-  if ($("ubstat")) {
-    $("ubstat").textContent = justSaved ? "Saved just now ✓" : "Synced ✓";
-    clearTimeout($("ubstat")._t);
-    $("ubstat")._t = setTimeout(() => {
-      if ($("ubstat")) $("ubstat").textContent = "All data saved ✓";
-    }, 1800);
-  }
+  userBarName = nm + " · " + (S.p.buddy || "Buddy");
+  userBarStatus = justSaved ? "Saved just now ✓" : "Synced ✓";
+  clearTimeout(userBarStatusTimer);
+  renderUserBar();
+  userBarStatusTimer = setTimeout(() => {
+    userBarStatus = "All data saved ✓";
+    renderUserBar();
+  }, 1800);
   if ($("syncst"))
     $("syncst").textContent =
       "Saved " +
@@ -21,11 +33,9 @@ function updateUserBar(justSaved) {
 }
 function reportPersistenceError(message, error) {
   console.error(message, error);
-  const status = $("ubstat");
-  if (status) {
-    clearTimeout(status._t);
-    status.textContent = message;
-  }
+  clearTimeout(userBarStatusTimer);
+  userBarStatus = message;
+  renderUserBar();
   if ($("syncst")) $("syncst").textContent = message;
 }
 

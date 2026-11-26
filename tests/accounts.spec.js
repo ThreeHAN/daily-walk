@@ -10,6 +10,25 @@ async function click(page, selector) {
   await page.locator(selector).evaluate((element) => element.click());
 }
 
+test("profile status updates after a save and the bar still opens profile settings", async ({ page }) => {
+  await page.clock.install();
+  await page.evaluate(() => {
+    S.p.name = "Walker 🌙";
+    S.p.buddy = "Friend ⭐";
+    save();
+  });
+  await expect(page.locator("#ubname")).toContainText("Walker");
+  await expect(page.locator("#ubname")).toContainText("Friend");
+  await expect(page.locator("#ubname .ic svg")).toHaveCount(2);
+  await expect(page.locator("#ubstat")).toHaveText("Saved just now ✓");
+  await page.clock.fastForward(1800);
+  await expect(page.locator("#ubstat")).toHaveText("All data saved ✓");
+  await expect(page.locator("#ubstat")).toHaveAttribute("aria-live", "polite");
+  await click(page, "#ubar");
+  await expect(page.locator("#pm")).toHaveClass(/show/);
+  await expect(page.locator("#v-info")).toBeVisible();
+});
+
 test("profile changes and separate habit progress survive switching and reload", async ({
   page,
 }) => {
