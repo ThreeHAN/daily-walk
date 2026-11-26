@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 256 42" width="256" height="42">
+  <rect x="4" y="4" width="248" height="34" fill="#450A0A" />
+  <rect x="0" y="0" width="248" height="34" fill="#991B1B" stroke="#FBBF24" stroke-width="3" />
+  <path d="M13,24 L27,10 M27,24 L13,10" stroke="#FDE047" stroke-width="2.5" />
+  <rect x="18" y="15" width="4" height="4" fill="#FFFFFF" />
+  <text x="38" y="17" font-family="&#39;Courier New&#39;, Courier, monospace" font-weight="900" font-size="20" letter-spacing="1" dominant-baseline="central" fill="#FEF2F2">Realm Champion</text>
+</svg>

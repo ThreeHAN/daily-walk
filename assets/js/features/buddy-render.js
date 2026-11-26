@@ -447,11 +447,13 @@ function layers(pp) {
 }
 function paint() {
   const l = personLayers(S.p);
-  $("pal").innerHTML = l;
-  $("profile-buddy") && ($("profile-buddy").innerHTML = l);
+  const profileLook = personLayers({ ...S.p, pet: "none" });
+  $("pal").innerHTML = profileLook;
+  $("profile-buddy").innerHTML = profileLook;
   document.querySelectorAll(".pv").forEach((e) => {
-    e.innerHTML = l;
+    e.innerHTML = e.closest("#pm") ? profileLook : l;
   });
+  DailyWalkReact.renderProfilePets(petById(S.p.pet));
 }
 function streakBest() {
   const ds = Object.keys(S.days)

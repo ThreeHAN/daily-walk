@@ -19,7 +19,7 @@ function BuddyDetails({ walker, pet, showPet, portrait, townName, level, streak,
     details = [["✨ Trait", pet.d]];
     if (isTraveler) {
       details.push(["🏆 Unlock Streak", pet.st + (pet.st === 1 ? " day" : " days")]);
-      details.push(["📍 Favorite Spot", "Rests on " + walker.n + "’s head"]);
+      details.push(["📍 Favorite Spot", "Beside " + walker.n]);
     }
     details.push(["🏘 Town Role", "Follows " + walker.n]);
     quote = "“" + pet.n + " faithfully walks alongside " + walker.n + " every day!”";

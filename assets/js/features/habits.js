@@ -57,7 +57,12 @@ function go(p) {
   $("pg-l").hidden = p !== "l";
   document
     .querySelectorAll(".nv")
-    .forEach((b) => b.classList.toggle("on", b.dataset.p === p));
+    .forEach((b) => {
+      const current = b.dataset.p === p;
+      b.classList.toggle("on", current);
+      if (current) b.setAttribute("aria-current", "page");
+      else b.removeAttribute("aria-current");
+    });
   const el = $("pg-" + p);
   el.classList.remove("sl", "sr");
   void el.offsetWidth;

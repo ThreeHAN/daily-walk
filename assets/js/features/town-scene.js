@@ -57,7 +57,7 @@ $("tsvg").innerHTML = `
   </g>
   <g id="decB"></g>
   <g id="bld"></g>
-  <g transform="translate(0 62)"><g class="fly"><path d="M0 0h3v-3h3v3h3v-3h3v3h3v3H9V0H6v3H0z" fill="#3a4a5a"/></g></g>
+  <g id="town-birds" aria-hidden="true"></g>
   <g id="bfs"></g>
   <g id="decF"></g>
   <rect id="nightr" width="360" height="300" fill="#0a1a40" opacity="0" style="pointer-events:none"/>

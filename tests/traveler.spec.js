@@ -40,6 +40,74 @@ test("habits help a town and unlock travel without losing existing progress", as
   expect(await page.evaluate(() => [S.nb.cur, S.nb.xp.meadow, S.nb.xp.seaside])).toEqual(["seaside", 3000, 123]);
 });
 
+test("travel shows a moving natural landscape in the destination colors", async ({ page }) => {
+  await page.evaluate(() => {
+    S.nb.xp.meadow = MAXAT;
+    settle("seaside");
+  });
+  const overlay = page.locator("#tv");
+  const landscape = page.locator("#travel-landscape");
+  await expect(overlay).toBeVisible();
+  await expect(page.locator("#tvn")).toHaveText("Welcome to Seaside Harbor");
+  await expect(landscape.locator(".travel-hills")).toHaveCount(2);
+  await expect(landscape.locator(".travel-trees")).toHaveCount(2);
+  const scenery = await landscape.evaluate((element) => {
+    const animation = element.getAnimations()[0];
+    animation.pause();
+    animation.currentTime = 0;
+    const start = getComputedStyle(element).transform;
+    animation.currentTime = 1000;
+    return {
+      start,
+      moved: getComputedStyle(element).transform,
+      hill: element.querySelector(".travel-hills").getAttribute("fill"),
+      ground: element.querySelector(".travel-ground").getAttribute("fill"),
+      expected: [NB.seaside.hill, NB.seaside.gr[1]],
+      buildings: element.querySelectorAll("#bld, .bd").length,
+    };
+  });
+  expect(scenery.start).not.toBe(scenery.moved);
+  expect([scenery.hill, scenery.ground]).toEqual(scenery.expected);
+  expect(scenery.buildings).toBe(0);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(landscape).toHaveCSS("animation-name", "none");
+  await expect(overlay).toBeHidden();
+  await expect(page.locator("#pg-t")).toBeVisible();
+  expect(await page.evaluate(() => S.nb.cur)).toBe("seaside");
+  await expect(page.locator("#bld .bd").first()).toBeAttached();
+});
+
+test("every town destination uses its own building-free travel landscape", async ({ page }) => {
+  const results = await page.evaluate(() => {
+    const destinations = [...NBK.filter((id) => id !== S.nb.cur), S.nb.cur];
+    return destinations.map((id) => {
+      S.nb.xp[S.nb.cur] = MAXAT;
+      settle(id);
+      const landscape = document.querySelector("#travel-landscape");
+      return {
+        arrived: S.nb.cur === id,
+        visible: document.querySelector("#tv").classList.contains("show"),
+        name: document.querySelector("#tvn").textContent,
+        expectedName: "Welcome to " + NB[id].n,
+        colors: [
+          landscape.querySelector(".travel-hills").getAttribute("fill"),
+          landscape.querySelector(".travel-ground").getAttribute("fill"),
+        ],
+        expectedColors: [NB[id].hill, NB[id].gr[1]],
+        buildings: landscape.querySelectorAll("#bld, .bd").length,
+      };
+    });
+  });
+  expect(results).toHaveLength(await page.evaluate(() => NBK.length));
+  for (const result of results) {
+    expect(result.arrived).toBe(true);
+    expect(result.visible).toBe(true);
+    expect(result.name).toBe(result.expectedName);
+    expect(result.colors).toEqual(result.expectedColors);
+    expect(result.buildings).toBe(0);
+  }
+});
+
 test("world town cards update progress, availability, rewards, and globe selection", async ({ page }) => {
   await page.locator('button[data-p="t"]').evaluate((button) => button.click());
   await page.locator("#wbtn").evaluate((button) => button.click());

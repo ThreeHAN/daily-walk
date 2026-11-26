@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 256 42" width="256" height="42">
+  <rect x="4" y="4" width="248" height="34" fill="#3B0764" />
+  <rect x="0" y="0" width="248" height="34" fill="#6B21A8" stroke="#C084FC" stroke-width="3" />
+  <path d="M13,22 L13,12 L16,15 L20,10 L24,15 L27,12 L27,22 Z" fill="#F3E8FF" />
+  <rect x="13" y="23" width="14" height="3" fill="#E9D5FF" />
+  <text x="38" y="17" font-family="&#39;Courier New&#39;, Courier, monospace" font-weight="900" font-size="20" letter-spacing="1" dominant-baseline="central" fill="#FAF5FF">Realm Defender</text>
+</svg>

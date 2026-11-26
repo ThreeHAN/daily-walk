@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 114 42" width="114" height="42">
+  <rect x="4" y="4" width="106" height="34" fill="#3E2723" />
+  <rect x="0" y="0" width="106" height="34" fill="#6D4C41" stroke="#A1887F" stroke-width="3" />
+  <rect x="12" y="0" width="4" height="6" fill="#3E2723" />
+  <rect x="82" y="28" width="4" height="6" fill="#3E2723" />
+  <path d="M16,24 L26,10 L30,10 L22,22 L18,26 Z" fill="#FDE047" />
+  <text x="38" y="17" font-family="&#39;Courier New&#39;, Courier, monospace" font-weight="900" font-size="20" letter-spacing="1" dominant-baseline="central" fill="#FFF8E1">Noob</text>
+</svg>

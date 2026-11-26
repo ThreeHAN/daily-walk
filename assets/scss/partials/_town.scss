@@ -108,11 +108,14 @@
   overflow: visible;
 }
 .w.mv .bod {
-  animation: step 0.32s ease-in-out infinite;
+  animation: walk-bob 0.64s steps(1, end) infinite;
 }
-@keyframes step {
-  50% {
-    transform: translateY(-2.5px);
+@keyframes walk-bob {
+  0%, 50%, 100% {
+    transform: translateY(0);
+  }
+  25%, 75% {
+    transform: translateY(-1.5px);
   }
 }
 .wk.hopw {
@@ -456,25 +459,40 @@
 .sunp {
   animation: shim 3s ease-in-out infinite;
 }
+#town-birds {
+  pointer-events: none;
+}
 .fly {
-  animation: flyx 24s linear infinite;
+  animation: flyx 96s linear infinite;
 }
 @keyframes flyx {
   from {
     transform: translateX(-30px);
   }
-  to {
+  25%, 100% {
     transform: translateX(400px);
   }
 }
 .flap {
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: flap 0.45s ease-in-out infinite;
+  animation: flap 0.6s steps(1, end) infinite;
 }
 @keyframes flap {
+  0%, 100% {
+    transform: scaleY(1);
+  }
   50% {
-    transform: scaleY(0.3);
+    transform: scaleY(-1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fly {
+    animation: none;
+    transform: translateX(var(--still-x));
+  }
+  .flap {
+    animation: none;
   }
 }
 .bfl {
@@ -550,28 +568,51 @@
 }
 .w.mv .leg-l,
 .w.mv .arm-r {
-  animation: swA 0.36s ease-in-out infinite;
+  animation: walk-forward 0.64s steps(1, end) infinite;
 }
 .w.mv .leg-r,
 .w.mv .arm-l {
-  animation: swB 0.36s ease-in-out infinite;
+  animation: walk-back 0.64s steps(1, end) infinite;
 }
-@keyframes swA {
+.wk .leg-l,
+.wk .leg-r,
+.wk .arm-l,
+.wk .arm-r {
+  transform-origin: 50% 0%;
+}
+@keyframes walk-forward {
   0%,
   100% {
-    transform: rotate(20deg);
+    transform: translateX(-0.5px) rotate(12deg);
+  }
+  25%,
+  75% {
+    transform: translateY(-0.4px);
   }
   50% {
-    transform: rotate(-20deg);
+    transform: translateX(0.5px) rotate(-12deg);
   }
 }
-@keyframes swB {
+@keyframes walk-back {
   0%,
   100% {
-    transform: rotate(-20deg);
+    transform: translateX(0.5px) rotate(-12deg);
+  }
+  25%,
+  75% {
+    transform: translateY(-0.4px);
   }
   50% {
-    transform: rotate(20deg);
+    transform: translateX(-0.5px) rotate(12deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .w.mv .bod,
+  .w.mv .leg-l,
+  .w.mv .leg-r,
+  .w.mv .arm-l,
+  .w.mv .arm-r {
+    animation: none;
   }
 }
 .w.tk .arm-r {

@@ -602,10 +602,42 @@
   text-align: center;
   color: #2b2622;
   padding: 20px;
+  overflow: hidden;
 }
 .tv.show {
   display: flex;
   animation: fadein 0.3s;
+}
+.travel-landscape {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  height: 55%;
+  pointer-events: none;
+}
+.travel-landscape svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tv.show .travel-landscape {
+  animation: travel-land 4s linear infinite;
+}
+@keyframes travel-land {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tv.show .travel-landscape {
+    animation: none;
+  }
+}
+.tvc {
+  position: relative;
+  background: rgba(255, 255, 255, 0.84);
+  padding: 14px 20px;
 }
 .tvc .bal {
   width: 96px;

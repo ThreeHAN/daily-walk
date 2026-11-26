@@ -30,16 +30,16 @@ const lockLv = (c, k) => {
   return e ? e[3] : 0;
 };
 const TITLES = [
-  "Newcomer",
-  "Adventurer",
-  "Warrior in Training",
-  "Squire",
-  "Shieldbearer",
-  "Guardian",
-  "Armored Warrior",
-  "Champion",
-  "Knight",
-  "Legendary Warrior",
+  "Noob",
+  "Castle Page",
+  "Squire-At-Arms",
+  "Armored Squire",
+  "Vanguard Shield-Bearer",
+  "Realm Defender",
+  "Sworn Knight",
+  "Realm Champion",
+  "Royal Paladin",
+  "Legendary Grandmaster",
 ];
 const LV_START = (n) => 40 * n * (n - 1);
 function lvOf(xp) {
@@ -103,7 +103,7 @@ function floatXP(x, y, t) {
 }
 function levelUp(n) {
   $("lun").textContent = n;
-  $("lut").textContent = ttl(n);
+  DailyWalkReact.renderLevelTitle("levelUp", n, ttl(n));
   const un = LOCKS.filter((x) => x[3] === n).map((x) => x[2]);
   $("luu").textContent =
     n >= 10
@@ -305,7 +305,8 @@ function buildWd() {
   const h = $("wbody");
   h.innerHTML = "";
   const p = S.p;
-  $("wardrobe-level").textContent = "Lv " + lvOf(S.xp) + " · " + ttl(lvOf(S.xp));
+  const wardrobeLevel = lvOf(S.xp);
+  DailyWalkReact.renderLevelTitle("wardrobe", wardrobeLevel, ttl(wardrobeLevel));
   if (wTab === "person") {
     h.appendChild(
       el(
@@ -469,7 +470,7 @@ function buildWd() {
     l.textContent =
       "Best streak: 🔥 " +
       best +
-      " days · Active pet rests on your traveler’s head and follows them!";
+      " days · Your active pet sits beside your traveler and follows them in town!";
     h.appendChild(l);
     const grid = document.createElement("div");
     grid.className = "pgrid";
@@ -569,8 +570,9 @@ function view(v) {
     const I = lvInfo();
     DailyWalkReact.renderProfileBanner({
       buddy: S.p.buddy || "Buddy",
-      subtitle: "Level " + I.n + " · " + ttl(I.n) +
-        (S.p.gender === "female" || S.p.gender === "male" ? " · " + cap(S.p.gender) : ""),
+      level: I.n,
+      title: ttl(I.n),
+      gender: S.p.gender === "female" || S.p.gender === "male" ? cap(S.p.gender) : "",
       progress: I.max ? "Max level reached! 🎉" : I.into + " / " + I.need + " XP to level " + (I.n + 1),
       percent: I.pct,
       streak: curStreak,

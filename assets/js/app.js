@@ -165,6 +165,8 @@ $("reset").onclick = () => {
 };
 save();
 paint();
+DailyWalkReact.renderTownBirds();
+DailyWalkReact.renderGoogleAuth();
 render();
 drawWater();
 drawJr();

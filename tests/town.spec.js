@@ -37,6 +37,104 @@ test("town and planet unlocks follow completion progress", async ({ page }) => {
   await expect(page.locator("#ncard")).toBeVisible();
 });
 
+test("town walkers alternate their steps and respect reduced motion", async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 0, 1, 12));
+  await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
+  const steps = await page.evaluate(() => {
+    go("t");
+    townStop();
+    const walker = TW.ws[0].el;
+    walker.classList.add("mv");
+    const parts = [".bod", ".leg-l", ".leg-r", ".arm-l", ".arm-r"].map(
+      (selector) => walker.querySelector(selector),
+    );
+    const animations = parts.map((part) => part.getAnimations()[0]);
+    animations.forEach((animation) => animation.pause());
+    const pose = (time) => {
+      animations.forEach((animation) => { animation.currentTime = time; });
+      return parts.map((part) => getComputedStyle(part).transform);
+    };
+    const first = pose(0);
+    const middle = pose(160);
+    const opposite = pose(320);
+    walker.classList.remove("mv");
+    const stopped = getComputedStyle(parts[1]).animationName;
+    walker.classList.add("mv");
+    return { first, middle, opposite, stopped };
+  });
+  expect(steps.first[1]).toBe(steps.first[4]);
+  expect(steps.first[2]).toBe(steps.first[3]);
+  expect(steps.first[1]).toBe(steps.opposite[2]);
+  expect(steps.first[2]).toBe(steps.opposite[1]);
+  expect(steps.first[0]).not.toBe(steps.middle[0]);
+  expect(steps.first[1]).not.toBe(steps.opposite[1]);
+  expect(steps.stopped).toBe("none");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(await page.locator("#walkers .w").first().evaluate((walker) =>
+    [".bod", ".leg-l", ".leg-r", ".arm-l", ".arm-r"].map(
+      (selector) => getComputedStyle(walker.querySelector(selector)).animationName,
+    ),
+  )).toEqual(["none", "none", "none", "none", "none"]);
+});
+
+test("town birds fly and flap, while reduced motion keeps them still in the sky", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
+  await page.evaluate(() => go("t"));
+  const birds = page.locator("#town-birds .fly");
+  await expect(birds).toHaveCount(3);
+  const colors = await birds.evaluateAll((elements) => elements.map((bird) => ({
+    body: bird.querySelector(".bird-body").getAttribute("fill"),
+    belly: bird.querySelector(".bird-belly").getAttribute("fill"),
+  })));
+  expect(new Set(colors.map((bird) => bird.body)).size).toBe(3);
+  expect(new Set(colors.map((bird) => bird.belly)).size).toBe(1);
+  const positions = await birds.evaluateAll((elements) => {
+    const animations = elements.map((bird) => bird.getAnimations()[0]);
+    animations.forEach((animation) => animation.pause());
+    const at = (time) => {
+      animations.forEach((animation) => { animation.currentTime = time; });
+      return elements.map((bird) => new DOMMatrix(getComputedStyle(bird).transform).m41);
+    };
+    return { gap: at(20000), next: at(30000), later: at(60000) };
+  });
+  expect(positions.gap.every((x) => x >= 360)).toBe(true);
+  expect(positions.next.filter((x) => x > -30 && x < 360)).toHaveLength(1);
+  expect(positions.later.filter((x) => x > -30 && x < 360)).toHaveLength(1);
+  const motion = await birds.first().evaluate((bird) => {
+    const wing = bird.querySelector(".flap");
+    const flight = bird.getAnimations()[0];
+    const flap = wing.getAnimations()[0];
+    flight.pause();
+    flap.pause();
+    flight.currentTime = 0;
+    flap.currentTime = 0;
+    const first = [getComputedStyle(bird).transform, getComputedStyle(wing).transform];
+    flight.currentTime = 4000;
+    flap.currentTime = 300;
+    return { first, second: [getComputedStyle(bird).transform, getComputedStyle(wing).transform] };
+  });
+  expect(motion.first[0]).not.toBe(motion.second[0]);
+  expect(motion.first[1]).not.toBe(motion.second[1]);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const still = await birds.evaluateAll((elements) => elements.map((bird) => ({
+    flight: getComputedStyle(bird).animationName,
+    flap: getComputedStyle(bird.querySelector(".flap")).animationName,
+    x: new DOMMatrix(getComputedStyle(bird).transform).m41,
+    pointerEvents: getComputedStyle(bird).pointerEvents,
+  })));
+  expect(still).toHaveLength(3);
+  for (const bird of still) {
+    expect(bird.flight).toBe("none");
+    expect(bird.flap).toBe("none");
+    expect(bird.x).toBeGreaterThan(0);
+    expect(bird.x).toBeLessThan(345);
+    expect(bird.pointerEvents).toBe("none");
+  }
+  expect(errors).toEqual([]);
+});
+
 test("buddy stats show totals and ties, refresh while open, and preserve data", async ({ page }) => {
   await page.clock.install({ time: new Date(2026, 0, 1, 12) });
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);

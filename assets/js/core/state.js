@@ -510,7 +510,7 @@ try {
 const G = [
   { id: "morning", n: "Morning", e: "sun", c: "#f5a623" },
   { id: "nutrition", n: "Nutrition", e: "salad", c: "#4cae6a" },
-  { id: "exercise", n: "Exercise", e: "runner", c: "#e5624a" },
+  { id: "exercise", n: "Exercise", e: "dumbbell", c: "#e5624a" },
   { id: "cleaning", n: "Cleaning", e: "broom", c: "#4a90d9" },
   { id: "faith", n: "Faith & Kindness", e: "pray", c: "#9a6bd6" },
   { id: "more", n: "My Habits", e: "star", c: "#b8863b" },

@@ -322,6 +322,11 @@ function travel(id) {
     t = $("tv");
   t.style.background =
     "linear-gradient(180deg," + c.sky[0] + " 50%," + c.sky[1] + " 50%)";
+  DailyWalkReact.renderTravelLandscape({
+    hill: c.hill,
+    ground: c.gr[1],
+    foliage: c.gr[0],
+  });
   $("tvn").textContent = "Welcome to " + c.n;
   $("tvd").textContent = c.d;
   t.classList.add("show");

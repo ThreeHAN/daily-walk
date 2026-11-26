@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 248 42" width="248" height="42">
+  <rect x="4" y="4" width="240" height="34" fill="#78350F" />
+  <rect x="0" y="0" width="240" height="34" fill="#B45309" stroke="#FEF08A" stroke-width="3" />
+  <rect x="3" y="3" width="234" height="28" fill="none" stroke="#F59E0B" stroke-width="1" />
+  <rect x="18" y="8" width="4" height="18" fill="#FEF08A" />
+  <rect x="12" y="14" width="16" height="4" fill="#FEF08A" />
+  <rect x="17" y="13" width="6" height="6" fill="#FFFFFF" />
+  <text x="38" y="17" font-family="&#39;Courier New&#39;, Courier, monospace" font-weight="900" font-size="20" letter-spacing="1" dominant-baseline="central" fill="#FFFBEB">Royal Paladin</text>
+</svg>

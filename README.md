@@ -76,6 +76,7 @@ not synchronized across devices; use Profile export and restore to move it.
     │   ├── buddy-details.jsx
     │   ├── buddy-stats.jsx
     │   ├── dashboard-heading.jsx
+    │   ├── google-auth.jsx
     │   ├── habit-editor.jsx
     │   ├── habit-list.jsx
     │   ├── icon-text.jsx
@@ -83,12 +84,17 @@ not synchronized across devices; use Profile export and restore to move it.
     │   ├── leaderboard-list.jsx
     │   ├── level-hero.jsx
     │   ├── level-list.jsx
+    │   ├── level-title.jsx
     │   ├── people-index.jsx
     │   ├── profile-banner.jsx
     │   ├── profile-list.jsx
+    │   ├── profile-pets.jsx
     │   ├── profile-status.jsx
     │   ├── progress-summary.jsx
     │   ├── streak-week.jsx
+    │   ├── town-birds.jsx
+    │   ├── travel-landscape.jsx
+    │   ├── tutorial.jsx
     │   ├── water-tracker.jsx
     │   ├── wardrobe-tabs.jsx
     │   ├── weekly-chart.jsx
@@ -126,7 +132,7 @@ not synchronized across devices; use Profile export and restore to move it.
   partials.
 - `assets/css/styles.css` is generated from Sass and remains the stylesheet
   loaded by Chrome and other browsers.
-- `assets/react/` contains the dashboard heading, profile banner, status and list, wardrobe tabs, level hero and list, habit list and editor,
+- `assets/react/` contains Google sign-in, the guided tour, town birds and travel landscape, dashboard heading, profile banner, profile pets, status and list, wardrobe tabs, level hero and list, habit list and editor,
   progress summary, water tracker, journal, weekly chart, streak week, leaderboard list, people index, buddy details, buddy stats, and world town list React components.
   Their generated classic script,
   `assets/js/generated/react-ui.js`, is checked in so the site also works
@@ -153,6 +159,7 @@ not synchronized across devices; use Profile export and restore to move it.
 - `assets/js/ui/icon-art.js` contains shared SVG icon artwork;
   `icons.js` handles icon lookup and hydration.
 - `assets/svg/pets/` contains pet SVG assets.
+- `assets/svg/level-titles/` contains the supplied artwork for the ten level titles.
 - `assets/fonts/tiny5/` contains the Tiny5 pixel font and its SIL Open Font
   License. Tiny5 is copyright 2022–2024 The Tiny5 Project Authors
   ([project](https://github.com/Gissio/font_tiny5)).
@@ -161,9 +168,11 @@ not synchronized across devices; use Profile export and restore to move it.
 The scripts in `index.html` are classic scripts loaded in dependency order.
 Keep that order when moving code, and update the version in a changed script's
 URL so browsers do not use a stale cached copy. React exclusively owns the
-contents of `#dashboard-heading`, `#ubar`, `#ulist`, `#profile-banner`, `#wtabs`, `#hero`, `#lvlist`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, `#spw`, `#lblist`, `#ix`, `#bbody`, `#buddy-stats`, `#glist`, and
+contents of `#tour`, `#town-birds`, `#travel-landscape`, `#dashboard-heading`, `#ubar`, `#ulist`, `#profile-banner`, `#wtabs`, `#hero`, `#lvlist`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, `#spw`, `#lblist`, `#ix`, `#bbody`, `#buddy-stats`, `#glist`, and
 `#progress-summary`; legacy code must not mutate those subtrees except for the
-guided tour's temporary highlight on `#ix .sheet`. The water tracker and habit list call the same
+guided tour's temporary highlight on `#ix .sheet`. React also owns the contents
+of `#wardrobe-level` and `#lut` for their shared level-title badges and the
+four `.profile-pet` containers. The water tracker and habit list call the same
 habit-check action. The journal keeps an editable React draft and reloads the
 saved entry when the profile, backup, or local date changes. The weekly chart
 receives current tasks and per-day checks from the legacy state owner.
@@ -174,20 +183,21 @@ receives current tasks and per-day checks from the legacy state owner.
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dashboard heading and clock                     | [`dashboard-heading.jsx`](assets/react/dashboard-heading.jsx), [`habits.js`](assets/js/features/habits.js)                                  |
 | Profile status bar                              | [`profile-status.jsx`](assets/react/profile-status.jsx), [`accounts.js`](assets/js/core/accounts.js)                                       |
-| Profile banner and wardrobe tabs                | [`profile-banner.jsx`](assets/react/profile-banner.jsx), [`wardrobe-tabs.jsx`](assets/react/wardrobe-tabs.jsx), [`profile.js`](assets/js/features/profile.js) |
-| XP, levels, and rewards                         | [`level-hero.jsx`](assets/react/level-hero.jsx), [`level-list.jsx`](assets/react/level-list.jsx), [`profile.js`](assets/js/features/profile.js) |
+| Profile banner, pets, and wardrobe tabs         | [`profile-banner.jsx`](assets/react/profile-banner.jsx), [`profile-pets.jsx`](assets/react/profile-pets.jsx), [`wardrobe-tabs.jsx`](assets/react/wardrobe-tabs.jsx), [`profile.js`](assets/js/features/profile.js) |
+| XP, levels, and rewards                         | [`level-hero.jsx`](assets/react/level-hero.jsx), [`level-list.jsx`](assets/react/level-list.jsx), [`level-title.jsx`](assets/react/level-title.jsx), [`profile.js`](assets/js/features/profile.js) |
 | New habit editor                                | [`habit-editor.jsx`](assets/react/habit-editor.jsx), [`habits.js`](assets/js/features/habits.js)                                            |
 | Habit checklist, progress, water, journal, and weekly activity | [`habit-list.jsx`](assets/react/habit-list.jsx), [`progress-summary.jsx`](assets/react/progress-summary.jsx), [`water-tracker.jsx`](assets/react/water-tracker.jsx), [`journal.jsx`](assets/react/journal.jsx), [`weekly-chart.jsx`](assets/react/weekly-chart.jsx), [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js) |
 | Pixel traveler and appearance                   | [`buddy-render.js`](assets/js/features/buddy-render.js), [`buddies.js`](assets/js/features/buddies.js), [`profile.js`](assets/js/features/profile.js) |
 | Town data, rewards, and progression            | [`town-data.js`](assets/js/features/town-data.js), [`town-progress.js`](assets/js/features/town-progress.js)                               |
-| Town buildings, scenery, and cast               | [`town-scene.js`](assets/js/features/town-scene.js)                                                                                        |
+| Town buildings, scenery, and cast               | [`town-scene.js`](assets/js/features/town-scene.js), [`town-birds.jsx`](assets/react/town-birds.jsx)                                        |
 | Town walkers, pets, sleep, and interactions    | [`town.js`](assets/js/features/town.js), [`buddy-details.jsx`](assets/react/buddy-details.jsx), [`buddy-stats.jsx`](assets/react/buddy-stats.jsx) |
-| World map and travel                            | [`world-town-list.jsx`](assets/react/world-town-list.jsx), [`world-map.js`](assets/js/features/world-map.js)                               |
+| World map and travel                            | [`world-town-list.jsx`](assets/react/world-town-list.jsx), [`travel-landscape.jsx`](assets/react/travel-landscape.jsx), [`world-map.js`](assets/js/features/world-map.js) |
 | People met, pet definitions, and unlocks        | [`people-index.jsx`](assets/react/people-index.jsx), [`town.js`](assets/js/features/town.js), [`buddy-render.js`](assets/js/features/buddy-render.js), [`pets.js`](assets/js/features/pets.js), [`collection.js`](assets/js/features/collection.js) |
 | Shared icon artwork and rendering               | [`icon-art.js`](assets/js/ui/icon-art.js), [`icons.js`](assets/js/ui/icons.js)                                                             |
 | Streak celebration                              | [`streak-week.jsx`](assets/react/streak-week.jsx), [`collection.js`](assets/js/features/collection.js)                                    |
 | Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js), [`profile-list.jsx`](assets/react/profile-list.jsx), [`leaderboard-list.jsx`](assets/react/leaderboard-list.jsx) |
-| Guided introduction                             | [`tutorial.js`](assets/js/features/tutorial.js)                                                                                             |
+| Google sign-in                                  | [`google-auth.jsx`](assets/react/google-auth.jsx)                                                                                           |
+| Guided introduction                             | [`tutorial.jsx`](assets/react/tutorial.jsx), [`tutorial.js`](assets/js/features/tutorial.js)                                                |
 | Defaults, saved-state hydration, and migrations | [`state.js`](assets/js/core/state.js)                                                                                                       |
 
 - Habit checks and awards use the browser's local date. Checking a habit awards
@@ -204,10 +214,18 @@ receives current tasks and per-day checks from the legacy state owner.
   Clothing, pets, and earned gear are available in the same wardrobe.
 - The interface, shared icons, town scenery, world map, and streak flame use a
   pixel-art visual style, including habit category and bottom navigation icons.
+  Bottom navigation buttons keep their appearance when switching tabs; the
+  current page is identified for assistive technology.
   The world map has pixel land and spins horizontally; drag side to side and
   select a town to travel.
-- All pets use pixel-art sprites in the wardrobe, on the traveler's head, and
-  while following them in town. Pet unlocks and saved selections are unchanged.
+- Every town journey shows a moving natural landscape in the destination's
+  colors without buildings; reduced motion keeps it still.
+- Town characters walk with alternating pixel-style steps; reduced-motion
+  settings disable the walking animation.
+- Different pixel birds occasionally fly and flap across town skies, or remain still with reduced motion.
+- All pets use pixel-art sprites; an equipped pet sits beside the traveler in
+  profile previews and follows them in town. The dashboard streak traveler
+  appears without a pet. Pet unlocks and saved selections are unchanged.
   Roughly one-third of town residents have their own stable companions; saved
   residents with a pet keep theirs, independently of the traveler's unlocks.
 - From 8 p.m. until 7 a.m. local time, the traveler, residents, and their pets
@@ -215,7 +233,8 @@ receives current tasks and per-day checks from the legacy state owner.
   in the morning, even if the town stays open overnight.
 - Habit XP also builds a warrior's journey. Level 1 starts as a newcomer;
   levels 2, 3, 5, 7, and 9 unlock an optional tunic, training sword, shield,
-  armor, and helmet in **Warrior gear**. Equipping gear is a cosmetic choice;
+  armor, and helmet in **Warrior gear**. Level titles use the supplied themed
+  artwork, progressing from Noob to Legendary Grandmaster. Equipping gear is a cosmetic choice;
   tap an equipped item again to remove it. Removing a tunic or armor puts on a
   T-shirt; removing a helmet leaves the head uncovered. This does not change
   habit XP or replace town rewards.
@@ -254,8 +273,14 @@ receives current tasks and per-day checks from the legacy state owner.
   and saves it. `hydrateState()` supplies missing fields and migrates older
   data. Preserve existing storage keys and backup compatibility when changing
   the state shape, and test migrations against older saves.
-- The tutorial's completion is stored per profile. Users can also reopen the
-  tour from their profile.
+- Google sign-in is optional and available on the hosted site or local HTTP
+  server. Signing in or out does not link, upload, or sync local profiles or
+  progress. Direct `file://` usage remains available without sign-in. The
+  Supabase project URL and publishable key in `google-auth.jsx` are public;
+  never add secret or service-role keys to the browser bundle.
+- The guided tour scrolls to each highlighted button and waits for the user to
+  activate it before continuing. Completion is stored per profile; users can
+  skip or reopen it from their profile.
 
 ## Test
 

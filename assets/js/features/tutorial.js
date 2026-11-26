@@ -1,46 +1,105 @@
 const TOUR_STEPS = [
   {
-    icon: "✅",
+    icon: "check",
     title: "Your daily checklist",
-    before:
-      "Open Habits to see today’s checklist. Each check-off earns XP for your progress.",
-    after:
-      "This is your daily page. Check habits as you finish them, track water and gratitude, and watch your streak grow.",
-    open: "Open Habits",
+    before: "Tap the highlighted Habits button to see your daily checklist.",
+    after: "Check a habit when you finish it. Open or close a category by tapping its heading; your checks are saved for today.",
     page: "h",
-    target: "#list",
+    target: '.nv[data-p="h"]',
+    afterTarget: "#list",
   },
   {
-    icon: "🏘️",
-    title: "Traveler's World",
-    before: "Open World to see the town your traveler is helping.",
-    after:
-      "Habit XP helps your current town. Once it is helped, earn gear and choose another town on the world map.",
-    open: "Open World",
-    page: "t",
-    target: "#scene",
+    icon: "plus",
+    title: "Add your own habits",
+    before: "Tap the highlighted New habit button to open the habit editor.",
+    after: "Use New habit to add a name, category, icon and optional reason. To remove a custom habit, tap its trash button twice.",
+    page: "h",
+    target: "#fab",
+    afterTarget: "#hm .sheet",
   },
   {
-    icon: "🧑‍🤝‍🧑",
-    title: "Your traveler profile",
-    before: "Open your profile to customize your traveler and equipped pet.",
-    after:
-      "Edit your pixel traveler's appearance, equip town gear, and manage pets, names, profiles, and rewards here.",
-    open: "Open Profile",
+    icon: "star",
+    title: "XP, levels and streaks",
+    before: "Tap the highlighted Profile button to see your progress.",
+    after: "Habits earn XP; completing a category or the whole checklist earns a bonus. Each award is earned once per day. Complete your day to grow your streak.",
     page: "h",
     target: "#prof",
-    profile: true,
+    afterTarget: "#v-menu .banner",
   },
   {
-    icon: "👋",
-    title: "People you meet",
-    before: "Open the People Index to see the people you have met.",
-    after:
-      "Tap a person in a town to meet them. They will be remembered here with the town where you met.",
-    open: "Open People Index",
+    icon: "drop",
+    title: "Water and journal",
+    before: "Tap Habits to find your water tracker and journal.",
+    after: "Tap cups to track water; reaching your goal checks the water habit. Save a journal entry for XP once a day. Water resets daily; past entries stay in your journal.",
     page: "h",
-    target: "#ixh",
-    index: true,
+    target: '.nv[data-p="h"]',
+    afterTarget: "#cups",
+  },
+  {
+    icon: "town",
+    title: "Helping your town",
+    before: "Tap World to visit your traveler's current town.",
+    after: "Habit XP helps your current town and unlocks buildings. Help it reach 3,000 XP to earn town gear and unlock travel to another town.",
+    page: "h",
+    target: '.nv[data-p="t"]',
+    afterTarget: "#scene",
+  },
+  {
+    icon: "globe",
+    title: "Explore the world",
+    before: "Tap the World map button to see all the towns.",
+    after: "Drag the globe side to side or choose a town below it. Once your current town is helped, use Travel here; returning towns keep their progress.",
+    page: "t",
+    target: "#wbtn",
+    afterTarget: "#gl .glb",
+  },
+  {
+    icon: "book",
+    title: "People you meet",
+    before: "Tap People index to see the people you have met.",
+    after: "Tap a person in town to meet them. Find them here by name or town. At night, people and their pets sleep in their homes.",
+    page: "t",
+    target: "#ixbtn",
+    afterTarget: "#ix .sheet",
+  },
+  {
+    icon: "wardrobe",
+    title: "Your traveler and gear",
+    before: "Tap Wardrobe & traveler to open your wardrobe.",
+    after: "Open Wardrobe & traveler to change your appearance, clothes and pet. Town gear and level rewards appear there as you unlock them.",
+    page: "h",
+    prepare: "profile",
+    target: "#go-wd",
+    afterTarget: "#v-wd",
+  },
+  {
+    icon: "star",
+    title: "Levels and rewards",
+    before: "Tap Levels & rewards to see what your traveler can earn.",
+    after: "Levels & rewards shows your progress and unlocks. Warrior gear unlocks at certain levels; town rewards come from helping towns.",
+    page: "h",
+    prepare: "profile",
+    target: "#go-lv",
+    afterTarget: "#v-lv",
+  },
+  {
+    icon: "trophy",
+    title: "Ranks and friend codes",
+    before: "Tap Ranks to see the leaderboard.",
+    after: "Switch between XP, streak, towns helped and check-offs. Copy a friend code or add one to include a friend in your local leaderboard.",
+    page: "h",
+    target: '.nv[data-p="l"]',
+    afterTarget: ".lb-tabs",
+  },
+  {
+    icon: "profile-card",
+    title: "Profiles and backups",
+    before: "Tap My info to find your profiles and backups.",
+    after: "In My info, create or switch profiles and export a save file. Restoring a backup replaces the active profile; saves stay on this browser unless exported.",
+    page: "h",
+    prepare: "profile",
+    target: "#go-info",
+    afterTarget: "#v-info .acct-box",
   },
 ];
 
@@ -48,69 +107,80 @@ let tourIndex = 0;
 let tourPending = false;
 let tourTarget = null;
 let tourStepReady = false;
+let tourCardTop = false;
 
 function closeTourPanels() {
   $("pm").classList.remove("show");
   $("ix").classList.remove("show");
+  $("hm").classList.remove("show");
+  if ($("gl").classList.contains("show")) {
+    $("gl").classList.remove("show");
+    stopGlobe();
+  }
 }
 
 function clearTourTarget() {
-  if (tourTarget) tourTarget.classList.remove("tour-highlight");
+  if (tourTarget) tourTarget.classList.remove("tour-highlight", "tour-interactive");
   tourTarget = null;
+}
+
+function renderTourCard() {
+  DailyWalkReact.renderTutorial({
+    step: TOUR_STEPS[tourIndex],
+    index: tourIndex,
+    total: TOUR_STEPS.length,
+    ready: tourStepReady,
+    cardTop: tourCardTop,
+    icon: icoSvg,
+    onBack: previousTourStep,
+    onNext: nextTourStep,
+    onSkip: finishTour,
+  });
 }
 
 function positionTour() {
   if (!tourTarget) return;
-  const card = document.querySelector(".tour-card");
-  if (!card) return;
-  const r = tourTarget.getBoundingClientRect();
-  card.classList.toggle("tour-card-top", r.top > innerHeight * 0.55);
-}
-
-function updateTourButtons() {
-  $("tour-back").hidden = tourIndex === 0;
-  $("tour-open").hidden = tourStepReady;
-  $("tour-next").hidden = !tourStepReady;
-  $("tour-next").textContent =
-    tourIndex === TOUR_STEPS.length - 1 ? "OK" : "OK, next";
+  const bounds = tourTarget.getBoundingClientRect();
+  const top = bounds.top + bounds.height / 2 >= innerHeight / 2;
+  if (top !== tourCardTop) {
+    tourCardTop = top;
+    renderTourCard();
+  }
 }
 
 function renderTourStep() {
   const step = TOUR_STEPS[tourIndex];
   tourStepReady = false;
+  tourCardTop = false;
   clearTourTarget();
   closeTourPanels();
   if (PG !== step.page) go(step.page);
-  $("tour-step").textContent = `${tourIndex + 1} of ${TOUR_STEPS.length}`;
-  $("tour-icon").textContent = step.icon;
-  $("tour-title").textContent = step.title;
-  $("tour-text").textContent = step.before;
-  $("tour-open").textContent = step.open;
-  updateTourButtons();
-  tourTarget = document.querySelector(step.target);
-  if (tourTarget) tourTarget.classList.add("tour-highlight");
-}
-
-function openTourPage() {
-  const step = TOUR_STEPS[tourIndex];
-  if (step.page && PG !== step.page) go(step.page);
-  if (step.profile) {
+  if (step.prepare === "profile") {
     view("menu");
     $("pm").classList.add("show");
   }
-  if (step.index) openIx();
+  renderTourCard();
+  tourTarget = document.querySelector(step.target);
+  if (tourTarget) {
+    tourTarget.classList.add("tour-highlight", "tour-interactive");
+    tourTarget.scrollIntoView({ behavior: "instant", block: "center" });
+    positionTour();
+    tourTarget.focus({ preventScroll: true });
+  }
+}
+
+function completeTourAction() {
+  const step = TOUR_STEPS[tourIndex];
   tourStepReady = true;
-  $("tour-text").textContent = step.after;
-  updateTourButtons();
   clearTourTarget();
-  tourTarget = document.querySelector(
-    step.profile ? "#v-menu .banner" : step.index ? "#ix .sheet" : step.target,
-  );
+  tourTarget = document.querySelector(step.afterTarget);
+  renderTourCard();
   if (tourTarget) {
     tourTarget.classList.add("tour-highlight");
-    tourTarget.scrollIntoView({ behavior: "smooth", block: "center" });
+    tourTarget.scrollIntoView({ behavior: "instant", block: "center" });
+    positionTour();
   }
-  setTimeout(positionTour, 250);
+  $("tour-next").focus({ preventScroll: true });
 }
 
 function startTour() {
@@ -131,33 +201,48 @@ function finishTour() {
   save();
 }
 
+function nextTourStep() {
+  if (!tourStepReady) return;
+  if (tourIndex < TOUR_STEPS.length - 1) {
+    tourIndex += 1;
+    renderTourStep();
+  } else {
+    finishTour();
+    toast("You’re ready! Check off your first habit.");
+  }
+}
+
+function previousTourStep() {
+  if (tourIndex > 0) {
+    tourIndex -= 1;
+    renderTourStep();
+  }
+}
+
 function maybeStartTour() {
   if (S.tutorialDone || tourPending || !$("tour").hidden) return;
   if (!$("sp").classList.contains("show")) {
     tourPending = true;
-    setTimeout(startTour, 450);
+    setTimeout(() => {
+      tourPending = false;
+      if (!S.tutorialDone && $("tour").hidden) startTour();
+    }, 450);
   }
 }
 
 function initTutorial() {
-  $("tour-open").onclick = openTourPage;
-  $("tour-next").onclick = () => {
-    if (!tourStepReady) return;
-    if (tourIndex < TOUR_STEPS.length - 1) {
-      tourIndex += 1;
-      renderTourStep();
+  document.addEventListener("click", (event) => {
+    if ($("tour").hidden || $("tour").contains(event.target)) return;
+    if (!tourStepReady && tourTarget && tourTarget.contains(event.target)) {
+      const step = tourIndex;
+      setTimeout(() => {
+        if (!$("tour").hidden && !tourStepReady && tourIndex === step) completeTourAction();
+      }, 0);
     } else {
-      finishTour();
-      toast("You’re ready! Check off your first habit.");
+      event.preventDefault();
+      event.stopPropagation();
     }
-  };
-  $("tour-back").onclick = () => {
-    if (tourIndex > 0) {
-      tourIndex -= 1;
-      renderTourStep();
-    }
-  };
-  $("tour-skip").onclick = finishTour;
+  }, true);
   $("go-tour").onclick = () => {
     $("pm").classList.remove("show");
     startTour();

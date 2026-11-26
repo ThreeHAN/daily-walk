@@ -1,6 +1,7 @@
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { IconText } from "./icon-text.jsx";
+import { LevelTitle } from "./level-title.jsx";
 
 const root = createRoot(document.getElementById("lvlist"));
 
@@ -12,7 +13,7 @@ function LevelList({ levels, currentLevel, icon, iconTextParts }) {
       (level.number === currentLevel ? " cur" : "")}>
       <span className="lvn">{level.number}</span>
       <div>
-        <b>{text(level.title)}</b>
+        <LevelTitle level={level.number}>{level.title}</LevelTitle>
         <small>{text((level.number === 1 ? "Start here" : level.start + " XP") +
           (level.unlocks.length ? " · Unlocks " + level.unlocks.join(", ") : ""))}</small>
       </div>

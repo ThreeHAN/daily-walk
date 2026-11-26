@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 256 42" width="256" height="42">
+  <rect x="4" y="4" width="248" height="34" fill="#451A03" />
+  <rect x="0" y="0" width="248" height="34" fill="#92400E" stroke="#F59E0B" stroke-width="3" />
+  <rect x="14" y="21" width="10" height="3" fill="#FBBF24" />
+  <rect x="17" y="24" width="4" height="4" fill="#78350F" />
+  <rect x="17" y="9" width="4" height="12" fill="#E5E7EB" />
+  <text x="36" y="17" font-family="&#39;Courier New&#39;, Courier, monospace" font-weight="900" font-size="20" letter-spacing="1" dominant-baseline="central" fill="#FEF3C7">Squire-At-Arms</text>
+</svg>

@@ -119,7 +119,7 @@ const icMO = new MutationObserver((ms) => {
 const GIC = {
   morning: "sunrise",
   nutrition: "salad",
-  exercise: "runner",
+  exercise: "dumbbell",
   cleaning: "broom",
   faith: "pray",
   more: "star",
@@ -133,7 +133,7 @@ const DEFIC = {
   dinner: "moon",
   eat: "salad",
   stretch: "leaf",
-  run: "runner",
+  run: "dumbbell",
   room: "broom",
   pray: "pray",
   good: "heart",

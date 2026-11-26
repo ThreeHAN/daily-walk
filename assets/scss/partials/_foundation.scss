@@ -458,8 +458,8 @@ button {
   align-items: end;
   justify-items: center;
   padding: 20px 16px calc(92px + env(safe-area-inset-bottom, 0px));
-  background: rgba(24, 20, 17, 0.56);
-  pointer-events: auto;
+  background: rgba(24, 20, 17, 0.28);
+  pointer-events: none;
 }
 .tour[hidden] {
   display: none !important;
@@ -481,6 +481,10 @@ body.tour-open > *:not(#tour) {
   color: var(--ink);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
   animation: sheetUp 0.32s cubic-bezier(0.2, 0.9, 0.3, 1);
+  pointer-events: auto;
+}
+.tour-card-top {
+  align-self: start;
 }
 .tour-top {
   display: flex;
@@ -512,6 +516,10 @@ body.tour-open > *:not(#tour) {
   background: var(--acc2);
   font-size: 28px;
 }
+.tour-icon svg {
+  width: 32px;
+  height: 32px;
+}
 .tour-card h2 {
   margin: 0 0 7px;
   text-align: center;
@@ -533,6 +541,9 @@ body.tour-open > *:not(#tour) {
 .tour-actions .done {
   min-height: 42px;
 }
+.tour-actions #tour-back[hidden] ~ .done {
+  grid-column: 1 / -1;
+}
 .tour-highlight {
   position: relative;
   z-index: auto !important;
@@ -540,8 +551,14 @@ body.tour-open > *:not(#tour) {
   outline: 3px solid #ffd23f;
   outline-offset: 4px;
   box-shadow: none !important;
-  pointer-events: none !important;
   filter: none !important;
+}
+.tour-highlight.tour-interactive {
+  outline: 4px solid #ffd23f;
+  pointer-events: auto !important;
+}
+.tour-actions .done:disabled {
+  opacity: 0.5;
 }
 @media (max-height: 620px) {
   .tour {

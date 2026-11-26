@@ -57,6 +57,16 @@
   color: #3f9d63;
   font-weight: 600;
 }
+.auth-note {
+  margin: 8px 0;
+  font-size: 13px;
+  color: var(--mute);
+}
+.auth-error {
+  margin: 8px 0 0;
+  color: #a33225;
+  font-size: 13px;
+}
 .uitem {
   display: flex;
   align-items: center;

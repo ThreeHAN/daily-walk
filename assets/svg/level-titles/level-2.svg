@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -5 218 45" width="218" height="45">
+  <rect x="4" y="4" width="210" height="34" fill="#27272A" />
+  <rect x="0" y="0" width="210" height="34" fill="#52525B" stroke="#A1A1AA" stroke-width="3" />
+  <rect x="20" y="-3" width="12" height="4" fill="#52525B" />
+  <rect x="50" y="-3" width="12" height="4" fill="#52525B" />
+  <rect x="150" y="-3" width="12" height="4" fill="#52525B" />
+  <rect x="180" y="-3" width="12" height="4" fill="#52525B" />
+  <rect x="18" y="17" width="4" height="10" fill="#92400E" />
+  <rect x="16" y="11" width="8" height="6" fill="#F97316" />
+  <rect x="18" y="8" width="4" height="4" fill="#FEF08A" />
+  <text x="36" y="17" font-family="&#39;Courier New&#39;, Courier, monospace" font-weight="900" font-size="20" letter-spacing="1" dominant-baseline="central" fill="#F4F4F5">Castle Page</text>
+</svg>

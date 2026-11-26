@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>Daily Walk · Admin Account</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=pixel-navigation-2" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=google-auth-1" />
   </head>
   <body>
     <div id="buddy">
@@ -40,6 +40,7 @@
               viewBox="0 -8 56 70"
               aria-hidden="true"
             ></svg>
+            <span class="profile-pet" id="profile-avatar-pet" aria-hidden="true"></span>
           </button>
         </div>
       </div>
@@ -404,7 +405,7 @@
         <em class="arr">›</em>
       </button>
       <button class="card2" id="ixbtn" type="button">
-        <span class="ci g2"><i class="ic" data-i="shapes"></i></span>
+        <span class="ci g2"><i class="ic" data-i="book"></i></span>
         <div>
           <b>People index</b
           ><span id="ixsub">People you have met</span>
@@ -500,6 +501,7 @@
                 viewBox="0 0 56 64"
                 aria-hidden="true"
               ></svg>
+              <span class="profile-pet" id="profile-banner-pet" aria-hidden="true"></span>
             </div>
             <div id="profile-banner"></div>
           </div>
@@ -559,6 +561,7 @@
           <button class="back" type="button" data-back>‹ Back</button>
           <h3 class="vt">Wardrobe</h3>
           <div class="chips tabs" id="wtabs"></div>
+          <div id="wardrobe-level"></div>
           <div class="wardrobe-layout">
             <div class="wardrobe-preview">
               <div class="stage sm">
@@ -570,9 +573,9 @@
                   aria-label="Traveler preview"
                   role="img"
                 ></svg>
+                <span class="profile-pet" id="profile-wardrobe-pet" aria-hidden="true"></span>
               </div>
               <b>Your traveler</b>
-              <span id="wardrobe-level"></span>
             </div>
             <div id="wbody"></div>
           </div>
@@ -596,6 +599,7 @@
               viewBox="0 0 56 64"
               aria-hidden="true"
             ></svg>
+            <span class="profile-pet" id="profile-info-pet" aria-hidden="true"></span>
           </div>
           <h3 class="vt">My info &amp; Profiles</h3>
           <div class="sub vs" id="pst"></div>
@@ -613,6 +617,7 @@
             <div><b id="s2">0</b><span>🏆 Best streak</span></div>
             <div><b id="s3">0</b><span>✅ Total check-offs</span></div>
           </div>
+          <div id="google-auth"></div>
           <div class="acct-box">
             <div class="acct-h">
               <b>👥 User Profiles</b><span id="syncst">Auto-saved ✓</span>
@@ -726,7 +731,7 @@
       </div>
     </div>
     <nav id="nav">
-      <button class="nv on" data-p="h" type="button"><i data-i="check" aria-hidden="true"></i>Habits</button
+      <button class="nv on" data-p="h" type="button" aria-current="page"><i data-i="check" aria-hidden="true"></i>Habits</button
       ><button class="nv" data-p="t" type="button"><i data-i="globe" aria-hidden="true"></i>World</button
       ><button class="nv" data-p="l" type="button"><i data-i="trophy" aria-hidden="true"></i>Ranks</button>
     </nav>
@@ -784,6 +789,7 @@
       </div>
     </div>
     <div class="tv" id="tv">
+      <div id="travel-landscape" class="travel-landscape" aria-hidden="true"></div>
       <div class="tvc">
         <i class="ic bal" data-i="balloon"></i>
         <div class="tvn" id="tvn"></div>
@@ -795,48 +801,28 @@
     </button>
     <div class="modal" id="hm"></div>
     <div class="modal" id="ix"></div>
-    <div class="tour" id="tour" hidden>
-      <div
-        class="tour-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="tour-title"
-      >
-        <div class="tour-top">
-          <span class="tour-step" id="tour-step"></span>
-          <button class="tour-skip" id="tour-skip" type="button">Skip</button>
-        </div>
-        <div class="tour-icon" id="tour-icon" aria-hidden="true"></div>
-        <h2 id="tour-title"></h2>
-        <p id="tour-text"></p>
-        <div class="tour-actions">
-          <button class="ubtn sec" id="tour-back" type="button">Back</button>
-          <button class="done" id="tour-open" type="button">Open page</button>
-          <button class="done" id="tour-next" type="button">Next</button>
-        </div>
-      </div>
-    </div>
+    <div class="tour" id="tour" hidden></div>
     <div class="toast" id="toast"></div>
     <script src="assets/js/core/storage.js"></script>
-    <script src="assets/js/core/state.js?v=pixel-categories-1"></script>
-    <script src="assets/js/ui/icon-art.js?v=organization-1"></script>
-    <script src="assets/js/ui/icons.js?v=react-profile-streak-1"></script>
+    <script src="assets/js/core/state.js?v=habit-icons-1"></script>
+    <script src="assets/js/ui/icon-art.js?v=habit-icons-2"></script>
+    <script src="assets/js/ui/icons.js?v=habit-icons-1"></script>
     <script src="assets/js/core/runtime.js"></script>
     <script src="assets/js/features/buddies.js?v=organization-1"></script>
     <script src="assets/js/features/buddy-art.js?v=organization-1"></script>
-    <script src="assets/js/features/buddy-render.js?v=organization-1"></script>
+    <script src="assets/js/features/buddy-render.js?v=streak-no-pet-1"></script>
     <script src="assets/js/features/pets.js?v=pixel-pets-1"></script>
-    <script src="assets/js/features/profile.js?v=react-profile-streak-1"></script>
+    <script src="assets/js/features/profile.js?v=streak-no-pet-1"></script>
     <script src="assets/js/features/town-data.js?v=organization-1"></script>
-    <script src="assets/js/features/town-scene.js?v=organization-1"></script>
-    <script src="assets/js/features/world-map.js?v=react-world-towns-1"></script>
+    <script src="assets/js/features/town-scene.js?v=town-birds-1"></script>
+    <script src="assets/js/features/world-map.js?v=travel-landscape-1"></script>
     <script src="assets/js/features/town.js?v=react-buddy-stats-1"></script>
     <script src="assets/js/features/town-progress.js"></script>
-    <script src="assets/js/features/habits.js?v=react-editor-1"></script>
+    <script src="assets/js/features/habits.js?v=steady-tabs-1"></script>
     <script src="assets/js/features/collection.js?v=react-profile-streak-1"></script>
-    <script src="assets/js/features/tutorial.js?v=pixel-traveler-1"></script>
+    <script src="assets/js/features/tutorial.js?v=guided-click-2"></script>
     <script src="assets/js/core/accounts.js?v=react-profiles-1"></script>
-    <script src="assets/js/generated/react-ui.js?v=react-profile-streak-1"></script>
-    <script src="assets/js/app.js?v=react-heading-1"></script>
+    <script src="assets/js/generated/react-ui.js?v=google-auth-1"></script>
+    <script src="assets/js/app.js?v=google-auth-1"></script>
   </body>
 </html>

@@ -33,19 +33,11 @@
   height: 24px;
   font-style: normal;
   font-size: 22px;
-  transition: transform 0.2s;
 }
 .nv i svg {
   display: block;
   width: 100%;
   height: 100%;
-}
-.nv.on {
-  color: var(--acc);
-  background: var(--acc2);
-}
-.nv.on i {
-  transform: translateY(-2px) scale(1.15);
 }
 .toast {
   bottom: calc(88px + env(safe-area-inset-bottom, 0px));

@@ -15,6 +15,16 @@ async function openAppearance(page) {
   await page.locator("#wtabs button").filter({ hasText: "Appearance" }).evaluate((button) => button.click());
 }
 
+test("all People Index buttons show the book and open the index", async ({ page }) => {
+  for (const selector of ["#ixh", "#ixbtn", "#go-ix"]) {
+    await expect(page.locator(`${selector} [data-i="book"] svg`)).toHaveCount(1);
+    await click(page, selector);
+    await expect(page.locator("#ix")).toHaveClass(/show/);
+    await click(page, "#ixdone");
+    await expect(page.locator("#ix")).not.toHaveClass(/show/);
+  }
+});
+
 test("profile combines appearance and town gear in one wardrobe", async ({ page }) => {
   await click(page, "#prof");
   await expect(page.locator("#go-bud")).toHaveCount(0);
@@ -129,7 +139,7 @@ test("levels and rewards reflect XP thresholds when reopened and after reload", 
   const rows = page.locator("#lvlist .lvrow");
   await expect(rows).toHaveCount(10);
   await expect(rows.nth(0)).toHaveClass(/cur/);
-  await expect(rows.nth(0)).toContainText("Newcomer");
+  await expect(rows.nth(0)).toContainText("Noob");
   await expect(rows.nth(0)).toContainText("Start here");
   await expect(rows.nth(1)).toContainText("80 XP");
   await expect(rows.nth(1)).toContainText("Vanguard tunic");
@@ -148,9 +158,61 @@ test("levels and rewards reflect XP thresholds when reopened and after reload", 
   await click(page, "#go-lv");
   await expect(rows).toHaveCount(10);
   await expect(rows.nth(9)).toHaveClass(/cur/);
-  await expect(rows.filter({ hasText: "Legendary Warrior" })).toHaveCount(1);
+  await expect(rows.filter({ hasText: "Legendary Grandmaster" })).toHaveCount(1);
   await expect(page.locator("#lvlist .lvrow.past")).toHaveCount(9);
   expect(errors).toEqual([]);
+});
+
+test("supplied level titles load and fit throughout the traveler journey", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  const names = [
+    "Noob", "Castle Page", "Squire-At-Arms", "Armored Squire", "Vanguard Shield-Bearer",
+    "Realm Defender", "Sworn Knight", "Realm Champion", "Royal Paladin", "Legendary Grandmaster",
+  ];
+  for (const [index, name] of names.entries()) {
+    const level = index + 1;
+    await page.evaluate((n) => { S.xp = LV_START(n); drawHero(); }, level);
+    const title = page.locator("#lvt");
+    const image = title.locator("img");
+    await expect(title).toHaveText(name);
+    await expect(title).toHaveAttribute("data-level", String(level));
+    await expect(image).toHaveAttribute("src", `assets/svg/level-titles/level-${level}.svg`);
+    await expect.poll(() => image.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+    const fits = await image.evaluate((img) => {
+      const bounds = img.getBoundingClientRect();
+      const hero = document.querySelector("#hero").getBoundingClientRect();
+      return bounds.left >= hero.left && bounds.right <= hero.right && bounds.width >= Math.min(img.naturalWidth, 200);
+    });
+    expect(fits).toBe(true);
+  }
+  await page.evaluate(() => save());
+  await page.reload();
+  await expect(page.locator("#lvt")).toHaveText("Legendary Grandmaster");
+  await expect(page.locator("#lvt")).toHaveAttribute("data-level", "10");
+  await click(page, "#prof");
+  await expect(page.locator("#mst .level-title")).toHaveAttribute("data-level", "10");
+  await expect(page.locator('#mst .level-title img')).toHaveAttribute("src", "assets/svg/level-titles/level-10.svg");
+  await click(page, "#go-lv");
+  await expect(page.locator("#lvlist .level-title")).toHaveCount(10);
+  await expect(page.locator('#lvlist .level-title[data-level="7"] img')).toHaveAttribute("src", "assets/svg/level-titles/level-7.svg");
+  await click(page, "#v-lv [data-back]");
+  await page.evaluate(() => { S.xp = LV_START(7); save(); drawHero(); });
+  await expect(page.locator('#lvt img')).toHaveAttribute("src", "assets/svg/level-titles/level-7.svg");
+  await click(page, "#pdone");
+  await click(page, "#prof");
+  await expect(page.locator('#mst .level-title img')).toHaveAttribute("src", "assets/svg/level-titles/level-7.svg");
+  await click(page, "#go-wd");
+  await expect(page.locator('#wardrobe-level .level-title')).toHaveAttribute("data-level", "7");
+  await expect(page.locator('#wardrobe-level img')).toHaveAttribute("src", "assets/svg/level-titles/level-7.svg");
+  const wardrobeFits = await page.evaluate(() => {
+    const title = document.querySelector("#wardrobe-level img").getBoundingClientRect();
+    const container = document.querySelector("#wardrobe-level").getBoundingClientRect();
+    return title.left >= container.left && title.right <= container.right;
+  });
+  expect(wardrobeFits).toBe(true);
+  await page.evaluate(() => levelUp(7));
+  await expect(page.locator("#lut .level-title")).toHaveAttribute("data-level", "7");
+  await expect(page.locator('#lut img')).toHaveAttribute("src", "assets/svg/level-titles/level-7.svg");
 });
 
 test("traveler and streak align in the corner and remain usable", async ({ page }) => {
@@ -535,16 +597,110 @@ test("the people index preserves search during updates and resets it when reopen
 
 test("the guided tour can still open and highlight the people index", async ({ page }) => {
   await page.evaluate(() => startTour());
-  for (let step = 0; step < 3; step++) {
-    await click(page, "#tour-open");
-    await click(page, "#tour-next");
+  for (let step = 0; step < 6; step++) {
+    await page.locator(".tour-interactive").click();
+    await expect(page.locator("#tour-next")).toBeEnabled();
+    await page.locator("#tour-next").click();
   }
   await expect(page.locator("#tour-title")).toHaveText("People you meet");
-  await click(page, "#tour-open");
+  await page.locator(".tour-interactive").click();
+  await expect(page.locator("#tour-next")).toBeEnabled();
   await expect(page.locator("#ix")).toHaveClass(/show/);
   await expect(page.locator("#ix .sheet")).toHaveClass(/tour-highlight/);
   await click(page, "#tour-skip");
   await expect(page.locator("#ix")).not.toHaveClass(/show/);
+});
+
+test("the expanded tour guides every feature, preserves progress, and can be replayed", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const before = await page.evaluate(() => {
+    S.tutorialDone = false;
+    S.splash = today();
+    save();
+    const progress = JSON.stringify({ tasks: S.tasks, checks: S.checks, xp: S.xp, town: S.nb.cur, player: S.p });
+    startTour();
+    return progress;
+  });
+  const titles = [
+    "Your daily checklist", "Add your own habits", "XP, levels and streaks",
+    "Water and journal", "Helping your town", "Explore the world",
+    "People you meet", "Your traveler and gear", "Levels and rewards",
+    "Ranks and friend codes", "Profiles and backups",
+  ];
+  for (const [index, title] of titles.entries()) {
+    await expect(page.locator("#tour-title")).toHaveText(title);
+    await expect(page.locator("#tour-step")).toHaveText(`${index + 1} of ${titles.length}`);
+    await expect(page.locator("#tour-icon svg")).toHaveCount(1);
+    await expect(page.locator("#tour-next")).toBeDisabled();
+    const target = page.locator(".tour-interactive");
+    const bounds = await target.boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(568);
+    await target.click();
+    await expect(page.locator("#tour-next")).toBeEnabled();
+    await expect(page.locator(".tour-highlight")).toBeVisible();
+    await expect(page.locator("#tour-text")).not.toBeEmpty();
+    if (index === 1) {
+      await page.locator("#tour-back").click();
+      await expect(page.locator("#tour-title")).toHaveText(titles[0]);
+      await page.locator(".tour-interactive").click();
+      await expect(page.locator("#tour-next")).toBeEnabled();
+      await page.locator("#tour-next").click();
+      await page.locator(".tour-interactive").click();
+      await expect(page.locator("#tour-next")).toBeEnabled();
+    }
+    await page.locator("#tour-next").click();
+  }
+  await expect(page.locator("#tour")).toBeHidden();
+  for (const selector of ["#gl", "#pm", "#ix"]) {
+    await expect(page.locator(selector)).not.toHaveClass(/show/);
+  }
+  expect(await page.evaluate(() => JSON.stringify({ tasks: S.tasks, checks: S.checks, xp: S.xp, town: S.nb.cur, player: S.p }))).toBe(before);
+  await page.reload();
+  expect(await page.evaluate(() => S.tutorialDone)).toBe(true);
+  await expect(page.locator("#tour")).toBeHidden();
+  await click(page, "#prof");
+  await click(page, "#go-tour");
+  await expect(page.locator("#tour-title")).toHaveText(titles[0]);
+  await page.locator("#tour-skip").click();
+  await expect(page.locator("#tour")).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("the tour starts for an unfinished profile and skipping remains saved", async ({ page }) => {
+  await page.evaluate(() => {
+    S.tutorialDone = false;
+    S.splash = today();
+    save();
+  });
+  await page.reload();
+  await expect(page.locator("#tour")).toBeVisible();
+  await page.locator("#tour-skip").click();
+  await page.reload();
+  expect(await page.evaluate(() => S.tutorialDone)).toBe(true);
+  await page.waitForTimeout(600);
+  await expect(page.locator("#tour")).toBeHidden();
+});
+
+test("the tour accepts keyboard activation and blocks unrelated buttons", async ({ page }) => {
+  await page.evaluate(() => startTour());
+  await expect(page.locator('.nv[data-p="h"]')).toBeFocused();
+  await page.evaluate(() => document.querySelector('.nv[data-p="t"]').click());
+  await expect(page.locator("#pg-h")).toBeVisible();
+  await expect(page.locator("#tour-next")).toBeDisabled();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#tour-next")).toBeEnabled();
+  await page.locator("#tour-next").click();
+  await expect(page.locator("#fab")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#hm")).toHaveClass(/show/);
+  await expect(page.locator("#tour-next")).toBeEnabled();
+  await page.locator("#tour-skip").click();
+  await expect(page.locator("#hm")).not.toHaveClass(/show/);
 });
 
 test("the people index records only people tapped and keeps encounters across towns", async ({ page }) => {

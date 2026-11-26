@@ -358,6 +358,69 @@ test("category and navigation icons stay pixel art after rerender and navigation
   expect(errors).toEqual([]);
 });
 
+test("exercise uses dumbbells and the cold shower has straight snowflake lines", async ({ page }) => {
+  await page.evaluate(() => {
+    S.tasks.push({ id: "c98765", g: "exercise", t: "Custom run", ic: "runner" });
+    save();
+  });
+  await page.reload();
+  const icons = await page.evaluate(() => {
+    const iconFor = (id) => document.querySelector(`input[data-id="${id}"]`).closest("label").querySelector(".hi").innerHTML;
+    const artwork = (name) => {
+      const element = document.createElement("span");
+      element.innerHTML = icoSvg(name);
+      return element.innerHTML;
+    };
+    const group = Array.from(document.querySelectorAll("#list .grp"))
+      .find((element) => element.querySelector(".gn").textContent === "Exercise");
+    const snow = document.querySelector('input[data-id="cold"]').closest("label").querySelector(".hi svg");
+    const dumbbell = group.querySelector(".ge svg");
+    const bounds = dumbbell.getBBox();
+    return {
+      group: group.querySelector(".ge").innerHTML,
+      run: iconFor("run"),
+      custom: iconFor("c98765"),
+      dumbbell: artwork("dumbbell"),
+      runner: artwork("runner"),
+      size: { width: bounds.width, height: bounds.height },
+      fills: Array.from(dumbbell.querySelectorAll("path"), (path) => getComputedStyle(path).fill),
+      lines: snow.querySelectorAll("line").length,
+      branches: snow.querySelector("path").getAttribute("d"),
+    };
+  });
+  expect(icons.group).toBe(icons.dumbbell);
+  expect(icons.run).toBe(icons.dumbbell);
+  expect(icons.custom).toBe(icons.runner);
+  expect(icons.size.width).toBeGreaterThanOrEqual(20);
+  expect(icons.size.height).toBeGreaterThanOrEqual(16);
+  for (const fill of icons.fills) {
+    const [red, green, blue] = fill.match(/\d+/g).map(Number);
+    expect(red).toBe(green);
+    expect(green).toBe(blue);
+  }
+  expect(new Set(icons.fills).size).toBeGreaterThan(1);
+  expect(icons.lines).toBe(4);
+  expect(icons.branches).not.toMatch(/[cqst]/i);
+});
+
+test("tab buttons keep their appearance while identifying the current page", async ({ page }) => {
+  const buttons = page.locator("#nav .nv");
+  const appearance = () => buttons.evaluateAll((elements) => elements.map((button) => {
+    const style = getComputedStyle(button);
+    const icon = getComputedStyle(button.querySelector("i"));
+    return { color: style.color, background: style.backgroundColor, transform: icon.transform };
+  }));
+  const initial = await appearance();
+  await expect(page.locator('.nv[data-p="h"]')).toHaveAttribute("aria-current", "page");
+  for (const pageId of ["t", "l", "h"]) {
+    await page.locator(`.nv[data-p="${pageId}"]`).evaluate((button) => button.click());
+    await expect(page.locator(`#pg-${pageId}`)).toBeVisible();
+    await expect(page.locator(`.nv[data-p="${pageId}"]`)).toHaveAttribute("aria-current", "page");
+    await expect(page.locator('#nav .nv[aria-current="page"]')).toHaveCount(1);
+    expect(await appearance()).toEqual(initial);
+  }
+});
+
 test("a new habit is highlighted and can still be removed", async ({ page }) => {
   await page.locator("#fab").evaluate((button) => button.click());
   await page.locator("#hn").fill("Take a walk");
@@ -444,7 +507,7 @@ test("the level hero updates for habit and journal rewards and keeps its profile
     drawHero();
   });
   await expect(page.locator("#lvb")).toHaveText("Lv 1");
-  await expect(page.locator("#lvt")).toHaveText("Newcomer");
+  await expect(page.locator("#lvt")).toHaveText("Noob");
   await expect(page.locator("#xpn")).toHaveText("0 / 80 XP");
   await expect(page.locator("#xfill")).toHaveAttribute("style", "width: 0%;");
 
@@ -468,7 +531,7 @@ test("crossing a level threshold updates the hero and shows the level-up effect"
   });
   await clickHabit(page, "wake");
   await expect(page.locator("#lvb")).toHaveText("Lv 2");
-  await expect(page.locator("#lvt")).toHaveText("Adventurer");
+  await expect(page.locator("#lvt")).toHaveText("Castle Page");
   await expect(page.locator("#xpn")).toHaveText("9 / 160 XP");
   await expect(page.locator("#xfill")).toHaveAttribute("style", "width: 5.625%;");
   await expect(page.locator("#lun")).toHaveText("2");
