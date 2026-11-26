@@ -176,6 +176,74 @@ function getSavedProfileForSync(id = CUR_UID) {
   }
   return { id, state: stored };
 }
+function finishStartup() {
+  if (!startupPending) return;
+  startupPending = false;
+  if (!save()) {
+    startupPending = true;
+    throw new Error("Could not save this profile on this device.");
+  }
+  showSplash();
+  maybeStartTour();
+}
+
+function openCloudProfile(ownerId, cloudId, remote) {
+  if (stateLoadError) throw stateLoadError;
+  const storedUsers = readStoredUsers();
+  if (storedUsers.length && JSON.stringify(storedUsers) !== JSON.stringify(USERS)) {
+    throw new Error("Local profiles changed. Reload before continuing.");
+  }
+  const existing = cloudId && storedUsers.find((user) => {
+    const raw = localStorage.getItem(DailyWalkReact.linkKey(ownerId, user.id));
+    const link = raw === null ? null : JSON.parse(raw);
+    return link?.status === "linked" && link.id === cloudId;
+  });
+  let nextId = existing?.id;
+  let nextState;
+  if (existing) {
+    nextState = hydrateState(readStoredProfile(nextId));
+  } else {
+    nextId = "u_cloud_" + DailyWalkReact.newProfileId();
+    nextState = cloudId ? hydrateState(remote.state) : newPlayerState("Player 1");
+    const previousUsers = storedUsers.length ? storedUsers : startupHasLegacy ? USERS : [];
+    const nextUsers = [...previousUsers, profileMetadata(nextId, nextState, previousUsers)];
+    const writes = [
+      ...(startupHasLegacy && !storedUsers.length ? [[uKey(CUR_UID), JSON.stringify(S)]] : []),
+      [uKey(nextId), JSON.stringify(nextState)],
+      ...(cloudId ? [[DailyWalkReact.linkKey(ownerId, nextId), JSON.stringify({
+        id: cloudId, status: "linked", baseRevision: remote.revision,
+        baseFingerprint: DailyWalkReact.profileFingerprint(nextState),
+      })]] : []),
+      [K_USERS, JSON.stringify(nextUsers)],
+      [K_CUR, nextId],
+    ];
+    const previous = writes.map(([key]) => [key, localStorage.getItem(key)]);
+    try {
+      for (const [key, value] of writes) localStorage.setItem(key, value);
+    } catch (error) {
+      for (const [key, value] of previous.reverse()) {
+        try {
+          if (value === null) localStorage.removeItem(key);
+          else localStorage.setItem(key, value);
+        } catch (rollbackError) {
+          console.error("Could not restore local profiles after startup failed", rollbackError);
+        }
+      }
+      throw error;
+    }
+    USERS = nextUsers;
+    startupHasLegacy = false;
+  }
+  CUR_UID = nextId;
+  S = nextState;
+  Object.keys(shut).forEach((key) => delete shut[key]);
+  paint();
+  render();
+  drawWater();
+  drawJr();
+  finishStartup();
+}
+
 DailyWalkReact.renderGoogleAuth({
   getLocalProfile: () => getSavedProfileForSync(),
   getSyncLocalProfile: getSavedProfileForSync,
@@ -184,6 +252,14 @@ DailyWalkReact.renderGoogleAuth({
     ...USERS.filter((user) => user.id !== CUR_UID &&
       localStorage.getItem(DailyWalkReact.linkKey(ownerId, user.id)) !== null).map((user) => user.id),
   ],
+  hasCurrentLink: (ownerId) => {
+    if (stateLoadError || !readStoredUsers().some((user) => user.id === CUR_UID)) return false;
+    const raw = localStorage.getItem(DailyWalkReact.linkKey(ownerId, CUR_UID));
+    const link = raw === null ? null : JSON.parse(raw);
+    return link?.status === "linked" || link?.status === "pending";
+  },
+  finishStartup,
+  openCloudProfile,
   setSyncStatus: setCloudSyncStatus,
   replaceLocalProfile: (local, remote, { backup }) => {
     const active = CUR_UID === local.id;
@@ -237,7 +313,6 @@ DailyWalkReact.renderGoogleAuth({
 render();
 drawWater();
 drawJr();
-showSplash();
 hydrate();
 iconize(document.body);
 initTutorial();

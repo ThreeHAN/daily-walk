@@ -543,6 +543,8 @@ let USERS = [];
 let CUR_UID = "";
 let S;
 let stateLoadError = null;
+let startupPending = true;
+let startupHasLegacy = false;
 try {
   USERS = readStoredUsers();
   CUR_UID = localStorage.getItem(K_CUR) || "";
@@ -550,6 +552,7 @@ try {
     if (CUR_UID) throw new Error("Saved profile index is missing or empty");
     CUR_UID = "u_" + Date.now();
     const legacy = readStoredJson(K_LEGACY);
+    startupHasLegacy = legacy !== null;
     S = legacy === null ? newPlayerState("Player 1") : hydrateState(legacy);
     USERS = [
       {

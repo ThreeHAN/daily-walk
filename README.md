@@ -277,8 +277,12 @@ receives current tasks and per-day checks from the legacy state owner.
   data. Preserve existing storage keys and backup compatibility when changing
   the state shape, and test migrations against older saves.
 - Google sign-in is optional and available in the main profile menu on the
-  hosted site or local HTTP server. Signing in automatically links the current
-  local profile to the Google account and uploads a snapshot. Local changes
+  hosted site or local HTTP server. At launch, signed-out users choose Google
+  sign-in or a local profile. Sign-in opens the account's existing cloud profile
+  (or lets the user choose when there are several) without uploading an
+  unrelated local profile. If the account has no cloud profiles, users can
+  create one or continue locally. Existing local profiles are preserved, and a
+  cloud profile is cached locally for offline use. Local changes
   sync automatically, including changes to linked inactive profiles. Cloud
   changes are checked every 10 seconds while the app is open. Offline changes
   stay local and retry after reconnection; sync failures are visible and retried.

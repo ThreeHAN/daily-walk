@@ -71,7 +71,7 @@ function cloudState(snapshot) {
   return state;
 }
 
-async function readCloud(client, session, id) {
+export async function readCloud(client, session, id) {
   const snapshot = await rpc(client, session, "read_walk_profile", { profile_id: id });
   if (!snapshot || snapshot.profile?.id !== id || snapshot.profile?.owner_id !== session.user.id) {
     throw new Error("Linked cloud profile is missing or invalid.");
@@ -82,9 +82,18 @@ async function readCloud(client, session, id) {
 export async function listCloudProfiles(client, session) {
   const profiles = [];
   for (let offset = 0; ; offset += 1000) {
-    const { data, error } = await client.from("walk_profiles")
-      .select("id,display_name").order("id").range(offset, offset + 999)
-      .setHeader("Authorization", `Bearer ${session.access_token}`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    let response;
+    try {
+      response = await client.from("walk_profiles")
+        .select("id,display_name").order("id").range(offset, offset + 999)
+        .setHeader("Authorization", `Bearer ${session.access_token}`)
+        .abortSignal(controller.signal);
+    } finally {
+      clearTimeout(timer);
+    }
+    const { data, error } = response;
     if (error) throw error;
     if (!Array.isArray(data) || data.some((profile) => typeof profile.id !== "string" ||
         typeof profile.display_name !== "string")) throw new Error("Invalid cloud profile list.");

@@ -1,13 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { createPortal } from "react-dom";
 import { createClient } from "@supabase/supabase-js";
 import { linkProfile } from "./profile-link.js";
-import { connectCloudProfile, listCloudProfiles, syncProfile } from "./profile-sync.js";
+import { connectCloudProfile, listCloudProfiles, readCloud, syncProfile } from "./profile-sync.js";
 
 const projectUrl = "https://dnnpakvhiipflpvmkymf.supabase.co";
 const publishableKey = "sb_publishable_lSHa1JshQ3lKb4k7MFtEcw_Kigs8Yy8";
 
-function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, replaceLocalProfile, setSyncStatus: setBarSyncStatus }) {
+function StartupDialog({ children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    ref.current.showModal();
+  }, []);
+  return createPortal(
+    <dialog ref={ref} className="startup-dialog" aria-labelledby="startup-title"
+      onCancel={(event) => event.preventDefault()}>
+      {children}
+    </dialog>,
+    document.body,
+  );
+}
+
+function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, replaceLocalProfile,
+  hasCurrentLink, finishStartup, openCloudProfile, setSyncStatus: setBarSyncStatus }) {
   const [client, setClient] = useState(null);
   const [session, setSession] = useState(null);
   const [busy, setBusy] = useState(true);
@@ -22,6 +38,11 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
   const [conflict, setConflict] = useState(null);
   const [cloudProfiles, setCloudProfiles] = useState(null);
   const [selectedCloud, setSelectedCloud] = useState("");
+  const [startup, setStartup] = useState("checking");
+  const [startupProfiles, setStartupProfiles] = useState([]);
+  const [startupSelected, setStartupSelected] = useState("");
+  const [startupError, setStartupError] = useState("");
+  const [startupAttempt, setStartupAttempt] = useState(0);
   const sessionRef = useRef(null);
   const runningRef = useRef(false);
   const conflictsRef = useRef(new Map());
@@ -72,6 +93,48 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
   }, [supported]);
 
   useEffect(() => {
+    if (busy || startup === "ready" || !["checking", "choice"].includes(startup)) return;
+    if (!session) {
+      setStartup("choice");
+      return;
+    }
+    if (!client) return;
+    let active = true;
+    const current = () => active && sessionRef.current?.user?.id === session.user.id
+      && sessionRef.current?.access_token === session.access_token;
+    async function prepare() {
+      try {
+        if (hasCurrentLink(session.user.id)) {
+          finishStartup();
+          if (current()) setStartup("ready");
+          return;
+        }
+        const profiles = await listCloudProfiles(client, session);
+        if (!current()) return;
+        if (profiles.length === 1) {
+          const remote = await readCloud(client, session, profiles[0].id);
+          if (!current()) return;
+          openCloudProfile(session.user.id, profiles[0].id, remote);
+          setStartup("ready");
+        } else {
+          setStartupProfiles(profiles);
+          setStartupSelected(profiles[0]?.id || "");
+          setStartup(profiles.length ? "profiles" : "empty");
+        }
+      } catch (err) {
+        console.error("Could not load a cloud profile", err);
+        if (current()) {
+          setStartupError("Could not load your cloud profiles. Your local saves are unchanged.");
+          setStartup("error");
+        }
+      }
+    }
+    prepare();
+    return () => { active = false; };
+  }, [busy, client, session?.user?.id, session?.access_token, startup, startupAttempt,
+    hasCurrentLink, finishStartup, openCloudProfile]);
+
+  useEffect(() => {
     conflictsRef.current.clear();
     setConflict(null);
     setSyncStatus("");
@@ -81,7 +144,7 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
   }, [session?.user?.id, setBarSyncStatus]);
 
   useEffect(() => {
-    if (!client || !session) {
+    if (!client || !session || startup !== "ready") {
       setLinkStatus("");
       setLinkError("");
       setLinkBusy(false);
@@ -111,11 +174,11 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
       if (active) setLinkBusy(false);
     });
     return () => { active = false; };
-  }, [client, session?.user?.id, getLocalProfile, linkAttempt]);
+  }, [client, session?.user?.id, getLocalProfile, linkAttempt, startup]);
 
   const linkReady = !!linkStatus || !!linkError;
   useEffect(() => {
-    if (!client || !session || linkBusy || !linkReady) return;
+    if (!client || !session || startup !== "ready" || linkBusy || !linkReady) return;
     let disposed = false;
     let timer;
     let pending = false;
@@ -237,8 +300,51 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
       window.removeEventListener("storage", wake);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [client, session?.user?.id, session?.access_token, linkBusy, linkReady,
+  }, [client, session?.user?.id, session?.access_token, startup, linkBusy, linkReady,
     getSyncLocalProfile, getSyncTargets, replaceLocalProfile, setBarSyncStatus]);
+
+  async function useLocalProfile() {
+    setStartupError("");
+    try {
+      if (session) {
+        const { error: signOutError } = await client.auth.signOut({ scope: "local" });
+        if (signOutError) throw signOutError;
+      }
+      finishStartup();
+      setStartup("ready");
+    } catch (err) {
+      console.error("Could not start a local profile", err);
+      setStartupError("Could not start locally. Check browser storage and try again.");
+    }
+  }
+
+  async function selectStartupProfile() {
+    setStartupError("");
+    setStartup("opening");
+    try {
+      const current = () => sessionRef.current?.user?.id === session.user.id
+        && sessionRef.current?.access_token === session.access_token;
+      const remote = await readCloud(client, session, startupSelected);
+      if (!current()) throw new Error("The signed-in account changed.");
+      openCloudProfile(session.user.id, startupSelected, remote);
+      setStartup("ready");
+    } catch (err) {
+      console.error("Could not open cloud profile", err);
+      setStartupError("Could not open this cloud profile. Your local saves are unchanged.");
+      setStartup("profiles");
+    }
+  }
+
+  function createCloudProfile() {
+    setStartupError("");
+    try {
+      openCloudProfile(session.user.id, null, null);
+      setStartup("ready");
+    } catch (err) {
+      console.error("Could not create a cloud profile", err);
+      setStartupError("Could not create a profile. Check browser storage and try again.");
+    }
+  }
 
   async function sync(choice) {
     if (runningRef.current) return;
@@ -353,7 +459,42 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
     }
   }
 
-  return (
+  return (<>
+    {startup !== "ready" && <StartupDialog>
+      <h2 id="startup-title">Welcome to Daily Walk</h2>
+      {startup === "choice" && <>
+        <p>Sign in to use your cloud profile, or continue with a profile on this device.</p>
+        {supported && <button type="button" className="ubtn" disabled={busy || !client} onClick={signIn}>Sign in with Google</button>}
+        {!supported && <p className="auth-note">Sign-in requires the hosted site or local development server.</p>}
+        <button type="button" className="ubtn sec" onClick={useLocalProfile}>Continue locally</button>
+      </>}
+      {(startup === "checking" || startup === "opening") && <p aria-live="polite">Checking your account and profiles…</p>}
+      {startup === "profiles" && <>
+        <p>Choose the cloud profile you want to open.</p>
+        <label>Cloud profile{" "}
+          <select value={startupSelected} onChange={(event) => setStartupSelected(event.target.value)}>
+            {startupProfiles.map((profile) => <option key={profile.id} value={profile.id}>
+              {profile.display_name} · {profile.id.slice(0, 8)}
+            </option>)}
+          </select>
+        </label>
+        <button type="button" className="ubtn" disabled={!startupSelected} onClick={selectStartupProfile}>Open profile</button>
+      </>}
+      {startup === "empty" && <>
+        <p>This Google account has no cloud profiles yet.</p>
+        <button type="button" className="ubtn" onClick={createCloudProfile}>Create cloud profile</button>
+        <button type="button" className="ubtn sec" onClick={useLocalProfile}>Continue locally</button>
+      </>}
+      {startup === "error" && <>
+        <button type="button" className="ubtn" onClick={() => {
+          setStartupError("");
+          setStartup("checking");
+          setStartupAttempt((attempt) => attempt + 1);
+        }}>Retry</button>
+        <button type="button" className="ubtn sec" onClick={useLocalProfile}>Continue locally</button>
+      </>}
+      {(startupError || error) && <p className="auth-error" role="alert">{startupError || error}</p>}
+    </StartupDialog>}
     <div className="acct-box">
       <div className="acct-h"><b>Google account</b></div>
       <p className="auth-note">Signed-in profiles sync automatically. Offline changes sync after reconnecting.</p>
@@ -406,7 +547,7 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
         </>
       )}
     </div>
-  );
+  </>);
 }
 
 export function renderGoogleAuth(props) {

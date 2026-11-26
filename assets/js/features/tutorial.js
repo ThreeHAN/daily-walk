@@ -220,12 +220,12 @@ function previousTourStep() {
 }
 
 function maybeStartTour() {
-  if (S.tutorialDone || tourPending || !$("tour").hidden) return;
+  if (startupPending || S.tutorialDone || tourPending || !$("tour").hidden) return;
   if (!$("sp").classList.contains("show")) {
     tourPending = true;
     setTimeout(() => {
       tourPending = false;
-      if (!S.tutorialDone && $("tour").hidden) startTour();
+      if (!startupPending && !S.tutorialDone && $("tour").hidden) startTour();
     }, 450);
   }
 }

@@ -4559,6 +4559,45 @@ main {
   font-size: 13px;
 }
 
+.startup-dialog {
+  width: min(440px, 100% - 32px);
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.startup-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.startup-dialog h2 {
+  margin: 0 0 10px;
+  font: 700 22px Georgia, serif;
+}
+
+.startup-dialog p {
+  line-height: 1.5;
+}
+
+.startup-dialog label {
+  display: block;
+  margin: 12px 0;
+}
+
+.startup-dialog select {
+  max-width: 100%;
+}
+
+.startup-dialog .ubtn {
+  margin: 4px 8px 4px 0;
+  padding: 10px 14px;
+}
+
 .uitem {
   display: flex;
   align-items: center;
