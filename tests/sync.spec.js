@@ -97,7 +97,7 @@ async function setup(page, cloud) {
   });
   await page.locator("#prof").evaluate((element) => element.click());
   await page.getByRole("button", { name: "Sync now" }).click();
-  await expect(page.locator("#google-auth")).toContainText(/Profile uploaded|Profile is up to date/);
+  await expect(page.locator("#google-auth")).toContainText(/Profile uploaded|Profile is up to date|Profile downloaded/);
   await expect.poll(() => page.evaluate(() => {
     const key = DailyWalkReact.linkKey("sync-user", CUR_UID);
     const link = JSON.parse(localStorage.getItem(key));
@@ -110,7 +110,7 @@ async function changeName(page, name, userInitiated = false) {
     { value: name, fromUser: userInitiated });
 }
 
-test("two browsers sync in both directions and preserve conflicts", async ({ browser }) => {
+test("two browsers sync in both directions and back up overlapping edits", async ({ browser }) => {
   const cloud = new Map();
   const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
   try {
@@ -122,9 +122,7 @@ test("two browsers sync in both directions and preserve conflicts", async ({ bro
     await second.getByRole("button", { name: "Choose cloud profile" }).click();
     await second.getByLabel("Cloud profile").selectOption(sharedId);
     await second.getByRole("button", { name: "Connect profile" }).click();
-    await expect(second.getByText("Local and cloud profiles may both have changed", { exact: false })).toBeVisible();
-    await second.getByRole("button", { name: "Use cloud" }).click();
-    await expect(second.locator("#google-auth")).toContainText("previous local profile was kept");
+    await expect(second.locator("#google-auth")).toContainText("Profile is up to date.");
     expect(await second.evaluate(() => S.p.name)).toBe("Player 1");
     expect(await second.evaluate(() => USERS.some((user) => user.label === "Local backup (sync backup)"))).toBe(true);
     await second.locator("#go-info").evaluate((button) => button.click());
@@ -160,17 +158,10 @@ test("two browsers sync in both directions and preserve conflicts", async ({ bro
     await first.getByRole("button", { name: "Sync now" }).click();
     await expect(first.locator("#google-auth")).toContainText("Profile uploaded.");
     await second.getByRole("button", { name: "Sync now" }).click();
-    await expect(second.getByText("Local and cloud profiles may both have changed", { exact: false })).toBeVisible();
+    await expect.poll(() => cloud.get(sharedId).profile.profile.name).toBe("Device B");
     expect(await second.evaluate(() => S.p.name)).toBe("Device B");
-    await changeName(first, "Device A again");
-    await first.getByRole("button", { name: "Sync now" }).click();
-    await expect(first.locator("#google-auth")).toContainText("Profile uploaded.");
-    await second.getByRole("button", { name: "Use this device" }).click();
-    await expect(second.locator("#google-auth")).toContainText("The profile changed again");
-    expect(cloud.get(sharedId).profile.profile.name).toBe("Device A again");
-    await second.getByRole("button", { name: "Use this device" }).click();
-    await expect(second.locator("#google-auth")).toContainText("Profile uploaded.");
-    expect(cloud.get(sharedId).profile.profile.name).toBe("Device B");
+    expect(await second.evaluate(() => USERS.some((user) =>
+      user.label === "Device A (cloud sync backup)" && readStoredProfile(user.id).p.name === "Device A"))).toBe(true);
   } finally {
     await Promise.all(contexts.map((context) => context.close()));
   }
@@ -187,8 +178,7 @@ test("two browsers merge independent edits after reconnecting", async ({ browser
     await second.getByRole("button", { name: "Choose cloud profile" }).click();
     await second.getByLabel("Cloud profile").selectOption(id);
     await second.getByRole("button", { name: "Connect profile" }).click();
-    await second.getByRole("button", { name: "Use cloud" }).click();
-    await expect(second.locator("#google-auth")).toContainText("Profile downloaded.");
+    await expect(second.locator("#google-auth")).toContainText("Profile is up to date.");
 
     await contexts[1].setOffline(true);
     await second.evaluate(() => { S.p.hat = "cap"; save(true); });
@@ -222,8 +212,7 @@ test("two browsers preserve separate habit unchecks and recompute the day", asyn
     await second.getByRole("button", { name: "Choose cloud profile" }).click();
     await second.getByLabel("Cloud profile").selectOption(id);
     await second.getByRole("button", { name: "Connect profile" }).click();
-    await second.getByRole("button", { name: "Use cloud" }).click();
-    await expect(second.locator("#google-auth")).toContainText("Profile downloaded.");
+    await expect(second.locator("#google-auth")).toContainText("Profile is up to date.");
     await second.locator("#pdone").evaluate((button) => button.click());
     await contexts[1].setOffline(true);
     await first.locator('input[data-id="wake"]').uncheck();
@@ -333,7 +322,7 @@ test("equal habit timestamps with different values prefer the local edit", async
   expect(await page.evaluate(() => S.checks[today()].wake)).toBe(true);
 });
 
-test("a legacy edit cannot reuse a timestamp recorded for the opposite value", async ({ page }) => {
+test("an inconsistent habit timestamp prefers local and backs up the cloud", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
@@ -356,9 +345,12 @@ test("a legacy edit cannot reuse a timestamp recorded for the opposite value", a
   await page.locator('input[data-id="wake"]').check();
   await page.evaluate(() => { Date.now = window.originalDateNow; });
   await page.context().setOffline(false);
-  await expect(page.locator("#ubar")).toContainText("Sync conflict");
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot.checks[day].wake).toBe(true);
+  await expect(page.locator("#ubar")).toContainText("Synced");
   expect(await page.evaluate(() => S.checks[today()].wake)).toBe(true);
   expect(snapshot.checks[day].wake).toBe(false);
+  expect(await page.evaluate(() => USERS.some((user) =>
+    user.label.endsWith("(cloud sync backup)") && readStoredProfile(user.id).checks[today()].wake === false))).toBe(true);
 });
 
 test("legacy unchecks of different habits merge without invented timestamps", async ({ page }) => {
@@ -473,7 +465,7 @@ test("older profiles gain habit timestamps only when a habit changes", async ({ 
   expect(await page.evaluate(() => S.checkUpdatedAt[today()].wake)).toEqual(stamp);
 });
 
-test("a conflicting profile is reconsidered when the user changes it", async ({ page }) => {
+test("overlapping profile edits sync using the local value and back up the cloud", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
@@ -484,10 +476,10 @@ test("a conflicting profile is reconsidered when the user changes it", async ({ 
   remote.profile.profile.name = "Cloud name";
   remote.profile.progress._dailyWalkSyncSnapshot.p.name = "Cloud name";
   await page.context().setOffline(false);
-  await expect(page.getByRole("button", { name: "Use cloud" })).toBeVisible();
-  await changeName(page, "Cloud name", true);
-  await expect(page.getByRole("button", { name: "Use cloud" })).toHaveCount(0);
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Local name");
   await expect(page.locator("#ubar")).toContainText("Synced");
+  expect(await page.evaluate(() => USERS.some((user) =>
+    user.label === "Cloud name (cloud sync backup)" && readStoredProfile(user.id).p.name === "Cloud name"))).toBe(true);
 });
 
 test("separate existing journal entries merge without losing either edit", async ({ page }) => {
@@ -524,7 +516,7 @@ test("a concurrent non-overlapping cloud save is merged on retry", async ({ page
   expect(await page.evaluate(() => [S.p.name, S.p.hat])).toEqual(["Concurrent cloud edit", "cap"]);
 });
 
-test("a merge waits for an unsaved journal draft before changing either copy", async ({ page }) => {
+test("a merge preserves an unsaved journal draft while uploading", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
@@ -537,10 +529,10 @@ test("a merge waits for an unsaved journal draft before changing either copy", a
   remote.profile.progress._dailyWalkSyncSnapshot.p.name = "Cloud name";
   await page.locator("#prof").evaluate((button) => button.click());
   await page.getByRole("button", { name: "Sync now" }).click();
-  await expect(page.locator("#google-auth")).toContainText("Save or discard the journal draft");
+  await expect(page.locator("#google-auth")).toContainText("Profile changes merged and synced.");
   expect(await page.locator("#jt").inputValue()).toBe("Unsaved draft");
-  expect(await page.evaluate(() => [S.p.name, S.p.hat])).toEqual(["Player 1", "cap"]);
-  expect(remote.profile.profile).toMatchObject({ name: "Cloud name", hat: "none" });
+  expect(await page.evaluate(() => [S.p.name, S.p.hat])).toEqual(["Cloud name", "cap"]);
+  expect(cloud.get(id).profile.profile).toMatchObject({ name: "Cloud name", hat: "cap" });
 });
 
 test("a failed merged upload keeps both changes locally for retry", async ({ page }) => {
@@ -562,7 +554,7 @@ test("a failed merged upload keeps both changes locally for retry", async ({ pag
   expect(cloud.get(id).profile.profile.name).toBe("Cloud name");
 });
 
-test("concurrent gameplay changes require a choice even when XP totals match", async ({ page }) => {
+test("concurrent gameplay changes keep local rewards and back up cloud progress", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
@@ -580,9 +572,11 @@ test("concurrent gameplay changes require a choice even when XP totals match", a
   snapshot.life += 10;
   remote.profile.client_modified_at++;
   await page.context().setOffline(false);
-  await expect(page.getByRole("button", { name: "Use cloud" })).toBeVisible();
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot.checks["2024-01-01"]).toEqual({ wake: true });
   expect(await page.evaluate(() => S.checks["2024-01-01"])).toEqual({ wake: true });
   expect(snapshot.checks["2024-01-02"]).toEqual({ wake: true });
+  expect(await page.evaluate(() => USERS.some((user) => user.label.endsWith("(cloud sync backup)") &&
+    readStoredProfile(user.id).checks["2024-01-02"]?.wake))).toBe(true);
 });
 
 test("a failed sync keeps local changes and succeeds on retry", async ({ page }) => {
@@ -662,7 +656,7 @@ test("sync refuses to overwrite a profile changed in another tab", async ({ page
   expect(cloud.get(id).profile.profile.name).toBe("Player 1");
 });
 
-test("older links without a sync baseline require an explicit choice", async ({ page }) => {
+test("older links without a sync baseline upload and preserve the cloud copy", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
@@ -676,12 +670,11 @@ test("older links without a sync baseline require an explicit choice", async ({ 
   });
   await changeName(page, "Legacy local edit");
   await page.getByRole("button", { name: "Sync now" }).click();
-  await expect(page.getByText("Local and cloud profiles may both have changed", { exact: false })).toBeVisible();
-  expect(cloud.get(id).profile.client_modified_at).toBe(initialRevision);
-  expect(await page.evaluate(() => S.p.name)).toBe("Legacy local edit");
-  await page.getByRole("button", { name: "Use this device" }).click();
-  await expect(page.locator("#google-auth")).toContainText("Profile uploaded.");
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Legacy local edit");
+  expect(cloud.get(id).profile.client_modified_at).toBeGreaterThan(initialRevision);
   expect(cloud.get(id).profile.profile.name).toBe("Legacy local edit");
+  expect(await page.evaluate(() => USERS.some((user) =>
+    user.label === "Player 1 (cloud sync backup)" && readStoredProfile(user.id).p.name === "Player 1"))).toBe(true);
 });
 
 test("legacy cloud profiles with revision zero can be synced", async ({ page }) => {
@@ -698,14 +691,12 @@ test("legacy cloud profiles with revision zero can be synced", async ({ page }) 
   });
   await changeName(page, "Legacy version");
   await page.getByRole("button", { name: "Sync now" }).click();
-  await expect(page.getByText("Local and cloud profiles may both have changed", { exact: false })).toBeVisible();
-  await page.getByRole("button", { name: "Use this device" }).click();
-  await expect(page.locator("#google-auth")).toContainText("Profile uploaded.");
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Legacy version");
   expect(cloud.get(id).profile.client_modified_at).toBeGreaterThan(0);
   expect(cloud.get(id).profile.profile.name).toBe("Legacy version");
 });
 
-test("a failed backup prevents a cloud download from replacing local data", async ({ page }) => {
+test("a failed cloud backup prevents an unsafe upload", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
@@ -725,31 +716,27 @@ test("a failed backup prevents a cloud download from replacing local data", asyn
     };
   });
   await page.context().setOffline(false);
-  await expect(page.getByText("Local and cloud profiles may both have changed", { exact: false })).toBeVisible();
-  await page.getByRole("button", { name: "Use cloud" }).click();
-  await expect(page.locator("#google-auth")).toContainText("Could not sync this profile");
+  await expect(page.locator("#google-auth")).toContainText("Could not sync a profile");
   expect(await page.evaluate(() => S.p.name)).toBe("Local edit");
   expect(await page.evaluate(() => readStoredProfile(CUR_UID).p.name)).toBe("Local edit");
+  expect(cloud.get(id).profile.profile.name).toBe("Remote edit");
   await page.evaluate(() => { Storage.prototype.setItem = window.originalStorageSetItem; });
-  await page.getByRole("button", { name: "Use cloud" }).click();
-  await expect(page.locator("#google-auth")).toContainText("Profile downloaded.");
-  expect(await page.evaluate(() => S.p.name)).toBe("Remote edit");
+  await page.getByRole("button", { name: "Sync now" }).click();
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Local edit");
+  expect(await page.evaluate(() => USERS.some((user) => user.label === "Remote edit (cloud sync backup)"))).toBe(true);
 });
 
-test("a concurrent cloud save is never silently overwritten", async ({ page }) => {
+test("a concurrent cloud save is backed up and automatically retried", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
   await changeName(page, "Device edit");
   cloud.raceNextSave = true;
   await page.getByRole("button", { name: "Sync now" }).click();
-  await expect(page.locator("#google-auth")).toContainText("The profile changed again");
-  expect(cloud.get(id).profile.profile.name).toBe("Concurrent cloud edit");
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Device edit");
   expect(await page.evaluate(() => S.p.name)).toBe("Device edit");
-  await page.getByRole("button", { name: "Use cloud" }).click();
-  await expect(page.locator("#google-auth")).toContainText("Profile downloaded.");
-  expect(await page.evaluate(() => S.p.name)).toBe("Concurrent cloud edit");
-  expect(await page.evaluate(() => USERS.some((user) => user.label === "Device edit (sync backup)"))).toBe(true);
+  expect(await page.evaluate(() => USERS.some((user) =>
+    user.label === "Concurrent cloud edit (cloud sync backup)" && readStoredProfile(user.id).p.name === "Concurrent cloud edit"))).toBe(true);
 });
 
 test("a malformed cloud snapshot is rejected without changing local progress", async ({ page }) => {
@@ -885,7 +872,7 @@ test("reloading and background changes do not initiate cloud reads", async ({ pa
   expect(cloud.values().next().value.profile.profile.name).toBe("Player 1");
 });
 
-test("an inactive profile conflict does not block syncing the active profile", async ({ page }) => {
+test("inactive overlapping edits do not block syncing the active profile", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const firstCloudId = Array.from(cloud.keys())[0];
@@ -917,10 +904,9 @@ test("an inactive profile conflict does not block syncing the active profile", a
   await page.locator("#v-info [data-back]").evaluate((button) => button.click());
   await page.context().setOffline(false);
   await expect.poll(() => cloud.get(secondCloudId).profile.profile.name).toBe("Second offline");
-  await expect(page.getByText("Local and cloud profiles may both have changed for First offline", { exact: false })).toBeVisible();
+  await expect.poll(() => cloud.get(firstCloudId).profile.profile.name).toBe("First offline");
   expect(await page.evaluate((id) => readStoredProfile(id).p.name, firstLocalId)).toBe("First offline");
-  await page.getByRole("button", { name: "Use cloud" }).click();
-  await expect.poll(() => page.evaluate((id) => readStoredProfile(id).p.name, firstLocalId)).toBe("First remote");
+  expect(await page.evaluate(() => USERS.some((user) => user.label === "First remote (cloud sync backup)"))).toBe(true);
   expect(await page.evaluate(() => S.p.name)).toBe("Second offline");
 });
 
@@ -959,7 +945,7 @@ test("reconnection during an in-flight failed upload retries once", async ({ pag
   await expect(page.getByRole("button", { name: "Use cloud" })).toHaveCount(0);
 });
 
-test("automatic downloads wait for an unsaved journal draft", async ({ page }) => {
+test("downloads preserve an unsaved journal draft", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
@@ -974,11 +960,11 @@ test("automatic downloads wait for an unsaved journal draft", async ({ page }) =
   await page.locator("#prof").evaluate((button) => button.click());
   await page.getByRole("button", { name: "Sync now" }).click();
   expect(await page.locator("#jt").inputValue()).toBe("Unsaved draft");
-  expect(await page.evaluate(() => S.p.name)).toBe("Player 1");
-  await expect(page.locator("#google-auth")).toContainText("Save or discard the journal draft");
+  await expect(page.locator("#google-auth")).toContainText("Profile downloaded.");
+  expect(await page.evaluate(() => S.p.name)).toBe("Remote change");
 });
 
-test("two browsers sync on request and stop on offline conflicts without polling", async ({ browser }) => {
+test("two browsers sync offline edits without conflict prompts or polling", async ({ browser }) => {
   test.setTimeout(35000);
   const cloud = new Map();
   const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
@@ -991,9 +977,7 @@ test("two browsers sync on request and stop on offline conflicts without polling
     await second.getByRole("button", { name: "Choose cloud profile" }).click();
     await second.getByLabel("Cloud profile").selectOption(sharedId);
     await second.getByRole("button", { name: "Connect profile" }).click();
-    await expect(second.getByText("Local and cloud profiles may both have changed", { exact: false })).toBeVisible();
-    await second.getByRole("button", { name: "Use cloud" }).click();
-    await expect(second.locator("#google-auth")).toContainText("previous local profile was kept");
+    await expect(second.locator("#google-auth")).toContainText("Profile is up to date.");
     const backupCount = await second.evaluate(() => USERS.length);
 
     let remoteReads = 0;
@@ -1014,11 +998,9 @@ test("two browsers sync on request and stop on offline conflicts without polling
     await changeName(first, "Online device edit", true);
     await expect.poll(() => cloud.get(sharedId).profile.profile.name).toBe("Online device edit");
     await contexts[1].setOffline(false);
-    await expect(second.getByText("Local and cloud profiles may both have changed", { exact: false })).toBeVisible();
-    expect(await second.evaluate(() => S.p.name)).toBe("Offline device edit");
-    expect(cloud.get(sharedId).profile.profile.name).toBe("Online device edit");
-    await second.getByRole("button", { name: "Use this device" }).click();
     await expect.poll(() => cloud.get(sharedId).profile.profile.name).toBe("Offline device edit");
+    expect(await second.evaluate(() => S.p.name)).toBe("Offline device edit");
+    expect(await second.evaluate(() => USERS.some((user) => user.label === "Online device edit (cloud sync backup)"))).toBe(true);
   } finally {
     await Promise.all(contexts.map((context) => context.close()));
   }

@@ -254,7 +254,6 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
             console.error("Could not sync profile", err);
             failed = true;
             message = err.message === "Local profiles changed. Reload before syncing."
-              || err.message === "Save or discard the journal draft before downloading cloud changes."
               ? err.message
               : "Could not sync a profile. Changes remain local; use Sync now to retry.";
           }
@@ -447,8 +446,7 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
             ? "Changes pending · action needed" : "Synced ✓");
     } catch (err) {
       console.error("Could not sync profile", err);
-      setSyncError(err.message === "Local profiles changed. Reload before syncing." ||
-        err.message === "Save or discard the journal draft before downloading cloud changes."
+      setSyncError(err.message === "Local profiles changed. Reload before syncing."
         ? err.message
         : "Could not sync this profile. Local data was kept; retry.");
       setBarSyncStatus("Sync error · retry needed");
@@ -489,7 +487,7 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
       const current = () => sessionRef.current?.user?.id === session.user.id
         && sessionRef.current?.access_token === session.access_token;
       const local = getSyncLocalProfile();
-      await connectCloudProfile(client, session, getSyncLocalProfile, selectedCloud, current);
+      await connectCloudProfile(client, session, getSyncLocalProfile, replaceLocalProfile, selectedCloud, current);
       setCloudProfiles(null);
       setLinkError("");
       setLinkStatus("Linked the current profile to this Google account.");
