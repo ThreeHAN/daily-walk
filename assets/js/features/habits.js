@@ -140,34 +140,27 @@ let lastKey = today(),
   lastCup = -1;
 function drawWater() {
   if (S.water.d !== today()) S.water = { d: today(), n: 0 };
-  const n = S.water.n,
-    box = $("cups");
-  box.innerHTML = "";
-  for (let i = 0; i < 8; i++) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className =
-      "cup" + (i < n ? " full" : "") + (i === lastCup ? " pop" : "");
-    b.setAttribute("aria-label", "Cup " + (i + 1));
-    b.appendChild(document.createElement("i"));
-    b.onclick = () => {
-      S.water.n = S.water.n === i + 1 ? i : i + 1;
-      lastCup = i;
+  DailyWalkReact.renderWater({
+    cups: S.water.n,
+    lastCup,
+    onSelect: (index) => {
+      S.water.n = S.water.n === index + 1 ? index : index + 1;
+      lastCup = index;
       save();
       drawWater();
       if (S.water.n === 8) waterGoal();
-    };
-    box.appendChild(b);
-  }
-  $("wn").textContent = n + " / 8 cups";
+    },
+  });
 }
 function waterGoal() {
   if (shut.nutrition) {
     shut.nutrition = false;
     render();
   }
-  const cb = document.querySelector('input[data-id="water"]');
-  if (cb && !cb.checked) cb.click();
+  const task = S.tasks.find((item) => item.id === "water");
+  const day = today();
+  if (task && !(S.checks[day] || {})[task.id])
+    handleHabitCheck(task, true, day);
 }
 function drawJr() {
   const d = today(),

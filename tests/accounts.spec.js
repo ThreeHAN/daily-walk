@@ -42,6 +42,22 @@ test("profile changes and separate habit progress survive switching and reload",
   await expect(page.locator('input[data-id="wake"]')).not.toBeChecked();
 });
 
+test("water progress stays separate when switching profiles", async ({ page }) => {
+  await click(page, '#cups button[aria-label="Cup 3"]');
+  await click(page, "#ubar");
+  await click(page, "#uadd");
+  await expect(page.locator("#wn")).toHaveText("8 / 8 cups");
+  await click(page, '#cups button[aria-label="Cup 5"]');
+  await click(page, "#ubar");
+  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+    .getByRole("button", { name: "Switch" })
+    .evaluate((button) => button.click());
+  await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
+  await expect(page.locator("#cups .full")).toHaveCount(3);
+  await page.reload();
+  await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
+});
+
 test("save failures remain visible, block profile creation, and recover", async ({
   page,
 }) => {

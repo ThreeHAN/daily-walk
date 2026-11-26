@@ -18,10 +18,10 @@ export default defineConfig({
       },
     },
     lib: {
-      entry: "assets/react/habit-list.jsx",
-      name: "DailyWalkHabitList",
+      entry: "assets/react/app.jsx",
+      name: "DailyWalkReact",
       formats: ["iife"],
-      fileName: () => "habit-list.js",
+      fileName: () => "react-ui.js",
     },
   },
 });

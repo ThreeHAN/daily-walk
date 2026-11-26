@@ -82,7 +82,15 @@ test("group progress and collapse preserve the checked habit", async ({ page }) 
   await expect(morning.locator(".gb")).toHaveClass(/fx/);
 });
 
-test("the legacy water goal opens the React group and checks the habit", async ({ page }) => {
+test("the water goal opens the group and checks the habit without clicking its checkbox", async ({ page }) => {
+  const initial = await habitState(page);
+  await page.evaluate(() => {
+    const click = HTMLInputElement.prototype.click;
+    HTMLInputElement.prototype.click = function () {
+      if (this.dataset.id === "water") throw new Error("Water checkbox was clicked");
+      return click.call(this);
+    };
+  });
   const nutrition = page.locator("#list .grp").filter({
     has: page.locator(".gn", { hasText: "Nutrition" }),
   });
@@ -91,9 +99,37 @@ test("the legacy water goal opens the React group and checks the habit", async (
   await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
   await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
   await expect(page.locator('input[data-id="water"]')).toBeChecked();
+  await expect(page.locator("#wn")).toHaveText("8 / 8 cups");
+  await expect(page.locator("#cups .full")).toHaveCount(8);
+  await expect(page.locator('#cups button[aria-label="Cup 8"]')).toHaveClass(/pop/);
   await expect(page.locator("#count")).toHaveText("1 of 12 done");
+  expect((await habitState(page)).xp).toBe(initial.xp + 10);
+  await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
+  await expect(page.locator("#wn")).toHaveText("7 / 8 cups");
+  await expect(page.locator('input[data-id="water"]')).toBeChecked();
+  await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
+  expect((await habitState(page)).xp).toBe(initial.xp + 10);
   await page.reload();
   await expect(page.locator('input[data-id="water"]')).toBeChecked();
+  await expect(page.locator("#wn")).toHaveText("8 / 8 cups");
+});
+
+test("the water goal does not award XP again when the habit is already checked", async ({ page }) => {
+  await clickHabit(page, "water");
+  const checked = await habitState(page);
+  await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
+  await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
+  expect(await habitState(page)).toEqual(checked);
+});
+
+test("water resets when the local date changes", async ({ page }) => {
+  await page.clock.install({ time: new Date(2026, 0, 1, 23, 59, 50) });
+  await page.reload();
+  await page.locator('#cups button[aria-label="Cup 3"]').evaluate((button) => button.click());
+  await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
+  await page.clock.fastForward(25000);
+  await expect(page.locator("#wn")).toHaveText("0 / 8 cups");
+  await expect(page.locator("#cups .full")).toHaveCount(0);
 });
 
 test("React renders habit text and emoji icons through repeated updates", async ({ page }) => {
@@ -118,6 +154,7 @@ test("restoring a backup refreshes the React habit list", async ({ page }) => {
     const data = structuredClone(S);
     data.tasks.push({ id: "c999", g: "morning", t: "Restored habit" });
     data.checks[today()] = { c999: true };
+    data.water = { d: today(), n: 3 };
     return JSON.stringify({ data });
   });
   await page.locator("#ufile").setInputFiles({
@@ -127,8 +164,10 @@ test("restoring a backup refreshes the React habit list", async ({ page }) => {
   });
   const restored = page.locator("#list .item").filter({ hasText: "Restored habit" });
   await expect(restored.locator("input")).toBeChecked();
+  await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
   await page.reload();
   await expect(restored.locator("input")).toBeChecked();
+  await expect(page.locator("#cups .full")).toHaveCount(3);
 });
 
 test("category and navigation icons stay pixel art after rerender and navigation", async ({ page }) => {

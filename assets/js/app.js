@@ -67,7 +67,7 @@ const prevW = {};
 let firstR = true;
 
 function renderHabitGroups(d, c, effects) {
-  return DailyWalkHabitList.render({
+  return DailyWalkReact.renderHabitList({
     groups: G,
     tasks: S.tasks,
     checks: c,
