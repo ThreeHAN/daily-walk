@@ -138,6 +138,7 @@ function drawWater() {
     lastCup,
     onSelect: (index) => {
       S.water.n = S.water.n === index + 1 ? index : index + 1;
+      S.waterHistory[S.water.d] = S.water.n;
       lastCup = index;
       save();
       drawWater();
@@ -173,8 +174,6 @@ function saveJournal(draft) {
     return;
   }
   S.jr[today()] = v.slice(0, 600);
-  const ks = Object.keys(S.jr).sort();
-  while (ks.length > 30) delete S.jr[ks.shift()];
   save();
   const lb = lvOf(S.xp),
     gn = award("jr", 10);

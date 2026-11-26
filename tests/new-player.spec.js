@@ -95,3 +95,20 @@ test("a new day does not create a completed day or unlock a streak pet", async (
     days: S.days, streak: curStreak, pets: S.pets,
   }))).toEqual({ days: {}, streak: 0, pets: {} });
 });
+
+test("water history survives the next day and older saves without it load safely", async ({ page }) => {
+  await page.clock.install({ time: new Date(2026, 0, 1, 23, 59, 50) });
+  await page.goto(app);
+  await page.evaluate(() => {
+    delete S.waterHistory;
+    S = hydrateState(S);
+  });
+  await page.locator('#cups button[aria-label="Cup 3"]').evaluate((button) => button.click());
+  await page.clock.fastForward(25000);
+  await page.locator('#cups button[aria-label="Cup 5"]').evaluate((button) => button.click());
+  await page.reload();
+  expect(await page.evaluate(() => S.waterHistory)).toEqual({
+    "2026-01-01": 3,
+    "2026-01-02": 5,
+  });
+});

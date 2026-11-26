@@ -166,7 +166,12 @@ $("reset").onclick = () => {
 save();
 paint();
 DailyWalkReact.renderTownBirds();
-DailyWalkReact.renderGoogleAuth();
+DailyWalkReact.renderGoogleAuth({
+  getLocalProfile: () => {
+    if (!save()) throw new Error("Could not save the local profile before linking");
+    return { id: CUR_UID, state: readStoredProfile(CUR_UID) };
+  },
+});
 render();
 drawWater();
 drawJr();

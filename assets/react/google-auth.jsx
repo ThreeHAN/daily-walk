@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
+import { linkProfile } from "./profile-link.js";
 
 const projectUrl = "https://dnnpakvhiipflpvmkymf.supabase.co";
 const publishableKey = "sb_publishable_lSHa1JshQ3lKb4k7MFtEcw_Kigs8Yy8";
 
-function GoogleAuth() {
+function GoogleAuth({ getLocalProfile }) {
   const [client, setClient] = useState(null);
   const [session, setSession] = useState(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
+  const [linkStatus, setLinkStatus] = useState("");
+  const [linkError, setLinkError] = useState("");
+  const [linkAttempt, setLinkAttempt] = useState(0);
   const supported = window.location.protocol === "https:" || window.location.protocol === "http:";
 
   useEffect(() => {
@@ -48,6 +52,27 @@ function GoogleAuth() {
     };
   }, [supported]);
 
+  useEffect(() => {
+    if (!client || !session) {
+      setLinkStatus("");
+      setLinkError("");
+      return;
+    }
+    let active = true;
+    setLinkStatus("Linking the current profile...");
+    setLinkError("");
+    linkProfile(client, session, getLocalProfile).then((name) => {
+      if (active) setLinkStatus(`Linked ${name} to this Google account.`);
+    }).catch((err) => {
+      console.error("Could not link profile", err);
+      if (active) {
+        setLinkStatus("");
+        setLinkError("Could not link the current profile. Your local save is unchanged.");
+      }
+    });
+    return () => { active = false; };
+  }, [client, session?.user?.id, getLocalProfile, linkAttempt]);
+
   async function signIn() {
     setBusy(true);
     setError("");
@@ -81,7 +106,7 @@ function GoogleAuth() {
   return (
     <div className="acct-box">
       <div className="acct-h"><b>Google account</b></div>
-      <p className="auth-note">Profiles and progress stay on this browser and are not synced.</p>
+      <p className="auth-note">Sign-in links the current profile and uploads a snapshot. Later changes are not synced yet.</p>
       {!supported ? (
         <p className="auth-note">Sign-in requires the hosted site or local development server.</p>
       ) : (
@@ -93,6 +118,13 @@ function GoogleAuth() {
             onClick={session ? signOut : signIn}>
             {session ? "Sign out" : "Sign in with Google"}
           </button>
+          {session && <p className="auth-note" aria-live="polite">{linkStatus}</p>}
+          {session && linkError && <>
+            <p className="auth-error" role="alert">{linkError}</p>
+            <button type="button" className="ubtn" onClick={() => setLinkAttempt((n) => n + 1)}>
+              Retry linking
+            </button>
+          </>}
           {error && <p className="auth-error" role="alert">{error}</p>}
         </>
       )}
@@ -100,6 +132,6 @@ function GoogleAuth() {
   );
 }
 
-export function renderGoogleAuth() {
-  createRoot(document.getElementById("google-auth")).render(<GoogleAuth />);
+export function renderGoogleAuth(props) {
+  createRoot(document.getElementById("google-auth")).render(<GoogleAuth {...props} />);
 }

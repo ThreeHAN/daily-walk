@@ -212,8 +212,8 @@ test("journal drafts survive other updates and saving awards XP only once", asyn
   await expect(journal).toHaveValue("Thank you 🌙");
   await expect(page.locator("#jst")).toHaveText("Saved today ✓");
   expect(await page.evaluate(() => ({ xp: S.xp, count: Object.keys(S.jr).length })))
-    .toEqual({ xp: initial.xp + 10, count: 30 });
-  const expectedKeys = Object.keys(initial.entries).sort().slice(2);
+    .toEqual({ xp: initial.xp + 10, count: 32 });
+  const expectedKeys = Object.keys(initial.entries).sort();
   expect(await page.evaluate(() => Object.keys(S.jr).filter((key) => key !== today()).sort()))
     .toEqual(expectedKeys);
   await expect(page.locator("#jl .jrow")).toHaveCount(3);

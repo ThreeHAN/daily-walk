@@ -22,6 +22,12 @@ async function openAccounts(page) {
 test("Google sign-in and sign-out preserve local progress", async ({ page }) => {
   await serveApp(page);
   let authorization;
+  const saves = [];
+  await page.route(`${supabase}/rest/v1/rpc/**`, async (route) => {
+    expect(new URL(route.request().url()).pathname).toContain("save_walk_profile_checked");
+    saves.push(route.request().postDataJSON());
+    await route.fulfill({ json: true, headers: { "Access-Control-Allow-Origin": "*" } });
+  });
   await page.route(`${supabase}/auth/v1/**`, async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith("/authorize")) {
@@ -47,6 +53,11 @@ test("Google sign-in and sign-out preserve local progress", async ({ page }) => 
   await page.evaluate(() => {
     S.p.name = "Local Walker";
     S.xp = 123;
+    S.life = 123;
+    S.checks["2025-01-02"] = { wake: true };
+    S.days["2025-01-02"] = true;
+    S.waterHistory["2025-01-02"] = 4;
+    S.jr["2025-01-02"] = "Journal";
     save();
   });
   const profileId = await page.evaluate(() => CUR_UID);
@@ -57,6 +68,15 @@ test("Google sign-in and sign-out preserve local progress", async ({ page }) => 
   await expect(page).toHaveURL(/\/auth\/v1\/authorize/);
   await page.goto(`${site}/?code=test-code`);
   await expect(page.locator("#google-auth")).toContainText("Signed in as walker@example.com");
+  await expect(page.locator("#google-auth")).toContainText("Linked Local Walker");
+  expect(saves).toHaveLength(1);
+  expect(saves[0]).toMatchObject({
+    expected_modified_at: 0,
+    state: { p: { name: "Local Walker" }, xp: 123 },
+  });
+  expect(saves[0].activity).toContainEqual({
+    date: "2025-01-02", checks: { wake: true }, completed: true, water: 4, journal: "Journal",
+  });
   expect(authorization.searchParams.get("provider")).toBe("google");
   expect(authorization.searchParams.get("redirect_to")).toBe(`${site}/`);
   expect(authorization.searchParams.get("code_challenge")).toBeTruthy();
@@ -65,10 +85,79 @@ test("Google sign-in and sign-out preserve local progress", async ({ page }) => 
   await page.reload();
   await openAccounts(page);
   await expect(page.locator("#google-auth")).toContainText("Signed in as walker@example.com");
+  await expect(page.locator("#google-auth")).toContainText("Linked Local Walker");
+  expect(saves).toHaveLength(1);
   await page.getByRole("button", { name: "Sign out" }).evaluate((element) => element.click());
   await expect(page.locator("#google-auth")).toContainText("Not signed in");
   expect(await page.evaluate(() => ({ id: CUR_UID, name: S.p.name, xp: S.xp })))
     .toEqual({ id: profileId, name: "Local Walker", xp: 123 });
+});
+
+function storedSession(userId) {
+  return {
+    access_token: "token-" + userId,
+    refresh_token: "refresh-" + userId,
+    token_type: "bearer",
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    user: { id: userId, email: `${userId}@example.com`, app_metadata: {}, user_metadata: {}, aud: "authenticated", created_at: "2026-01-01T00:00:00Z" },
+  };
+}
+
+test("a lost upload response can be retried without overwriting the cloud or local profile", async ({ page }) => {
+  await serveApp(page);
+  await page.addInitScript((session) => {
+    localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
+  }, storedSession("retry-user"));
+  let uploaded;
+  let writes = 0;
+  await page.route(`${supabase}/rest/v1/rpc/**`, async (route) => {
+    if (route.request().url().endsWith("/save_walk_profile_checked")) {
+      writes++;
+      uploaded = route.request().postDataJSON();
+      await route.abort("failed");
+    } else {
+      expect(route.request().postDataJSON().profile_id).toBe(uploaded.profile_id);
+      await route.fulfill({ json: { profile: { id: uploaded.profile_id }, activity: [] },
+        headers: { "Access-Control-Allow-Origin": "*" } });
+    }
+  });
+  await page.goto(site);
+  await openAccounts(page);
+  await expect(page.locator("#google-auth [role=alert]")).toContainText("local save is unchanged");
+  const local = await page.evaluate(() => ({ id: CUR_UID, name: S.p.name, xp: S.xp }));
+  await page.getByRole("button", { name: "Retry linking" }).evaluate((button) => button.click());
+  await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
+  expect(writes).toBe(1);
+  expect(await page.evaluate(() => ({ id: CUR_UID, name: S.p.name, xp: S.xp }))).toEqual(local);
+});
+
+test("isolated browsers link separate local profiles to the signed-in account", async ({ browser }) => {
+  const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
+  const saves = [];
+  try {
+    for (const [index, context] of contexts.entries()) {
+      const page = await context.newPage();
+      await serveApp(page);
+      await page.addInitScript((session) => {
+        localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
+      }, storedSession("same-user"));
+      await page.route(`${supabase}/rest/v1/rpc/**`, async (route) => {
+        const request = route.request();
+        expect(request.headers().authorization).toBe("Bearer token-same-user");
+        saves.push(request.postDataJSON());
+        await route.fulfill({ json: true, headers: { "Access-Control-Allow-Origin": "*" } });
+      });
+      await page.goto(site);
+      await openAccounts(page);
+      await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
+      expect(await page.evaluate(() => S.p.name)).toBe("Player 1");
+      expect(saves).toHaveLength(index + 1);
+    }
+    expect(saves[0].profile_id).not.toBe(saves[1].profile_id);
+  } finally {
+    await Promise.all(contexts.map((context) => context.close()));
+  }
 });
 
 test("Google sign-in redirects back to the GitHub Pages app path", async ({ page }) => {

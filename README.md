@@ -196,7 +196,7 @@ receives current tasks and per-day checks from the legacy state owner.
 | Shared icon artwork and rendering               | [`icon-art.js`](assets/js/ui/icon-art.js), [`icons.js`](assets/js/ui/icons.js)                                                             |
 | Streak celebration                              | [`streak-week.jsx`](assets/react/streak-week.jsx), [`collection.js`](assets/js/features/collection.js)                                    |
 | Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js), [`profile-list.jsx`](assets/react/profile-list.jsx), [`leaderboard-list.jsx`](assets/react/leaderboard-list.jsx) |
-| Google sign-in                                  | [`google-auth.jsx`](assets/react/google-auth.jsx)                                                                                           |
+| Google sign-in and profile linking              | [`google-auth.jsx`](assets/react/google-auth.jsx), [`profile-link.js`](assets/react/profile-link.js)                                         |
 | Guided introduction                             | [`tutorial.jsx`](assets/react/tutorial.jsx), [`tutorial.js`](assets/js/features/tutorial.js)                                                |
 | Defaults, saved-state hydration, and migrations | [`state.js`](assets/js/core/state.js)                                                                                                       |
 
@@ -262,8 +262,9 @@ receives current tasks and per-day checks from the legacy state owner.
   and unlocked collectibles are preserved, including a traveler's current
   location. Graduation is unavailable during the traveler journey.
 - Water and journal entries are daily. Reaching the water goal checks the water
-  habit; the first journal save of the day awards XP. The app keeps up to 30
-  journal entries.
+  habit; the first journal save of the day awards XP. New water totals and
+  journal entries are retained in the local profile; earlier entries already
+  removed by the former 30-entry limit cannot be recovered.
 - A new browser or newly created profile starts at level 1 in Meadow Valley,
   with no progress, journal history, pets, or rewards. Existing local profiles
   and legacy saves are preserved. `freshState()` remains a highly progressed
@@ -274,8 +275,11 @@ receives current tasks and per-day checks from the legacy state owner.
   data. Preserve existing storage keys and backup compatibility when changing
   the state shape, and test migrations against older saves.
 - Google sign-in is optional and available on the hosted site or local HTTP
-  server. Signing in or out does not link, upload, or sync local profiles or
-  progress. Direct `file://` usage remains available without sign-in. The
+  server. Signing in automatically links the current local profile to the
+  Google account and uploads a snapshot. Failures are shown with a retry button;
+  local profiles remain unchanged. A previously linked profile is not uploaded
+  again on sign-in. Later changes are not synced, and cloud profiles cannot yet
+  be restored on another device. Direct `file://` usage remains available without sign-in. The
   Supabase project URL and publishable key in `google-auth.jsx` are public;
   never add secret or service-role keys to the browser bundle.
 - The guided tour scrolls to each highlighted button and waits for the user to
@@ -294,10 +298,14 @@ the data. The profile foreign key also prevents activity from being assigned to
 another user's profile. Deleting a profile removes its daily rows, and deleting
 an Auth user removes their profiles.
 
-This schema is a foundation only: the app does not yet read or write these
-tables, migrate existing profiles, retain journals beyond 30 entries, or resolve
-cross-device conflicts. `updated_at` records the server's update time; it does
-not by itself implement the chosen latest-save-wins policy.
+The sync migrations are deployed to the hosted project. The original save
+operation uses a client-supplied timestamp, which alone cannot detect all
+concurrent edits and does not remove omitted activity rows. The checked save
+operation instead requires the expected cloud version and atomically replaces
+the activity snapshot; the read operation returns the profile and activity
+together. The app uses the checked save to link a local profile and the read
+operation to recover from an interrupted link. Ongoing sync and cloud-profile
+restoration across devices are not implemented.
 
 To validate the migration against a local Supabase database:
 
@@ -305,6 +313,8 @@ To validate the migration against a local Supabase database:
 supabase db start
 supabase migration up
 docker exec -i supabase_db_daily-walk psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/cloud_profiles.sql
+docker exec -i supabase_db_daily-walk psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/sync_profiles.sql
+docker exec -i supabase_db_daily-walk psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/checked_profile_sync.sql
 ```
 
 The test uses synthetic accounts inside a rolled-back transaction. It does not

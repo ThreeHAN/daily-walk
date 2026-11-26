@@ -133,6 +133,7 @@ function newPlayerState(userName) {
     },
     pets: {},
     water: { d: today(), n: 0 },
+    waterHistory: {},
     jr: {},
     xp: 0,
     life: 0,
@@ -430,6 +431,7 @@ function freshState(userName) {
     },
     pets: allPets,
     water: { d: today(), n: 8 },
+    waterHistory: {},
     jr,
     xp: 99999,
     life: 144000,
@@ -489,6 +491,8 @@ function hydrateState(raw) {
     delete s.pets.nebula;
   }
   s.water = s.water && typeof s.water === "object" ? s.water : { d: "", n: 0 };
+  s.waterHistory = s.waterHistory && typeof s.waterHistory === "object"
+    ? s.waterHistory : {};
   s.jr = s.jr && typeof s.jr === "object" ? s.jr : {};
   s.xp = Number(s.xp) || 0;
   s.aw = s.aw && typeof s.aw === "object" ? s.aw : { d: "", k: {} };
