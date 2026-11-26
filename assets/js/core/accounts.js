@@ -1,6 +1,8 @@
 let userBarName = "Default Profile";
 let userBarStatus = "All data saved ✓";
 let userBarStatusTimer;
+let cloudSyncStatus = "";
+let persistenceFailed = false;
 
 function renderUserBar() {
   DailyWalkReact.renderProfileStatus({
@@ -12,33 +14,59 @@ function renderUserBar() {
 }
 
 function updateUserBar(justSaved) {
+  persistenceFailed = false;
   const u = USERS.find((x) => x.id === CUR_UID);
   const nm = (S.p.name || "").trim() || (u && u.label) || "Player 1";
   userBarName = nm + " · " + (S.p.buddy || "Buddy");
-  userBarStatus = justSaved ? "Saved just now ✓" : "Synced ✓";
+  userBarStatus = cloudSyncStatus || (justSaved ? "Saved just now ✓" : "All data saved ✓");
   clearTimeout(userBarStatusTimer);
   renderUserBar();
   userBarStatusTimer = setTimeout(() => {
-    userBarStatus = "All data saved ✓";
+    userBarStatus = cloudSyncStatus || "All data saved ✓";
     renderUserBar();
   }, 1800);
   if ($("syncst"))
     $("syncst").textContent =
-      "Saved " +
+      cloudSyncStatus || "Saved " +
       new Date().toLocaleTimeString([], {
         hour: "numeric",
         minute: "2-digit",
       }) +
       " ✓";
 }
+function setCloudSyncStatus(status) {
+  cloudSyncStatus = status;
+  if (persistenceFailed) return;
+  clearTimeout(userBarStatusTimer);
+  userBarStatus = status || "All data saved ✓";
+  renderUserBar();
+  if ($("syncst")) $("syncst").textContent = userBarStatus;
+}
 function reportPersistenceError(message, error) {
   console.error(message, error);
+  persistenceFailed = true;
   clearTimeout(userBarStatusTimer);
   userBarStatus = message;
   renderUserBar();
   if ($("syncst")) $("syncst").textContent = message;
 }
 
+function profileMetadata(id, state, users) {
+  const idx = users.findIndex((x) => x.id === id);
+  return {
+    id,
+    label:
+      (state.p.name || "").trim() ||
+      (idx >= 0 ? users[idx].label : "Player " + (users.length + 1)),
+    updated: state.lastSaved,
+    lv: typeof lvOf === "function" ? lvOf(state.xp) : 1,
+    buddy: state.p.buddy || "Buddy",
+    town:
+      typeof NB !== "undefined" && NB[state.nb.cur]
+        ? NB[state.nb.cur].n
+        : "Meadow Valley",
+  };
+}
 function save() {
   if (stateLoadError) {
     reportPersistenceError(
@@ -49,19 +77,7 @@ function save() {
   }
   S.lastSaved = Date.now();
   const idx = USERS.findIndex((x) => x.id === CUR_UID);
-  const meta = {
-    id: CUR_UID,
-    label:
-      (S.p.name || "").trim() ||
-      (idx >= 0 ? USERS[idx].label : "Player " + (USERS.length + 1)),
-    updated: S.lastSaved,
-    lv: typeof lvOf === "function" ? lvOf(S.xp) : 1,
-    buddy: S.p.buddy || "Buddy",
-    town:
-      typeof NB !== "undefined" && NB[S.nb.cur]
-        ? NB[S.nb.cur].n
-        : "Meadow Valley",
-  };
+  const meta = profileMetadata(CUR_UID, S, USERS);
   const updatedUsers = USERS.slice();
   if (idx >= 0) updatedUsers[idx] = meta;
   else updatedUsers.push(meta);
@@ -76,6 +92,7 @@ function save() {
   }
   USERS = updatedUsers;
   updateUserBar(true);
+  window.dispatchEvent(new CustomEvent("dailywalk:profile-saved", { detail: { id: CUR_UID } }));
   return true;
 }
 function renderUsers() {

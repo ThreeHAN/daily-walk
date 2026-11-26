@@ -35,6 +35,22 @@ begin
       or jsonb_array_length(public.read_walk_profile(id)->'activity') <> 1 then
     raise exception 'Failed save did not roll back';
   end if;
+  if not public.save_walk_profile_checked(id, 200, 300,
+      state || jsonb_build_object('_dailyWalkSyncSnapshot', state || '{"days":{"2021-01-01":false}}'::jsonb),
+      '[{"date":"2021-01-01","checks":{}}]') then
+    raise exception 'Snapshot save failed';
+  end if;
+  if public.read_walk_profile(id)->'profile'->'progress'->'_dailyWalkSyncSnapshot'->'days'->'2021-01-01'
+      is distinct from 'false'::jsonb then
+    raise exception 'Full state snapshot did not round-trip';
+  end if;
+  insert into public.walk_profiles (id, owner_id, display_name) values (
+    '10000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000001', 'Legacy'
+  );
+  if not public.save_walk_profile_checked('10000000-0000-0000-0000-000000000002', 0, 100, state, '[]') then
+    raise exception 'Revision-zero profile could not be updated';
+  end if;
 end;
 $$;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', true);

@@ -16,17 +16,51 @@ async function serveApp(page, prefix = "/") {
 }
 
 async function openAccounts(page) {
-  await page.locator("#ubar").evaluate((element) => element.click());
+  await page.locator("#prof").evaluate((element) => element.click());
 }
+
+function snapshotFor(save, owner) {
+  const { p, tasks, checks, days, jr, waterHistory, ...progress } = save.state;
+  return {
+    profile: {
+      id: save.profile_id, owner_id: owner, profile: p, habits: tasks, progress,
+      xp: save.state.xp, lifetime_xp: save.state.life, state_version: save.state.v,
+      client_modified_at: save.modified_at,
+    },
+    activity: save.activity.map((item) => ({
+      activity_date: item.date, habit_checks: item.checks, completed: item.completed,
+      water_count: item.water, journal: item.journal,
+    })),
+  };
+}
+
+test("Google sign-in is on the main profile menu", async ({ page }) => {
+  await serveApp(page);
+  await page.goto(site);
+  await openAccounts(page);
+  await expect(page.locator("#v-menu #google-auth")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible();
+  await page.locator("#go-info").evaluate((button) => button.click());
+  await expect(page.locator("#google-auth")).toBeHidden();
+  await expect(page.locator("#v-info #ulist")).toBeVisible();
+  await page.locator("#v-info [data-back]").evaluate((button) => button.click());
+  await expect(page.locator("#google-auth")).toBeVisible();
+});
 
 test("Google sign-in and sign-out preserve local progress", async ({ page }) => {
   await serveApp(page);
   let authorization;
   const saves = [];
   await page.route(`${supabase}/rest/v1/rpc/**`, async (route) => {
-    expect(new URL(route.request().url()).pathname).toContain("save_walk_profile_checked");
-    saves.push(route.request().postDataJSON());
-    await route.fulfill({ json: true, headers: { "Access-Control-Allow-Origin": "*" } });
+    const request = route.request();
+    if (request.url().endsWith("/save_walk_profile_checked")) {
+      saves.push(request.postDataJSON());
+      await route.fulfill({ json: true, headers: { "Access-Control-Allow-Origin": "*" } });
+    } else {
+      expect(request.postDataJSON().profile_id).toBe(saves[0].profile_id);
+      await route.fulfill({ json: snapshotFor(saves.at(-1), "test-user"),
+        headers: { "Access-Control-Allow-Origin": "*" } });
+    }
   });
   await page.route(`${supabase}/auth/v1/**`, async (route) => {
     const url = new URL(route.request().url());
@@ -58,6 +92,8 @@ test("Google sign-in and sign-out preserve local progress", async ({ page }) => 
     S.days["2025-01-02"] = true;
     S.waterHistory["2025-01-02"] = 4;
     S.jr["2025-01-02"] = "Journal";
+    S.water = { d: today(), n: 6 };
+    S.waterHistory[today()] = 2;
     save();
   });
   const profileId = await page.evaluate(() => CUR_UID);
@@ -76,6 +112,9 @@ test("Google sign-in and sign-out preserve local progress", async ({ page }) => 
   });
   expect(saves[0].activity).toContainEqual({
     date: "2025-01-02", checks: { wake: true }, completed: true, water: 4, journal: "Journal",
+  });
+  expect(saves[0].activity).toContainEqual({
+    date: await page.evaluate(() => today()), checks: {}, completed: false, water: 6, journal: null,
   });
   expect(authorization.searchParams.get("provider")).toBe("google");
   expect(authorization.searchParams.get("redirect_to")).toBe(`${site}/`);
@@ -104,7 +143,7 @@ function storedSession(userId) {
   };
 }
 
-test("a lost upload response can be retried without overwriting the cloud or local profile", async ({ page }) => {
+test("a lost link response is recovered automatically without overwriting local progress", async ({ page }) => {
   await serveApp(page);
   await page.addInitScript((session) => {
     localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
@@ -118,18 +157,101 @@ test("a lost upload response can be retried without overwriting the cloud or loc
       await route.abort("failed");
     } else {
       expect(route.request().postDataJSON().profile_id).toBe(uploaded.profile_id);
-      await route.fulfill({ json: { profile: { id: uploaded.profile_id }, activity: [] },
+      await route.fulfill({ json: snapshotFor(uploaded, "retry-user"),
         headers: { "Access-Control-Allow-Origin": "*" } });
     }
   });
   await page.goto(site);
   await openAccounts(page);
-  await expect(page.locator("#google-auth [role=alert]")).toContainText("local save is unchanged");
   const local = await page.evaluate(() => ({ id: CUR_UID, name: S.p.name, xp: S.xp }));
-  await page.getByRole("button", { name: "Retry linking" }).evaluate((button) => button.click());
   await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
   expect(writes).toBe(1);
   expect(await page.evaluate(() => ({ id: CUR_UID, name: S.p.name, xp: S.xp }))).toEqual(local);
+});
+
+test("a failed link retries the same cloud ID after reconnecting", async ({ page }) => {
+  await serveApp(page);
+  await page.addInitScript((session) => {
+    localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
+  }, storedSession("offline-user"));
+  const writes = [];
+  let allowed = false;
+  let uploaded;
+  await page.route(`${supabase}/rest/v1/rpc/**`, async (route) => {
+    if (route.request().url().endsWith("/read_walk_profile")) {
+      await route.fulfill({ body: JSON.stringify(uploaded ? snapshotFor(uploaded, "offline-user") : null), contentType: "application/json",
+        headers: { "Access-Control-Allow-Origin": "*" } });
+    } else {
+      writes.push(route.request().postDataJSON());
+      if (!allowed) await route.abort("failed");
+      else {
+        uploaded = writes.at(-1);
+        await route.fulfill({ json: true, headers: { "Access-Control-Allow-Origin": "*" } });
+      }
+    }
+  });
+  await page.goto(site);
+  await openAccounts(page);
+  await expect(page.getByText("Could not link the current profile.", { exact: false })).toBeVisible();
+  await page.evaluate(() => { S.p.name = "Still local"; save(); });
+  allowed = true;
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(page.locator("#google-auth")).toContainText("Linked Still local");
+  expect(writes.length).toBeGreaterThanOrEqual(2);
+  expect(writes.at(-1).profile_id).toBe(writes[0].profile_id);
+  expect(writes.at(-1).state.p.name).toBe("Still local");
+});
+
+test("link metadata storage failure is visible and does not upload", async ({ page }) => {
+  await serveApp(page);
+  await page.addInitScript((session) => {
+    localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key.startsWith("dailywalk_admin_max:profile-link:v1:")) throw new Error("Storage blocked");
+      return original.call(this, key, value);
+    };
+  }, storedSession("storage-user"));
+  let writes = 0;
+  await page.route(`${supabase}/rest/v1/rpc/**`, async (route) => {
+    writes++;
+    await route.fulfill({ json: true, headers: { "Access-Control-Allow-Origin": "*" } });
+  });
+  await page.goto(site);
+  await openAccounts(page);
+  await expect(page.getByText("Could not link the current profile.", { exact: false })).toBeVisible();
+  expect(writes).toBe(0);
+  expect(await page.evaluate(() => S.p.name)).toBe("Player 1");
+});
+
+test("retrying a link does not overwrite profile changes from another tab", async ({ page }) => {
+  await serveApp(page);
+  await page.addInitScript((session) => {
+    localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
+  }, storedSession("link-retry-user"));
+  let requests = 0;
+  await page.route(`${supabase}/rest/v1/rpc/**`, async (route) => {
+    requests++;
+    await route.abort("failed");
+  });
+  await page.goto(site);
+  await openAccounts(page);
+  await expect(page.getByText("Could not link the current profile.", { exact: false })).toBeVisible();
+  await page.context().setOffline(true);
+  await page.evaluate(() => {
+    const stored = readStoredProfile(CUR_UID);
+    stored.p.name = "Other tab";
+    localStorage.setItem(uKey(CUR_UID), JSON.stringify(stored));
+  });
+  const requestsBeforeRetry = requests;
+  const failure = page.waitForEvent("console", {
+    predicate: (message) => message.type() === "error" && message.text().includes("Could not link profile"),
+  });
+  await page.getByRole("button", { name: "Retry linking" }).evaluate((button) => button.click());
+  await failure;
+  await expect(page.getByText("Local profiles changed. Reload before linking.")).toBeVisible();
+  expect(await page.evaluate(() => readStoredProfile(CUR_UID).p.name)).toBe("Other tab");
+  expect(requests).toBe(requestsBeforeRetry);
 });
 
 test("isolated browsers link separate local profiles to the signed-in account", async ({ browser }) => {
@@ -145,8 +267,13 @@ test("isolated browsers link separate local profiles to the signed-in account", 
       await page.route(`${supabase}/rest/v1/rpc/**`, async (route) => {
         const request = route.request();
         expect(request.headers().authorization).toBe("Bearer token-same-user");
-        saves.push(request.postDataJSON());
-        await route.fulfill({ json: true, headers: { "Access-Control-Allow-Origin": "*" } });
+        if (request.url().endsWith("/save_walk_profile_checked")) {
+          saves.push(request.postDataJSON());
+          await route.fulfill({ json: true, headers: { "Access-Control-Allow-Origin": "*" } });
+        } else {
+          const save = saves.find((item) => item.profile_id === request.postDataJSON().profile_id);
+          await route.fulfill({ json: snapshotFor(save, "same-user"), headers: { "Access-Control-Allow-Origin": "*" } });
+        }
       });
       await page.goto(site);
       await openAccounts(page);
@@ -158,6 +285,66 @@ test("isolated browsers link separate local profiles to the signed-in account", 
   } finally {
     await Promise.all(contexts.map((context) => context.close()));
   }
+});
+
+test("different Google accounts get separate links for the same local profile", async ({ page }) => {
+  await serveApp(page);
+  const uploads = [];
+  await page.addInitScript((session) => {
+    if (!localStorage.getItem("sb-dnnpakvhiipflpvmkymf-auth-token")) {
+      localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
+    }
+  }, storedSession("first-user"));
+  await page.route(`${supabase}/rest/v1/rpc/**`, async (route) => {
+    const request = route.request();
+    if (request.url().endsWith("/save_walk_profile_checked")) {
+      uploads.push({ token: request.headers().authorization, body: request.postDataJSON() });
+      await route.fulfill({ json: true, headers: { "Access-Control-Allow-Origin": "*" } });
+    } else {
+      const upload = uploads.find((item) => item.body.profile_id === request.postDataJSON().profile_id);
+      const owner = upload.token === "Bearer token-first-user" ? "first-user" : "second-user";
+      await route.fulfill({ json: snapshotFor(upload.body, owner), headers: { "Access-Control-Allow-Origin": "*" } });
+    }
+  });
+  await page.goto(site);
+  await openAccounts(page);
+  await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
+  const id = await page.evaluate(() => CUR_UID);
+  await page.evaluate((session) => {
+    localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
+  }, storedSession("second-user"));
+  await page.reload();
+  await openAccounts(page);
+  await expect(page.locator("#google-auth")).toContainText("Signed in as second-user@example.com");
+  await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
+  expect(uploads.map((upload) => upload.token)).toEqual(["Bearer token-first-user", "Bearer token-second-user"]);
+  expect(uploads[0].body.profile_id).not.toBe(uploads[1].body.profile_id);
+  expect(await page.evaluate(() => CUR_UID)).toBe(id);
+});
+
+test("a missing linked cloud profile is reported without replacing local progress", async ({ page }) => {
+  await serveApp(page);
+  await page.addInitScript((session) => {
+    localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
+  }, storedSession("missing-user"));
+  let writes = 0;
+  await page.route(`${supabase}/rest/v1/rpc/**`, async (route) => {
+    if (route.request().url().endsWith("/save_walk_profile_checked")) {
+      writes++;
+      await route.fulfill({ json: true, headers: { "Access-Control-Allow-Origin": "*" } });
+    } else {
+      await route.fulfill({ body: "null", contentType: "application/json",
+        headers: { "Access-Control-Allow-Origin": "*" } });
+    }
+  });
+  await page.goto(site);
+  await openAccounts(page);
+  await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
+  await page.reload();
+  await openAccounts(page);
+  await expect(page.getByText("The linked cloud profile is missing.", { exact: false })).toBeVisible();
+  expect(writes).toBe(1);
+  expect(await page.evaluate(() => S.p.name)).toBe("Player 1");
 });
 
 test("Google sign-in redirects back to the GitHub Pages app path", async ({ page }) => {
@@ -189,5 +376,6 @@ test("direct file usage keeps profiles available without offering sign-in", asyn
   await page.goto(pathToFileURL(path.join(root, "index.html")).href);
   await openAccounts(page);
   await expect(page.locator("#google-auth")).toContainText("Sign-in requires the hosted site or local development server");
+  await page.locator("#go-info").evaluate((button) => button.click());
   await expect(page.locator("#ulist .uitem")).toHaveCount(1);
 });

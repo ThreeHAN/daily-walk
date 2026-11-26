@@ -166,10 +166,72 @@ $("reset").onclick = () => {
 save();
 paint();
 DailyWalkReact.renderTownBirds();
+function getSavedProfileForSync(id = CUR_UID) {
+  if (stateLoadError) throw new Error("Saved profiles could not be loaded.");
+  if (!USERS.some((user) => user.id === id)) throw new Error("The local profile is no longer available.");
+  const stored = readStoredProfile(id);
+  if ((id === CUR_UID && DailyWalkReact.profileFingerprint(S) !== DailyWalkReact.profileFingerprint(stored)) ||
+      JSON.stringify(readStoredUsers()) !== JSON.stringify(USERS)) {
+    throw new Error("Local profiles changed. Reload before syncing.");
+  }
+  return { id, state: stored };
+}
 DailyWalkReact.renderGoogleAuth({
-  getLocalProfile: () => {
-    if (!save()) throw new Error("Could not save the local profile before linking");
-    return { id: CUR_UID, state: readStoredProfile(CUR_UID) };
+  getLocalProfile: () => getSavedProfileForSync(),
+  getSyncLocalProfile: getSavedProfileForSync,
+  getSyncTargets: (ownerId) => [
+    CUR_UID,
+    ...USERS.filter((user) => user.id !== CUR_UID &&
+      localStorage.getItem(DailyWalkReact.linkKey(ownerId, user.id)) !== null).map((user) => user.id),
+  ],
+  setSyncStatus: setCloudSyncStatus,
+  replaceLocalProfile: (local, remote, { backup }) => {
+    const active = CUR_UID === local.id;
+    if (active && $("jt") && $("jt").value !== String(S.jr[today()] || "")) {
+      throw new Error("Save or discard the journal draft before downloading cloud changes.");
+    }
+    if ((active && DailyWalkReact.profileFingerprint(S) !== DailyWalkReact.profileFingerprint(local.state)) ||
+        DailyWalkReact.profileFingerprint(readStoredProfile(local.id)) !== DailyWalkReact.profileFingerprint(local.state) ||
+        JSON.stringify(readStoredUsers()) !== JSON.stringify(USERS)) {
+      throw new Error("The local profile changed during sync. Retry.");
+    }
+    const previousUsers = USERS;
+    const previousProfile = JSON.stringify(readStoredProfile(local.id));
+    const nextState = hydrateState(remote);
+    nextState.lastSaved = Date.now();
+    let updatedUsers = USERS.slice();
+    const idx = updatedUsers.findIndex((user) => user.id === local.id);
+    if (idx < 0) throw new Error("The local profile is no longer available.");
+    if (backup) {
+      const backupId = "u_backup_" + DailyWalkReact.newProfileId();
+      const user = updatedUsers[idx];
+      localStorage.setItem(uKey(backupId), previousProfile);
+      updatedUsers.push({ ...user, id: backupId, label: (user.label || "Profile") + " (sync backup)" });
+    }
+    updatedUsers[idx] = profileMetadata(local.id, nextState, updatedUsers);
+    localStorage.setItem(K_USERS, JSON.stringify(updatedUsers));
+    try {
+      localStorage.setItem(uKey(local.id), JSON.stringify(nextState));
+    } catch (error) {
+      try {
+        localStorage.setItem(K_USERS, JSON.stringify(previousUsers));
+      } catch (rollbackError) {
+        console.error("Could not restore the local profile index after sync failed", rollbackError);
+      }
+      throw error;
+    }
+    USERS = updatedUsers;
+    if (active) {
+      S = nextState;
+      Object.keys(shut).forEach((key) => delete shut[key]);
+      paint();
+      render();
+      drawWater();
+      drawJr();
+      if (PG === "t") townOpen();
+      if (!save()) throw new Error("Could not finish saving the cloud profile.");
+    }
+    return readStoredProfile(local.id);
   },
 });
 render();

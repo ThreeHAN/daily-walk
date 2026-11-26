@@ -2,6 +2,7 @@ export { renderBuddyDetails } from "./buddy-details.jsx";
 export { renderBuddyStats } from "./buddy-stats.jsx";
 export { renderDashboardHeading } from "./dashboard-heading.jsx";
 export { renderGoogleAuth } from "./google-auth.jsx";
+export { linkKey, newProfileId, profileFingerprint } from "./profile-link.js";
 export { renderHabitEditor } from "./habit-editor.jsx";
 export { render as renderHabitList } from "./habit-list.jsx";
 export { renderLeaderboardList } from "./leaderboard-list.jsx";

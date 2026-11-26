@@ -90,6 +90,7 @@ test("a new day does not create a completed day or unlock a streak pet", async (
   expect(await page.evaluate(() => ({
     days: S.days, streak: curStreak, pets: S.pets,
   }))).toEqual({ days: {}, streak: 0, pets: {} });
+  expect(await page.evaluate(() => readStoredProfile(CUR_UID).water.d)).toBe("2026-01-02");
   await page.reload();
   expect(await page.evaluate(() => ({
     days: S.days, streak: curStreak, pets: S.pets,

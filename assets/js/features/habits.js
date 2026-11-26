@@ -132,7 +132,10 @@ function tickClock() {
 let lastKey = today(),
   lastCup = -1;
 function drawWater() {
-  if (S.water.d !== today()) S.water = { d: today(), n: 0 };
+  if (S.water.d !== today()) {
+    S.water = { d: today(), n: 0 };
+    save();
+  }
   DailyWalkReact.renderWater({
     cups: S.water.n,
     lastCup,

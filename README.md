@@ -45,8 +45,8 @@ before running the browser tests and publishing. A failed build or test prevents
 deployment.
 
 Once the deployment succeeds, the site should be available at
-<https://threehan.github.io/daily-walk/>. Progress is stored in each browser,
-not synchronized across devices; use Profile export and restore to move it.
+<https://threehan.github.io/daily-walk/>. Profiles are stored locally; optional
+Google sign-in enables automatic synchronization between devices.
 
 ## Project structure
 
@@ -77,6 +77,8 @@ not synchronized across devices; use Profile export and restore to move it.
     │   ├── buddy-stats.jsx
     │   ├── dashboard-heading.jsx
     │   ├── google-auth.jsx
+    │   ├── profile-link.js
+    │   ├── profile-sync.js
     │   ├── habit-editor.jsx
     │   ├── habit-list.jsx
     │   ├── icon-text.jsx
@@ -196,7 +198,7 @@ receives current tasks and per-day checks from the legacy state owner.
 | Shared icon artwork and rendering               | [`icon-art.js`](assets/js/ui/icon-art.js), [`icons.js`](assets/js/ui/icons.js)                                                             |
 | Streak celebration                              | [`streak-week.jsx`](assets/react/streak-week.jsx), [`collection.js`](assets/js/features/collection.js)                                    |
 | Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js), [`profile-list.jsx`](assets/react/profile-list.jsx), [`leaderboard-list.jsx`](assets/react/leaderboard-list.jsx) |
-| Google sign-in and profile linking              | [`google-auth.jsx`](assets/react/google-auth.jsx), [`profile-link.js`](assets/react/profile-link.js)                                         |
+| Google sign-in and profile sync                 | [`google-auth.jsx`](assets/react/google-auth.jsx), [`profile-link.js`](assets/react/profile-link.js), [`profile-sync.js`](assets/react/profile-sync.js) |
 | Guided introduction                             | [`tutorial.jsx`](assets/react/tutorial.jsx), [`tutorial.js`](assets/js/features/tutorial.js)                                                |
 | Defaults, saved-state hydration, and migrations | [`state.js`](assets/js/core/state.js)                                                                                                       |
 
@@ -274,14 +276,21 @@ receives current tasks and per-day checks from the legacy state owner.
   and saves it. `hydrateState()` supplies missing fields and migrates older
   data. Preserve existing storage keys and backup compatibility when changing
   the state shape, and test migrations against older saves.
-- Google sign-in is optional and available on the hosted site or local HTTP
-  server. Signing in automatically links the current local profile to the
-  Google account and uploads a snapshot. Failures are shown with a retry button;
-  local profiles remain unchanged. A previously linked profile is not uploaded
-  again on sign-in. Later changes are not synced, and cloud profiles cannot yet
-  be restored on another device. Direct `file://` usage remains available without sign-in. The
-  Supabase project URL and publishable key in `google-auth.jsx` are public;
-  never add secret or service-role keys to the browser bundle.
+- Google sign-in is optional and available in the main profile menu on the
+  hosted site or local HTTP server. Signing in automatically links the current
+  local profile to the Google account and uploads a snapshot. Local changes
+  sync automatically, including changes to linked inactive profiles. Cloud
+  changes are checked every 10 seconds while the app is open. Offline changes
+  stay local and retry after reconnection; sync failures are visible and retried.
+  **Sync now** requests an immediate check. **Choose cloud profile** connects
+  an existing cloud profile to the current local profile on another device.
+  When both sides changed, or an older link lacks a common sync version, choose
+  the device or cloud copy. Choosing the cloud copy in a conflict keeps the
+  previous local profile as a separate sync backup in **My info**. Unsaved
+  journal drafts block downloads until saved or discarded. Direct
+  `file://` usage remains available without sign-in. The Supabase project URL
+  and publishable key in `google-auth.jsx` are public; never add secret or
+  service-role keys to the browser bundle.
 - The guided tour scrolls to each highlighted button and waits for the user to
   activate it before continuing. Completion is stored per profile; users can
   skip or reopen it from their profile.
@@ -303,9 +312,10 @@ operation uses a client-supplied timestamp, which alone cannot detect all
 concurrent edits and does not remove omitted activity rows. The checked save
 operation instead requires the expected cloud version and atomically replaces
 the activity snapshot; the read operation returns the profile and activity
-together. The app uses the checked save to link a local profile and the read
-operation to recover from an interrupted link. Ongoing sync and cloud-profile
-restoration across devices are not implemented.
+together. The app uses these operations for automatic sync and conflict detection.
+New sync saves retain a complete state snapshot in the profile progress so that
+local state can round-trip without losing daily-history details. Earlier cloud
+saves remain readable through the profile and activity fields.
 
 To validate the migration against a local Supabase database:
 

@@ -95,7 +95,7 @@ const TOUR_STEPS = [
     icon: "profile-card",
     title: "Profiles and backups",
     before: "Tap My info to find your profiles and backups.",
-    after: "In My info, create or switch profiles and export a save file. Restoring a backup replaces the active profile; saves stay on this browser unless exported.",
+    after: "In My info, create or switch profiles and export a save file. Restoring a backup replaces the active profile. Google sign-in and automatic sync are in the profile menu.",
     page: "h",
     prepare: "profile",
     target: "#go-info",
