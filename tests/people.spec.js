@@ -47,6 +47,39 @@ test("profile combines appearance and town gear in one wardrobe", async ({ page 
   await expect(page.locator("#tour")).toBeVisible();
 });
 
+test("levels and rewards reflect XP thresholds when reopened and after reload", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.evaluate(() => { S.xp = 79; save(); });
+  await click(page, "#prof");
+  await click(page, "#go-lv");
+  const rows = page.locator("#lvlist .lvrow");
+  await expect(rows).toHaveCount(10);
+  await expect(rows.nth(0)).toHaveClass(/cur/);
+  await expect(rows.nth(0)).toContainText("Newcomer");
+  await expect(rows.nth(0)).toContainText("Start here");
+  await expect(rows.nth(1)).toContainText("80 XP");
+  await expect(rows.nth(1)).toContainText("Vanguard tunic");
+  await expect(rows.nth(1).locator("span:last-child .ic svg")).toHaveCount(1);
+
+  await page.evaluate(() => { S.xp = 80; save(); });
+  await click(page, "#v-lv [data-back]");
+  await click(page, "#go-lv");
+  await expect(rows.nth(0)).toHaveClass(/past/);
+  await expect(rows.nth(1)).toHaveClass(/cur/);
+  await expect(rows.nth(1).locator("span:last-child .ic svg")).toHaveCount(1);
+  await expect(rows.nth(2)).not.toHaveClass(/cur|past/);
+  await page.evaluate(() => { S.xp = 3600; save(); });
+  await page.reload();
+  await click(page, "#prof");
+  await click(page, "#go-lv");
+  await expect(rows).toHaveCount(10);
+  await expect(rows.nth(9)).toHaveClass(/cur/);
+  await expect(rows.filter({ hasText: "Legendary Warrior" })).toHaveCount(1);
+  await expect(page.locator("#lvlist .lvrow.past")).toHaveCount(9);
+  expect(errors).toEqual([]);
+});
+
 test("traveler and streak align in the corner and remain usable", async ({ page }) => {
   for (const width of [320, 1000]) {
     await page.setViewportSize({ width, height: 720 });

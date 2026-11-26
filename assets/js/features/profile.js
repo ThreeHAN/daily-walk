@@ -515,30 +515,20 @@ function buildWd() {
   popTok = null;
 }
 function fillLv() {
-  const I = lvInfo(),
-    L = $("lvlist");
-  L.innerHTML = "";
-  for (let n = 1; n <= 10; n++) {
-    const r = document.createElement("div");
-    r.className =
-      "lvrow" + (n < I.n ? " past" : "") + (n === I.n ? " cur" : "");
-    const nb = document.createElement("span");
-    nb.className = "lvn";
-    nb.textContent = n;
-    const t = document.createElement("div");
-    const b = document.createElement("b");
-    b.textContent = ttl(n);
-    const sm = document.createElement("small");
-    const un = LOCKS.filter((x) => x[3] === n).map((x) => x[2]);
-    sm.textContent =
-      (n === 1 ? "Start here" : LV_START(n) + " XP") +
-      (un.length ? " · Unlocks " + un.join(", ") : "");
-    t.append(b, sm);
-    const st = document.createElement("span");
-    st.textContent = n < I.n ? "✓" : n === I.n ? "⭐" : "🔒";
-    r.append(nb, t, st);
-    L.appendChild(r);
-  }
+  DailyWalkReact.renderLevelList({
+    currentLevel: lvInfo().n,
+    levels: Array.from({ length: 10 }, (_, index) => {
+      const number = index + 1;
+      return {
+        number,
+        title: ttl(number),
+        start: LV_START(number),
+        unlocks: LOCKS.filter((item) => item[3] === number).map((item) => item[2]),
+      };
+    }),
+    icon: icoSvg,
+    iconTextParts,
+  });
 }
 function fillInfo(anim) {
   const cur = curStreak,

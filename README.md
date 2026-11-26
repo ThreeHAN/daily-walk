@@ -82,6 +82,7 @@ not synchronized across devices; use Profile export and restore to move it.
     │   ├── journal.jsx
     │   ├── leaderboard-list.jsx
     │   ├── level-hero.jsx
+    │   ├── level-list.jsx
     │   ├── people-index.jsx
     │   ├── profile-list.jsx
     │   ├── profile-status.jsx
@@ -121,7 +122,7 @@ not synchronized across devices; use Profile export and restore to move it.
   partials.
 - `assets/css/styles.css` is generated from Sass and remains the stylesheet
   loaded by Chrome and other browsers.
-- `assets/react/` contains the dashboard heading, profile status and list, level hero, habit list and editor,
+- `assets/react/` contains the dashboard heading, profile status and list, level hero and list, habit list and editor,
   progress summary, water tracker, journal, weekly chart, leaderboard list, people index, buddy details, and buddy stats React components.
   Their generated classic script,
   `assets/js/generated/react-ui.js`, is checked in so the site also works
@@ -156,7 +157,7 @@ not synchronized across devices; use Profile export and restore to move it.
 The scripts in `index.html` are classic scripts loaded in dependency order.
 Keep that order when moving code, and update the version in a changed script's
 URL so browsers do not use a stale cached copy. React exclusively owns the
-contents of `#dashboard-heading`, `#ubar`, `#ulist`, `#hero`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, `#lblist`, `#ix`, `#bbody`, `#buddy-stats`, and
+contents of `#dashboard-heading`, `#ubar`, `#ulist`, `#hero`, `#lvlist`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, `#lblist`, `#ix`, `#bbody`, `#buddy-stats`, and
 `#progress-summary`; legacy code must not mutate those subtrees except for the
 guided tour's temporary highlight on `#ix .sheet`. The water tracker and habit list call the same
 habit-check action. The journal keeps an editable React draft and reloads the
@@ -169,7 +170,7 @@ receives current tasks and per-day checks from the legacy state owner.
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dashboard heading and clock                     | [`dashboard-heading.jsx`](assets/react/dashboard-heading.jsx), [`habits.js`](assets/js/features/habits.js)                                  |
 | Profile status bar                              | [`profile-status.jsx`](assets/react/profile-status.jsx), [`accounts.js`](assets/js/core/accounts.js)                                       |
-| XP and level hero                               | [`level-hero.jsx`](assets/react/level-hero.jsx), [`profile.js`](assets/js/features/profile.js)                                              |
+| XP, levels, and rewards                         | [`level-hero.jsx`](assets/react/level-hero.jsx), [`level-list.jsx`](assets/react/level-list.jsx), [`profile.js`](assets/js/features/profile.js) |
 | New habit editor                                | [`habit-editor.jsx`](assets/react/habit-editor.jsx), [`habits.js`](assets/js/features/habits.js)                                            |
 | Habit checklist, progress, water, journal, and weekly activity | [`habit-list.jsx`](assets/react/habit-list.jsx), [`progress-summary.jsx`](assets/react/progress-summary.jsx), [`water-tracker.jsx`](assets/react/water-tracker.jsx), [`journal.jsx`](assets/react/journal.jsx), [`weekly-chart.jsx`](assets/react/weekly-chart.jsx), [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js) |
 | Pixel traveler and appearance                   | [`buddy-render.js`](assets/js/features/buddy-render.js), [`buddies.js`](assets/js/features/buddies.js), [`profile.js`](assets/js/features/profile.js) |
