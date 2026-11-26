@@ -47,6 +47,79 @@ test("profile combines appearance and town gear in one wardrobe", async ({ page 
   await expect(page.locator("#tour")).toBeVisible();
 });
 
+test("wardrobe tabs retain selection and icons across repeated updates", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.evaluate(() => { S.tutorialDone = true; S.splash = today(); save(); });
+  await page.reload();
+  await click(page, "#prof");
+  await click(page, "#go-wd");
+  const tabs = page.locator("#wtabs button");
+  await expect(tabs).toHaveCount(8);
+  const gear = tabs.filter({ hasText: "Town gear" });
+  const appearance = tabs.filter({ hasText: "Appearance" });
+  await expect(gear).toHaveAttribute("aria-pressed", "true");
+  await appearance.click();
+  await expect(appearance).toHaveAttribute("aria-pressed", "true");
+  await expect(gear).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator('#wbody [data-k="Gender"]')).toBeVisible();
+  await page.locator('#wbody [data-k="Gender"] button').first().click();
+  await expect(appearance).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#wtabs .ic svg")).toHaveCount(5);
+  await gear.click();
+  await expect(gear).toHaveAttribute("aria-pressed", "true");
+  await click(page, "#v-wd [data-back]");
+  await click(page, "#go-wd");
+  await expect(gear).toHaveAttribute("aria-pressed", "true");
+  expect(errors).toEqual([]);
+});
+
+test("profile banner refreshes names and level progress on reopen", async ({ page }) => {
+  await page.evaluate(() => {
+    S.xp = 40;
+    S.p.buddy = "<b>Buddy</b> ⭐";
+    S.p.name = "Walker 🔥";
+  });
+  await click(page, "#prof");
+  await expect(page.locator("#mt")).toContainText("<b>Buddy</b>");
+  await expect(page.locator("#mt b")).toHaveCount(0);
+  await expect(page.locator("#mt .ic svg")).toHaveCount(1);
+  await expect(page.locator("#mp3")).toContainText("Walker");
+  await expect(page.locator("#mp3 .ic svg")).toHaveCount(2);
+  await expect(page.locator("#mxt")).toHaveText("40 / 80 XP to level 2");
+  await expect.poll(() => page.locator("#mxf").evaluate((el) => el.style.width)).toBe("50%");
+  await page.evaluate(() => { S.xp = LV_START(10); S.p.buddy = "New buddy"; view("menu"); });
+  await expect(page.locator("#mt")).toHaveText("New buddy");
+  await expect(page.locator("#mxt")).toContainText("Max level reached!");
+  await expect(page.locator("#mxt .ic svg")).toHaveCount(1);
+  await expect.poll(() => page.locator("#mxf").evaluate((el) => el.style.width)).toBe("100%");
+});
+
+test("streak celebration updates its seven days when reopened", async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 0, 7, 12));
+  await page.evaluate(() => {
+    S.days = { "2026-01-01": true, "2026-01-07": true };
+    showSplash(true);
+  });
+  const days = page.locator("#spw .wd");
+  await expect(days).toHaveCount(7);
+  await expect(days.nth(0)).toHaveClass(/ok/);
+  await expect(days.nth(1)).not.toHaveClass(/ok/);
+  await expect(days.nth(6)).toHaveClass(/ok/);
+  await expect(days.nth(6)).toHaveClass(/td/);
+  await expect(days.nth(6).locator("i")).toHaveText("✓");
+  await page.evaluate(() => {
+    S.days["2026-01-07"] = false;
+    S.days["2026-01-02"] = true;
+    showSplash(true);
+  });
+  await expect(days).toHaveCount(7);
+  await expect(days.nth(1)).toHaveClass(/ok/);
+  await expect(days.nth(6)).not.toHaveClass(/ok/);
+  await expect(days.nth(6)).toHaveClass(/td/);
+  await click(page, "#spgo");
+});
+
 test("levels and rewards reflect XP thresholds when reopened and after reload", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

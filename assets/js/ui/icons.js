@@ -64,7 +64,7 @@ function icoSpan(n) {
 }
 function fixText(t) {
   const v = t.nodeValue;
-  if (!v || v.search(ICRE) < 0 || !t.parentNode || t.parentElement?.closest("#list, #journal, #week, #progress-summary, #hero, #dashboard-heading, #ubar, #hm, #lblist, #ulist, #ix, #bbody, #buddy-stats, #lvlist")) return;
+  if (!v || v.search(ICRE) < 0 || !t.parentNode || t.parentElement?.closest("#list, #journal, #week, #progress-summary, #hero, #dashboard-heading, #ubar, #hm, #lblist, #ulist, #ix, #bbody, #buddy-stats, #lvlist, #glist, #wtabs, #profile-banner, #spw")) return;
   const f = document.createDocumentFragment();
   iconTextParts(v).forEach((part) => {
     if (part.icon) f.appendChild(icoSpan(part.icon));

@@ -288,11 +288,19 @@ function setP(k, v) {
 }
 function buildWd() {
   $("wtabs").dataset.k = "tab";
-  chips($("wtabs"), TABS, wTab, (v) => {
-    wTab = v;
-    colorEditor = null;
-    rerun($("wbody"), "fx");
-    buildWd();
+  DailyWalkReact.renderWardrobeTabs({
+    tabs: TABS,
+    selected: wTab,
+    popping: popTok && popTok.startsWith("tab:") ? popTok.slice(4) : null,
+    icon: icoSvg,
+    iconTextParts,
+    onSelect: (v) => {
+      popTok = "tab:" + v;
+      wTab = v;
+      colorEditor = null;
+      rerun($("wbody"), "fx");
+      buildWd();
+    },
   });
   const h = $("wbody");
   h.innerHTML = "";
@@ -559,24 +567,19 @@ function view(v) {
   rerun($("v-" + v), "fx");
   if (v === "menu") {
     const I = lvInfo();
-    $("mt").textContent = S.p.buddy || "Buddy";
-    $("mst").textContent =
-      "Level " + I.n + " · " + ttl(I.n) +
-      (S.p.gender === "female" || S.p.gender === "male" ? " · " + cap(S.p.gender) : "");
-    $("mxt").textContent = I.max
-      ? "Max level reached! 🎉"
-      : I.into + " / " + I.need + " XP to level " + (I.n + 1);
-    $("mp1").textContent = "🔥 " + curStreak + "-day streak";
-    $("mp2").textContent = "⭐ " + S.xp + " XP";
-    $("mp3").textContent = "👤 " + (S.p.name || "Friend");
+    DailyWalkReact.renderProfileBanner({
+      buddy: S.p.buddy || "Buddy",
+      subtitle: "Level " + I.n + " · " + ttl(I.n) +
+        (S.p.gender === "female" || S.p.gender === "male" ? " · " + cap(S.p.gender) : ""),
+      progress: I.max ? "Max level reached! 🎉" : I.into + " / " + I.need + " XP to level " + (I.n + 1),
+      percent: I.pct,
+      streak: curStreak,
+      xp: S.xp,
+      name: S.p.name || "Friend",
+      icon: icoSvg,
+      iconTextParts,
+    });
     $("go-grad").hidden = true;
-    const x = $("mxf");
-    x.style.width = "0%";
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        x.style.width = I.pct + "%";
-      }),
-    );
   }
   if (v === "wd") buildWd();
   if (v === "lv") fillLv();

@@ -180,23 +180,19 @@ function showSplash(force) {
   sp.className = "splash " + tier.cls;
   $("ftier").textContent = tier.name;
   $("spm").textContent = tier.msg;
-  const w = $("spw");
-  w.innerHTML = "";
+  const days = [];
   for (let k = 6; k >= 0; k--) {
     const dt = new Date();
     dt.setDate(dt.getDate() - k);
-    const key = dkey(dt),
-      ok = !!S.days[key];
-    const d = document.createElement("div");
-    d.className = "wd" + (ok ? " ok" : "") + (k === 0 ? " td" : "");
-    d.style.setProperty("--i", 6 - k);
-    const l = document.createElement("span");
-    l.textContent = dt.toLocaleDateString(undefined, { weekday: "narrow" });
-    const c = document.createElement("i");
-    c.textContent = ok ? "✓" : "";
-    d.append(l, c);
-    w.appendChild(d);
+    const key = dkey(dt);
+    days.push({
+      key,
+      completed: !!S.days[key],
+      today: k === 0,
+      label: dt.toLocaleDateString(undefined, { weekday: "narrow" }),
+    });
   }
+  DailyWalkReact.renderStreakWeek({ days });
   const num = $("spn");
   num.textContent = "0";
   sp.classList.add("show");

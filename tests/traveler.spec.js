@@ -40,6 +40,55 @@ test("habits help a town and unlock travel without losing existing progress", as
   expect(await page.evaluate(() => [S.nb.cur, S.nb.xp.meadow, S.nb.xp.seaside])).toEqual(["seaside", 3000, 123]);
 });
 
+test("world town cards update progress, availability, rewards, and globe selection", async ({ page }) => {
+  await page.locator('button[data-p="t"]').evaluate((button) => button.click());
+  await page.locator("#wbtn").evaluate((button) => button.click());
+  const meadow = page.locator("#wc-meadow");
+  const seaside = page.locator("#wc-seaside");
+  await expect(page.locator("#glist .wc")).toHaveCount(48);
+  await expect(page.locator("#glist .wc").first()).toHaveId("wc-meadow");
+  await expect(meadow).toHaveClass(/cur/);
+  await expect(meadow.locator(".wtg")).toHaveText("Current town");
+  await expect(meadow.locator(".wbt")).toBeDisabled();
+  await expect(seaside.locator(".wtg")).toHaveText("Help Meadow Valley before leaving");
+  await expect(seaside.locator(".wbt")).toBeDisabled();
+  await expect(seaside.locator(".wbud")).toContainText("Town reward:");
+  expect(await seaside.locator(".wbar2 i").evaluate((bar) => parseFloat(bar.style.width))).toBeCloseTo(4.1);
+
+  await page.evaluate(() => {
+    S.nb.xp.meadow = MAXAT;
+    S.nb.xp.snowy = MAXAT;
+    drawWorld();
+    drawWorld();
+  });
+  await expect(meadow.locator(".wtg")).toHaveText("Current town · helped");
+  await expect(meadow.locator(".wbud")).toContainText("Earned:");
+  await expect(seaside.locator(".wtg")).toHaveText("Ready to help");
+  await expect(seaside.locator(".wbt")).toBeEnabled();
+  await expect(page.locator("#wc-snowy .wtg")).toHaveText("Helped · travel here");
+  expect(await meadow.locator(".wbar2 i").evaluate((bar) => bar.style.width)).toBe("100%");
+
+  const scrolled = await page.evaluate(() => {
+    const original = Element.prototype.scrollIntoView;
+    let target = null;
+    Element.prototype.scrollIntoView = function () { target = this.id; };
+    try {
+      const position = GP.seaside;
+      GLB.lon = -position[0];
+      GLB.lat = position[1];
+      renderGlobeFrame();
+      GLB.moved = false;
+      document.querySelector('#gpins [data-id="seaside"]').dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      return target;
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+  expect(scrolled).toBe("wc-seaside");
+  await expect(seaside).toHaveClass(/sel/);
+  await expect(page.locator("#glist .wc")).toHaveCount(48);
+});
+
 test("town gear unlocks from saved town progress and equips at any level", async ({ page }) => {
   await page.evaluate(() => { S.p.ex.scarf = false; });
   await page.locator("#prof").evaluate((button) => button.click());

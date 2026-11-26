@@ -84,11 +84,15 @@ not synchronized across devices; use Profile export and restore to move it.
     │   ├── level-hero.jsx
     │   ├── level-list.jsx
     │   ├── people-index.jsx
+    │   ├── profile-banner.jsx
     │   ├── profile-list.jsx
     │   ├── profile-status.jsx
     │   ├── progress-summary.jsx
+    │   ├── streak-week.jsx
     │   ├── water-tracker.jsx
-    │   └── weekly-chart.jsx
+    │   ├── wardrobe-tabs.jsx
+    │   ├── weekly-chart.jsx
+    │   └── world-town-list.jsx
     └── js
         ├── app.js
         ├── generated
@@ -122,8 +126,8 @@ not synchronized across devices; use Profile export and restore to move it.
   partials.
 - `assets/css/styles.css` is generated from Sass and remains the stylesheet
   loaded by Chrome and other browsers.
-- `assets/react/` contains the dashboard heading, profile status and list, level hero and list, habit list and editor,
-  progress summary, water tracker, journal, weekly chart, leaderboard list, people index, buddy details, and buddy stats React components.
+- `assets/react/` contains the dashboard heading, profile banner, status and list, wardrobe tabs, level hero and list, habit list and editor,
+  progress summary, water tracker, journal, weekly chart, streak week, leaderboard list, people index, buddy details, buddy stats, and world town list React components.
   Their generated classic script,
   `assets/js/generated/react-ui.js`, is checked in so the site also works
   directly from `index.html`. The bundle includes the MIT license for React,
@@ -157,7 +161,7 @@ not synchronized across devices; use Profile export and restore to move it.
 The scripts in `index.html` are classic scripts loaded in dependency order.
 Keep that order when moving code, and update the version in a changed script's
 URL so browsers do not use a stale cached copy. React exclusively owns the
-contents of `#dashboard-heading`, `#ubar`, `#ulist`, `#hero`, `#lvlist`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, `#lblist`, `#ix`, `#bbody`, `#buddy-stats`, and
+contents of `#dashboard-heading`, `#ubar`, `#ulist`, `#profile-banner`, `#wtabs`, `#hero`, `#lvlist`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, `#spw`, `#lblist`, `#ix`, `#bbody`, `#buddy-stats`, `#glist`, and
 `#progress-summary`; legacy code must not mutate those subtrees except for the
 guided tour's temporary highlight on `#ix .sheet`. The water tracker and habit list call the same
 habit-check action. The journal keeps an editable React draft and reloads the
@@ -170,6 +174,7 @@ receives current tasks and per-day checks from the legacy state owner.
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dashboard heading and clock                     | [`dashboard-heading.jsx`](assets/react/dashboard-heading.jsx), [`habits.js`](assets/js/features/habits.js)                                  |
 | Profile status bar                              | [`profile-status.jsx`](assets/react/profile-status.jsx), [`accounts.js`](assets/js/core/accounts.js)                                       |
+| Profile banner and wardrobe tabs                | [`profile-banner.jsx`](assets/react/profile-banner.jsx), [`wardrobe-tabs.jsx`](assets/react/wardrobe-tabs.jsx), [`profile.js`](assets/js/features/profile.js) |
 | XP, levels, and rewards                         | [`level-hero.jsx`](assets/react/level-hero.jsx), [`level-list.jsx`](assets/react/level-list.jsx), [`profile.js`](assets/js/features/profile.js) |
 | New habit editor                                | [`habit-editor.jsx`](assets/react/habit-editor.jsx), [`habits.js`](assets/js/features/habits.js)                                            |
 | Habit checklist, progress, water, journal, and weekly activity | [`habit-list.jsx`](assets/react/habit-list.jsx), [`progress-summary.jsx`](assets/react/progress-summary.jsx), [`water-tracker.jsx`](assets/react/water-tracker.jsx), [`journal.jsx`](assets/react/journal.jsx), [`weekly-chart.jsx`](assets/react/weekly-chart.jsx), [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js) |
@@ -177,9 +182,10 @@ receives current tasks and per-day checks from the legacy state owner.
 | Town data, rewards, and progression            | [`town-data.js`](assets/js/features/town-data.js), [`town-progress.js`](assets/js/features/town-progress.js)                               |
 | Town buildings, scenery, and cast               | [`town-scene.js`](assets/js/features/town-scene.js)                                                                                        |
 | Town walkers, pets, sleep, and interactions    | [`town.js`](assets/js/features/town.js), [`buddy-details.jsx`](assets/react/buddy-details.jsx), [`buddy-stats.jsx`](assets/react/buddy-stats.jsx) |
-| World map and travel                            | [`world-map.js`](assets/js/features/world-map.js)                                                                                          |
+| World map and travel                            | [`world-town-list.jsx`](assets/react/world-town-list.jsx), [`world-map.js`](assets/js/features/world-map.js)                               |
 | People met, pet definitions, and unlocks        | [`people-index.jsx`](assets/react/people-index.jsx), [`town.js`](assets/js/features/town.js), [`buddy-render.js`](assets/js/features/buddy-render.js), [`pets.js`](assets/js/features/pets.js), [`collection.js`](assets/js/features/collection.js) |
 | Shared icon artwork and rendering               | [`icon-art.js`](assets/js/ui/icon-art.js), [`icons.js`](assets/js/ui/icons.js)                                                             |
+| Streak celebration                              | [`streak-week.jsx`](assets/react/streak-week.jsx), [`collection.js`](assets/js/features/collection.js)                                    |
 | Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js), [`profile-list.jsx`](assets/react/profile-list.jsx), [`leaderboard-list.jsx`](assets/react/leaderboard-list.jsx) |
 | Guided introduction                             | [`tutorial.js`](assets/js/features/tutorial.js)                                                                                             |
 | Defaults, saved-state hydration, and migrations | [`state.js`](assets/js/core/state.js)                                                                                                       |

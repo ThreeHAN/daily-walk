@@ -219,76 +219,6 @@ function unlockedKinds() {
   if (S.nb.xp.neptune_meadow !== undefined) out.add("cosmo");
   return out;
 }
-function worldCard(id) {
-  const c = NB[id],
-    st = nbState(id),
-    x = nbXp(id),
-    d = document.createElement("div");
-  d.className =
-    "wc" + (id === S.nb.cur ? " cur" : "") + (gsel === id ? " sel" : "");
-  d.id = "wc-" + id;
-  const sw = document.createElement("div");
-  sw.className = "wsw";
-  sw.style.background =
-    "linear-gradient(180deg," +
-    c.sky[0] +
-    "," +
-    c.sky[1] +
-    " 50%," +
-    c.sky[1] +
-    " 50%," +
-    c.gr[0] +
-    " 50%," +
-    c.gr[0] +
-    " 75%," +
-    c.gr[1] +
-    " 75%," +
-    c.gr[1] +
-    ")";
-  const inf = document.createElement("div");
-  inf.className = "winf";
-  const b = document.createElement("b");
-  b.textContent = c.n;
-  const sm = document.createElement("small");
-  sm.textContent = c.d;
-  const bar = document.createElement("div");
-  bar.className = "wbar2";
-  const bi = document.createElement("i");
-  bi.style.width = Math.min(100, (x / MAXAT) * 100) + "%";
-  bi.style.background = c.ac;
-  bar.appendChild(bi);
-  const tg = document.createElement("span");
-  tg.className = "wtg";
-  tg.textContent =
-    id === S.nb.cur
-      ? nbDone(id)
-        ? "Current town · helped"
-        : "Current town"
-      : st === "avail"
-        ? (nbDone(id) ? "Helped · travel here" : "Ready to help")
-        : "Help " + NB[S.nb.cur].n + " before leaving";
-  inf.append(b, sm, bar, tg);
-  inf.appendChild(
-    el("div", "wbud", (nbDone(id) ? "Earned: " : "Town reward: ") + townRewardNames(id)),
-  );
-  d.append(sw, inf);
-  const bt = document.createElement("button");
-  bt.type = "button";
-  bt.className = "wbt";
-  if (id === S.nb.cur) {
-    bt.textContent = "Here now";
-    bt.disabled = true;
-  } else if (st === "avail") {
-    bt.textContent = "Travel here";
-    bt.classList.add("go");
-    bt.onclick = () => settle(id);
-  } else {
-    bt.textContent = "Locked";
-    bt.disabled = true;
-  }
-  d.appendChild(bt);
-  return d;
-}
 function drawWorld() {
   $("glt").textContent = "🌍 Your world";
   renderGlobeFrame();
@@ -297,11 +227,35 @@ function drawWorld() {
     "Drag side to side to spin · " +
     doneCnt +
     " of " + NBK.length + " towns helped";
-  const L = $("glist");
-  L.innerHTML = "";
-  [S.nb.cur, ...NBK.filter((k) => k !== S.nb.cur)].forEach((k) =>
-    L.appendChild(worldCard(k)),
-  );
+  DailyWalkReact.renderWorldTownList({
+    towns: [S.nb.cur, ...NBK.filter((id) => id !== S.nb.cur)].map((id) => {
+      const town = NB[id];
+      const current = id === S.nb.cur;
+      const done = nbDone(id);
+      const canTravel = !current && nbState(id) === "avail";
+      return {
+        id,
+        current,
+        selected: gsel === id,
+        canTravel,
+        name: town.n,
+        description: town.d,
+        color: town.ac,
+        percent: Math.min(100, (nbXp(id) / MAXAT) * 100),
+        background: "linear-gradient(180deg," + town.sky[0] + "," +
+          town.sky[1] + " 50%," + town.sky[1] + " 50%," +
+          town.gr[0] + " 50%," + town.gr[0] + " 75%," +
+          town.gr[1] + " 75%," + town.gr[1] + ")",
+        status: current ? (done ? "Current town · helped" : "Current town")
+          : canTravel ? (done ? "Helped · travel here" : "Ready to help")
+            : "Help " + NB[S.nb.cur].n + " before leaving",
+        reward: (done ? "Earned: " : "Town reward: ") + townRewardNames(id),
+      };
+    }),
+    onTravel: settle,
+    icon: icoSvg,
+    iconTextParts,
+  });
 }
 $("gsvg").onclick = (e) => {
   if (GLB.moved) return;
