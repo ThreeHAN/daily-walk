@@ -158,8 +158,13 @@ function render(effects = {}) {
   firstR = false;
 }
 $("reset").onclick = () => {
-  S.checks[today()] = {};
-  S.days[today()] = false;
+  const day = today();
+  const ids = new Set([...S.tasks.map((task) => task.id), ...Object.keys(S.checks[day] || {})]);
+  if (!updateHabitChecks(day, Array.from(ids, (id) => [id, false]))) {
+    render();
+    return;
+  }
+  S.days[day] = false;
   save();
   render();
 };
@@ -261,11 +266,28 @@ DailyWalkReact.renderGoogleAuth({
   finishStartup,
   openCloudProfile,
   setSyncStatus: setCloudSyncStatus,
+  backupCloudProfile: (local, remote) => {
+    getSavedProfileForSync(local.id);
+    const backupId = "u_backup_" + DailyWalkReact.newProfileId();
+    const state = hydrateState(JSON.parse(JSON.stringify(remote)));
+    const user = profileMetadata(backupId, state, USERS);
+    user.label = (state.p.name || "Profile") + " (cloud sync backup)";
+    localStorage.setItem(uKey(backupId), JSON.stringify(state));
+    try {
+      localStorage.setItem(K_USERS, JSON.stringify([...USERS, user]));
+    } catch (error) {
+      try {
+        localStorage.removeItem(uKey(backupId));
+      } catch (rollbackError) {
+        console.error("Could not remove incomplete cloud backup", rollbackError);
+      }
+      throw error;
+    }
+    USERS = [...USERS, user];
+  },
   replaceLocalProfile: (local, remote, { backup }) => {
     const active = CUR_UID === local.id;
-    if (active && $("jt") && $("jt").value !== String(S.jr[today()] || "")) {
-      throw new Error("Save or discard the journal draft before downloading cloud changes.");
-    }
+    const preserveDraft = active && $("jt") && $("jt").value !== String(S.jr[today()] || "");
     if ((active && DailyWalkReact.profileFingerprint(S) !== DailyWalkReact.profileFingerprint(local.state)) ||
         DailyWalkReact.profileFingerprint(readStoredProfile(local.id)) !== DailyWalkReact.profileFingerprint(local.state) ||
         JSON.stringify(readStoredUsers()) !== JSON.stringify(USERS)) {
@@ -303,7 +325,7 @@ DailyWalkReact.renderGoogleAuth({
       paint();
       render();
       drawWater();
-      drawJr();
+      drawJr(preserveDraft);
       if (PG === "t") townOpen();
       if (!save()) throw new Error("Could not finish saving the cloud profile.");
     }

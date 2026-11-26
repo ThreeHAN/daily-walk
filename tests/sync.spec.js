@@ -96,7 +96,8 @@ async function setup(page, cloud) {
     document.getElementById("sp").classList.remove("show");
   });
   await page.locator("#prof").evaluate((element) => element.click());
-  await expect(page.locator("#google-auth")).toContainText("Profiles are synced.");
+  await page.getByRole("button", { name: "Sync now" }).click();
+  await expect(page.locator("#google-auth")).toContainText(/Profile uploaded|Profile is up to date/);
   await expect.poll(() => page.evaluate(() => {
     const key = DailyWalkReact.linkKey("sync-user", CUR_UID);
     const link = JSON.parse(localStorage.getItem(key));
@@ -104,8 +105,9 @@ async function setup(page, cloud) {
   })).toBe(true);
 }
 
-async function changeName(page, name) {
-  await page.evaluate((value) => { S.p.name = value; save(); }, name);
+async function changeName(page, name, userInitiated = false) {
+  await page.evaluate(({ value, fromUser }) => { S.p.name = value; save(fromUser); },
+    { value: name, fromUser: userInitiated });
 }
 
 test("two browsers sync in both directions and preserve conflicts", async ({ browser }) => {
@@ -172,6 +174,415 @@ test("two browsers sync in both directions and preserve conflicts", async ({ bro
   } finally {
     await Promise.all(contexts.map((context) => context.close()));
   }
+});
+
+test("two browsers merge independent edits after reconnecting", async ({ browser }) => {
+  const cloud = new Map();
+  const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
+  try {
+    const [first, second] = await Promise.all(contexts.map((context) => context.newPage()));
+    await setup(first, cloud);
+    const id = Array.from(cloud.keys())[0];
+    await setup(second, cloud);
+    await second.getByRole("button", { name: "Choose cloud profile" }).click();
+    await second.getByLabel("Cloud profile").selectOption(id);
+    await second.getByRole("button", { name: "Connect profile" }).click();
+    await second.getByRole("button", { name: "Use cloud" }).click();
+    await expect(second.locator("#google-auth")).toContainText("Profile downloaded.");
+
+    await contexts[1].setOffline(true);
+    await second.evaluate(() => { S.p.hat = "cap"; save(true); });
+    await changeName(first, "Other device", true);
+    await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Other device");
+    await contexts[1].setOffline(false);
+    await expect.poll(() => cloud.get(id).profile.profile.hat).toBe("cap");
+    expect(await second.evaluate(() => [S.p.name, S.p.hat])).toEqual(["Other device", "cap"]);
+    await expect(second.getByRole("button", { name: "Use cloud" })).toHaveCount(0);
+    await first.getByRole("button", { name: "Sync now" }).click();
+    await expect.poll(() => first.evaluate(() => S.p.hat)).toBe("cap");
+  } finally {
+    await Promise.all(contexts.map((context) => context.close()));
+  }
+});
+
+test("two browsers preserve separate habit unchecks and recompute the day", async ({ browser }) => {
+  const cloud = new Map();
+  const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
+  try {
+    const [first, second] = await Promise.all(contexts.map((context) => context.newPage()));
+    await setup(first, cloud);
+    const id = Array.from(cloud.keys())[0];
+    await first.locator("#pdone").evaluate((button) => button.click());
+    await first.locator('input[data-id="wake"]').check();
+    await first.locator('input[data-id="stretch"]').check();
+    const day = await first.evaluate(() => today());
+    await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.stretch).toBe(true);
+
+    await setup(second, cloud);
+    await second.getByRole("button", { name: "Choose cloud profile" }).click();
+    await second.getByLabel("Cloud profile").selectOption(id);
+    await second.getByRole("button", { name: "Connect profile" }).click();
+    await second.getByRole("button", { name: "Use cloud" }).click();
+    await expect(second.locator("#google-auth")).toContainText("Profile downloaded.");
+    await second.locator("#pdone").evaluate((button) => button.click());
+    await contexts[1].setOffline(true);
+    await first.locator('input[data-id="wake"]').uncheck();
+    await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(false);
+    await second.locator('input[data-id="stretch"]').uncheck();
+    await contexts[1].setOffline(false);
+    await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.stretch).toBe(false);
+    const saved = cloud.get(id).profile.progress._dailyWalkSyncSnapshot;
+    expect(saved.checks[day]).toMatchObject({ wake: false, stretch: false });
+    expect(saved.days[day]).toBe(false);
+    expect(saved.checkUpdatedAt[day].wake.at).toBeGreaterThan(0);
+    expect(saved.checkUpdatedAt[day].stretch.at).toBeGreaterThan(0);
+    await expect(second.locator("#ubar")).toContainText("Synced");
+    await second.locator("#prof").evaluate((button) => button.click());
+    await expect(second.getByRole("button", { name: "Use cloud" })).toHaveCount(0);
+    await first.locator("#prof").evaluate((button) => button.click());
+    await first.getByRole("button", { name: "Sync now" }).click();
+    await expect(first.locator('input[data-id="stretch"]')).not.toBeChecked();
+  } finally {
+    await Promise.all(contexts.map((context) => context.close()));
+  }
+});
+
+test("the later habit edit wins even when it returns to the shared value", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.locator("#pdone").evaluate((button) => button.click());
+  await page.locator('input[data-id="wake"]').check();
+  const day = await page.evaluate(() => today());
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(true);
+  await page.context().setOffline(true);
+  const remote = cloud.get(id);
+  const snapshot = remote.profile.progress._dailyWalkSyncSnapshot;
+  const oldStamp = snapshot.checkUpdatedAt[day].wake.at;
+  snapshot.checks[day].wake = false;
+  snapshot.checkUpdatedAt[day].wake = { at: oldStamp + 1, value: false };
+  remote.profile.client_modified_at++;
+  await page.evaluate((stamp) => {
+    window.originalDateNow = Date.now;
+    Date.now = () => stamp + 1000;
+  }, oldStamp);
+  await page.locator('input[data-id="wake"]').uncheck();
+  await page.locator('input[data-id="wake"]').check();
+  await page.evaluate(() => { Date.now = window.originalDateNow; });
+  await page.context().setOffline(false);
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(true);
+  expect(cloud.get(id).profile.progress._dailyWalkSyncSnapshot.checkUpdatedAt[day].wake.at).toBeGreaterThan(oldStamp + 1);
+  await expect(page.locator("#ubar")).toContainText("Synced");
+  await page.locator("#prof").evaluate((button) => button.click());
+  await expect(page.getByRole("button", { name: "Use cloud" })).toHaveCount(0);
+});
+
+test("a later cloud habit edit updates the device", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.locator("#pdone").evaluate((button) => button.click());
+  await page.locator('input[data-id="wake"]').check();
+  const day = await page.evaluate(() => today());
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(true);
+  await page.context().setOffline(true);
+  const remote = cloud.get(id);
+  const snapshot = remote.profile.progress._dailyWalkSyncSnapshot;
+  const oldStamp = snapshot.checkUpdatedAt[day].wake.at;
+  snapshot.checks[day].wake = false;
+  snapshot.checkUpdatedAt[day].wake = { at: oldStamp + 3000, value: false };
+  remote.profile.client_modified_at++;
+  await page.evaluate((stamp) => {
+    window.originalDateNow = Date.now;
+    Date.now = () => stamp + 1000;
+  }, oldStamp);
+  await page.locator('input[data-id="wake"]').uncheck();
+  await page.locator('input[data-id="wake"]').check();
+  await page.evaluate(() => { Date.now = window.originalDateNow; });
+  await page.context().setOffline(false);
+  await expect(page.locator("#ubar")).toContainText("Synced");
+  await expect(page.locator('input[data-id="wake"]')).not.toBeChecked();
+  expect(cloud.get(id).profile.progress._dailyWalkSyncSnapshot.checks[day].wake).toBe(false);
+});
+
+test("equal habit timestamps with different values prefer the local edit", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.locator("#pdone").evaluate((button) => button.click());
+  await page.locator('input[data-id="wake"]').check();
+  const day = await page.evaluate(() => today());
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(true);
+  await page.context().setOffline(true);
+  const remote = cloud.get(id);
+  const snapshot = remote.profile.progress._dailyWalkSyncSnapshot;
+  const stamp = snapshot.checkUpdatedAt[day].wake.at + 1001;
+  snapshot.checks[day].wake = false;
+  snapshot.checkUpdatedAt[day].wake = { at: stamp, value: false };
+  remote.profile.client_modified_at++;
+  await page.evaluate((value) => {
+    window.originalDateNow = Date.now;
+    Date.now = () => value - 1;
+  }, stamp);
+  await page.locator('input[data-id="wake"]').uncheck();
+  await page.locator('input[data-id="wake"]').check();
+  await page.evaluate(() => { Date.now = window.originalDateNow; });
+  await page.context().setOffline(false);
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot.checks[day].wake).toBe(true);
+  await expect(page.locator("#ubar")).toContainText("Synced");
+  expect(await page.evaluate(() => S.checks[today()].wake)).toBe(true);
+});
+
+test("a legacy edit cannot reuse a timestamp recorded for the opposite value", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.locator("#pdone").evaluate((button) => button.click());
+  await page.locator('input[data-id="wake"]').check();
+  const day = await page.evaluate(() => today());
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(true);
+  await page.context().setOffline(true);
+  const remote = cloud.get(id);
+  const snapshot = remote.profile.progress._dailyWalkSyncSnapshot;
+  const stamp = snapshot.checkUpdatedAt[day].wake.at + 1000;
+  snapshot.checks[day].wake = false;
+  snapshot.checkUpdatedAt[day].wake = { at: stamp, value: true };
+  remote.profile.client_modified_at++;
+  await page.evaluate((value) => {
+    window.originalDateNow = Date.now;
+    Date.now = () => value + 1000;
+  }, stamp);
+  await page.locator('input[data-id="wake"]').uncheck();
+  await page.locator('input[data-id="wake"]').check();
+  await page.evaluate(() => { Date.now = window.originalDateNow; });
+  await page.context().setOffline(false);
+  await expect(page.locator("#ubar")).toContainText("Sync conflict");
+  expect(await page.evaluate(() => S.checks[today()].wake)).toBe(true);
+  expect(snapshot.checks[day].wake).toBe(false);
+});
+
+test("legacy unchecks of different habits merge without invented timestamps", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  const day = await page.evaluate(() => today());
+  await page.evaluate((date) => {
+    S.checks[date] = { wake: true, stretch: true };
+    S.days[date] = false;
+    save();
+  }, day);
+  await page.getByRole("button", { name: "Sync now" }).click();
+  await expect(page.locator("#google-auth")).toContainText("Profile uploaded.");
+  await page.context().setOffline(true);
+  await page.evaluate((date) => { S.checks[date].stretch = false; save(true); }, day);
+  const remote = cloud.get(id);
+  remote.profile.client_modified_at++;
+  remote.profile.progress._dailyWalkSyncSnapshot.checks[day].wake = false;
+  await page.context().setOffline(false);
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot.checks[day].stretch).toBe(false);
+  const snapshot = cloud.get(id).profile.progress._dailyWalkSyncSnapshot;
+  expect(snapshot.checks[day]).toMatchObject({ wake: false, stretch: false });
+  expect(snapshot.checkUpdatedAt).toBeUndefined();
+});
+
+test("conflicting habit edits without timestamps prefer the local value", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  const day = await page.evaluate(() => today());
+  await page.evaluate((date) => {
+    S.checks[date] = { wake: true };
+    S.days[date] = false;
+    save();
+  }, day);
+  await page.getByRole("button", { name: "Sync now" }).click();
+  await expect(page.locator("#google-auth")).toContainText("Profile uploaded.");
+  await page.context().setOffline(true);
+  await page.evaluate((date) => { S.checks[date].wake = false; save(true); }, day);
+  const remote = cloud.get(id);
+  remote.profile.client_modified_at++;
+  delete remote.profile.progress._dailyWalkSyncSnapshot.checks[day].wake;
+  await page.context().setOffline(false);
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot.checks[day].wake).toBe(false);
+  await expect(page.locator("#ubar")).toContainText("Synced");
+});
+
+test("legacy numeric habit timestamps use the local fallback", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  const day = await page.evaluate(() => today());
+  await page.evaluate((date) => {
+    S.checks[date] = { wake: true };
+    S.checkUpdatedAt = { [date]: { wake: 100 } };
+    S.days[date] = false;
+    save();
+  }, day);
+  await page.getByRole("button", { name: "Sync now" }).click();
+  await expect(page.locator("#google-auth")).toContainText("Profile uploaded.");
+  await page.context().setOffline(true);
+  await page.evaluate((date) => {
+    S.checks[date].wake = false;
+    S.checkUpdatedAt[date].wake = 200;
+    save(true);
+  }, day);
+  const remote = cloud.get(id);
+  remote.profile.client_modified_at++;
+  delete remote.profile.progress._dailyWalkSyncSnapshot.checks[day].wake;
+  remote.profile.progress._dailyWalkSyncSnapshot.checkUpdatedAt[day].wake = 200;
+  await page.context().setOffline(false);
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot.checks[day].wake).toBe(false);
+  expect(cloud.get(id).profile.progress._dailyWalkSyncSnapshot.checkUpdatedAt[day].wake).toBe(200);
+});
+
+test("habit reset beats an earlier unseen check and keeps its earned XP", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  const day = await page.evaluate(() => today());
+  await page.locator("#pdone").evaluate((button) => button.click());
+  await page.context().setOffline(true);
+  const remote = cloud.get(id);
+  const snapshot = remote.profile.progress._dailyWalkSyncSnapshot;
+  const stamp = Date.now() - 1000;
+  snapshot.checks[day] = { wake: true };
+  snapshot.checkUpdatedAt = { [day]: { wake: { at: stamp, value: true } } };
+  snapshot.days[day] = false;
+  snapshot.xp += 10;
+  snapshot.life += 10;
+  remote.profile.client_modified_at++;
+  await page.locator("#reset").click();
+  await page.context().setOffline(false);
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(false);
+  expect(await page.evaluate(() => [S.checks[today()].wake, S.xp])).toEqual([false, snapshot.xp]);
+});
+
+test("older profiles gain habit timestamps only when a habit changes", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const before = await page.evaluate(() => ({
+    checks: structuredClone(S.checks), stamps: S.checkUpdatedAt,
+  }));
+  expect(before.stamps).toBeUndefined();
+  await page.reload();
+  expect(await page.evaluate(() => S.checks)).toEqual(before.checks);
+  await page.locator('input[data-id="wake"]').check();
+  const stamp = await page.evaluate(() => S.checkUpdatedAt[today()].wake);
+  expect(stamp.at).toBeGreaterThan(0);
+  await page.reload();
+  expect(await page.evaluate(() => S.checkUpdatedAt[today()].wake)).toEqual(stamp);
+});
+
+test("a conflicting profile is reconsidered when the user changes it", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.context().setOffline(true);
+  await changeName(page, "Local name", true);
+  const remote = cloud.get(id);
+  remote.profile.client_modified_at++;
+  remote.profile.profile.name = "Cloud name";
+  remote.profile.progress._dailyWalkSyncSnapshot.p.name = "Cloud name";
+  await page.context().setOffline(false);
+  await expect(page.getByRole("button", { name: "Use cloud" })).toBeVisible();
+  await changeName(page, "Cloud name", true);
+  await expect(page.getByRole("button", { name: "Use cloud" })).toHaveCount(0);
+  await expect(page.locator("#ubar")).toContainText("Synced");
+});
+
+test("separate existing journal entries merge without losing either edit", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.evaluate(() => {
+    S.jr["2024-01-01"] = "First";
+    S.jr["2024-01-02"] = "Second";
+    save();
+  });
+  await page.getByRole("button", { name: "Sync now" }).click();
+  await expect(page.locator("#google-auth")).toContainText("Profile uploaded.");
+  await page.context().setOffline(true);
+  await page.evaluate(() => { S.jr["2024-01-01"] = "First edit"; save(true); });
+  const remote = cloud.get(id);
+  remote.profile.client_modified_at++;
+  remote.profile.progress._dailyWalkSyncSnapshot.jr["2024-01-02"] = "Second edit";
+  await page.context().setOffline(false);
+  await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot.jr["2024-01-01"]).toBe("First edit");
+  expect(await page.evaluate(() => [S.jr["2024-01-01"], S.jr["2024-01-02"]]))
+    .toEqual(["First edit", "Second edit"]);
+});
+
+test("a concurrent non-overlapping cloud save is merged on retry", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.evaluate(() => { S.p.hat = "cap"; save(); });
+  cloud.raceNextSave = true;
+  await page.getByRole("button", { name: "Sync now" }).click();
+  await expect(page.locator("#google-auth")).toContainText("Profile changes merged and synced.");
+  expect(cloud.get(id).profile.profile).toMatchObject({ name: "Concurrent cloud edit", hat: "cap" });
+  expect(await page.evaluate(() => [S.p.name, S.p.hat])).toEqual(["Concurrent cloud edit", "cap"]);
+});
+
+test("a merge waits for an unsaved journal draft before changing either copy", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.locator("#pdone").evaluate((button) => button.click());
+  await page.locator("#jt").fill("Unsaved draft");
+  await page.evaluate(() => { S.p.hat = "cap"; save(); });
+  const remote = cloud.get(id);
+  remote.profile.client_modified_at++;
+  remote.profile.profile.name = "Cloud name";
+  remote.profile.progress._dailyWalkSyncSnapshot.p.name = "Cloud name";
+  await page.locator("#prof").evaluate((button) => button.click());
+  await page.getByRole("button", { name: "Sync now" }).click();
+  await expect(page.locator("#google-auth")).toContainText("Save or discard the journal draft");
+  expect(await page.locator("#jt").inputValue()).toBe("Unsaved draft");
+  expect(await page.evaluate(() => [S.p.name, S.p.hat])).toEqual(["Player 1", "cap"]);
+  expect(remote.profile.profile).toMatchObject({ name: "Cloud name", hat: "none" });
+});
+
+test("a failed merged upload keeps both changes locally for retry", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.context().setOffline(true);
+  await page.evaluate(() => { S.p.hat = "cap"; save(true); });
+  const remote = cloud.get(id);
+  remote.profile.client_modified_at++;
+  remote.profile.profile.name = "Cloud name";
+  remote.profile.progress._dailyWalkSyncSnapshot.p.name = "Cloud name";
+  cloud.failNextSave = true;
+  await page.context().setOffline(false);
+  await expect(page.locator("#google-auth")).toContainText("use Sync now to retry");
+  expect(await page.evaluate(() => [S.p.name, S.p.hat])).toEqual(["Cloud name", "cap"]);
+  await page.getByRole("button", { name: "Sync now" }).click();
+  await expect.poll(() => cloud.get(id).profile.profile.hat).toBe("cap");
+  expect(cloud.get(id).profile.profile.name).toBe("Cloud name");
+});
+
+test("concurrent gameplay changes require a choice even when XP totals match", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.context().setOffline(true);
+  await page.evaluate(() => {
+    S.checks["2024-01-01"] = { wake: true };
+    S.xp += 10;
+    S.life += 10;
+    save(true);
+  });
+  const remote = cloud.get(id);
+  const snapshot = remote.profile.progress._dailyWalkSyncSnapshot;
+  snapshot.checks["2024-01-02"] = { wake: true };
+  snapshot.xp += 10;
+  snapshot.life += 10;
+  remote.profile.client_modified_at++;
+  await page.context().setOffline(false);
+  await expect(page.getByRole("button", { name: "Use cloud" })).toBeVisible();
+  expect(await page.evaluate(() => S.checks["2024-01-01"])).toEqual({ wake: true });
+  expect(snapshot.checks["2024-01-02"]).toEqual({ wake: true });
 });
 
 test("a failed sync keeps local changes and succeeds on retry", async ({ page }) => {
@@ -299,7 +710,7 @@ test("a failed backup prevents a cloud download from replacing local data", asyn
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
   await page.context().setOffline(true);
-  await changeName(page, "Local edit");
+  await changeName(page, "Local edit", true);
   const snapshot = await page.evaluate(() => JSON.parse(JSON.stringify(S)));
   snapshot.p.name = "Remote edit";
   const remote = cloud.get(id);
@@ -355,33 +766,123 @@ test("a malformed cloud snapshot is rejected without changing local progress", a
   expect(await page.evaluate(() => USERS.length)).toBe(1);
 });
 
-test("offline edits sync automatically after reconnecting, including inactive linked profiles", async ({ page }) => {
+test("offline edits sync after reconnecting, including inactive linked profiles", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
   await page.context().setOffline(true);
-  await changeName(page, "Offline first profile");
+  await changeName(page, "Offline first profile", true);
   await expect(page.locator("#ubar")).toContainText("Offline");
   expect(cloud.get(id).profile.profile.name).toBe("Player 1");
   await page.locator("#go-info").evaluate((button) => button.click());
   await page.locator("#uadd").evaluate((button) => button.click());
-  await changeName(page, "Second profile");
+  await changeName(page, "Second profile", true);
   await page.context().setOffline(false);
   await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Offline first profile");
   await expect.poll(() => Array.from(cloud.values()).some(({ profile }) => profile.profile.name === "Second profile")).toBe(true);
   expect(await page.evaluate(() => S.p.name)).toBe("Second profile");
 });
 
-test("automatic sync retries a failed upload without another click", async ({ page }) => {
+test("offline edits remain queued across reload and sync on reconnect", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.context().setOffline(true);
+  await changeName(page, "Offline across reload", true);
+  await expect(page.locator("#ubar")).toContainText("Offline");
+  await page.reload();
+  await page.locator("#prof").evaluate((button) => button.click());
+  await expect(page.locator("#google-auth")).toContainText("Linked Offline across reload");
+  expect(cloud.get(id).profile.profile.name).toBe("Player 1");
+  await page.context().setOffline(false);
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Offline across reload");
+});
+
+test("pending sync storage failures remain visible while local edits are retained", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.context().setOffline(true);
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key.startsWith("dailywalk_admin_max:profile-sync-pending:")) throw new Error("Storage blocked");
+      return original.call(this, key, value);
+    };
+  });
+  await changeName(page, "Saved locally", true);
+  await expect(page.locator("#google-auth")).toContainText("sync retry information could not be stored");
+  expect(await page.evaluate(() => readStoredProfile(CUR_UID).p.name)).toBe("Saved locally");
+  await page.context().setOffline(false);
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Saved locally");
+});
+
+test("a failed upload waits for an explicit retry", async ({ page }) => {
+  const cloud = new Map();
+  await page.clock.install();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  cloud.failNextSave = true;
+  await changeName(page, "Retry manually", true);
+  await expect(page.locator("#google-auth")).toContainText("use Sync now to retry");
+  expect(await page.evaluate(() => S.p.name)).toBe("Retry manually");
+  await page.clock.fastForward(65000);
+  expect(cloud.get(id).profile.profile.name).toBe("Player 1");
+  await page.reload();
+  await page.locator("#prof").evaluate((button) => button.click());
+  await expect(page.locator("#google-auth")).toContainText("Use Sync now to retry");
+  await page.clock.fastForward(65000);
+  expect(cloud.get(id).profile.profile.name).toBe("Player 1");
+  await page.getByRole("button", { name: "Sync now" }).click();
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Retry manually");
+  await expect(page.locator("#google-auth")).toContainText("Profile uploaded.");
+  await expect(page.locator("#ubar")).toContainText("Synced");
+  let requests = 0;
+  page.on("request", (request) => {
+    if (request.url().endsWith("/read_walk_profile")) requests++;
+  });
+  await page.context().setOffline(true);
+  await page.context().setOffline(false);
+  await page.clock.fastForward(1000);
+  expect(requests).toBe(0);
+});
+
+test("a failed upload retries after reconnecting while the page was closed", async ({ page }) => {
   const cloud = new Map();
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
   cloud.failNextSave = true;
-  await changeName(page, "Retry automatically");
-  await expect(page.locator("#google-auth")).toContainText("retrying");
-  expect(await page.evaluate(() => S.p.name)).toBe("Retry automatically");
-  await expect.poll(() => cloud.get(id).profile.profile.name, { timeout: 8000 }).toBe("Retry automatically");
-  await expect(page.locator("#google-auth")).toContainText("Profiles are synced.");
+  await changeName(page, "Reconnect after leaving", true);
+  await expect(page.locator("#google-auth")).toContainText("use Sync now to retry");
+  await page.context().setOffline(true);
+  await page.goto("about:blank");
+  await page.context().setOffline(false);
+  await page.goto(site);
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Reconnect after leaving");
+});
+
+test("reloading and background changes do not initiate cloud reads", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  let requests = 0;
+  page.on("request", (request) => {
+    if (request.url().endsWith("/read_walk_profile") || request.url().endsWith("/save_walk_profile_checked")) {
+      requests++;
+    }
+  });
+  await page.reload();
+  await page.locator("#prof").evaluate((button) => button.click());
+  await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
+  await page.evaluate(() => {
+    S.p.name = "Background save";
+    save();
+    window.dispatchEvent(new Event("storage"));
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("online"));
+  });
+  await page.waitForTimeout(1000);
+  expect(requests).toBe(0);
+  expect(cloud.values().next().value.profile.profile.name).toBe("Player 1");
 });
 
 test("an inactive profile conflict does not block syncing the active profile", async ({ page }) => {
@@ -391,7 +892,7 @@ test("an inactive profile conflict does not block syncing the active profile", a
   const firstLocalId = await page.evaluate(() => CUR_UID);
   const firstSnapshot = await page.evaluate(() => structuredClone(S));
   await page.locator("#go-info").evaluate((button) => button.click());
-  await page.locator("#uadd").evaluate((button) => button.click());
+  await page.locator("#uadd").click();
   await expect.poll(() => cloud.size).toBe(2);
   await expect.poll(() => page.evaluate(() => {
     const key = "dailywalk_admin_max:profile-link:v1:sync-user:" + encodeURIComponent(CUR_UID);
@@ -402,10 +903,10 @@ test("an inactive profile conflict does not block syncing the active profile", a
   await page.locator("#go-info").evaluate((button) => button.click());
   const secondCloudId = Array.from(cloud.keys()).find((id) => id !== firstCloudId);
   await page.context().setOffline(true);
-  await changeName(page, "Second offline");
+  await changeName(page, "Second offline", true);
   await page.locator("#ulist .uitem").filter({ hasText: "Player 1" })
     .getByRole("button", { name: "Switch" }).evaluate((button) => button.click());
-  await changeName(page, "First offline");
+  await changeName(page, "First offline", true);
   await page.locator("#ulist .uitem").filter({ hasText: "Second offline" })
     .getByRole("button", { name: "Switch" }).evaluate((button) => button.click());
   const remote = cloud.get(firstCloudId);
@@ -431,12 +932,31 @@ test("edits during an automatic upload are uploaded in a following pass", async 
   let started;
   const inFlight = new Promise((resolve) => { started = resolve; });
   cloud.pauseNextSave = { started, wait: new Promise((resolve) => { release = resolve; }) };
-  await changeName(page, "First automatic edit");
+  await changeName(page, "First automatic edit", true);
   await Promise.race([inFlight, new Promise((_, reject) => setTimeout(() => reject(new Error("Upload did not start")), 5000))]);
-  await changeName(page, "Newer automatic edit");
+  await changeName(page, "Newer automatic edit", true);
   release();
   await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Newer automatic edit");
   await expect(page.locator("#google-auth")).toContainText("Profiles are synced.");
+});
+
+test("reconnection during an in-flight failed upload retries once", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  let release;
+  let started;
+  const inFlight = new Promise((resolve) => { started = resolve; });
+  cloud.pauseNextSave = { started, wait: new Promise((resolve) => { release = resolve; }) };
+  cloud.failAfterSave = true;
+  await changeName(page, "Reconnect during upload", true);
+  await Promise.race([inFlight, new Promise((_, reject) => setTimeout(() => reject(new Error("Upload did not start")), 5000))]);
+  await page.context().setOffline(true);
+  await page.context().setOffline(false);
+  release();
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Reconnect during upload");
+  await expect(page.locator("#google-auth")).toContainText("Profiles are synced.");
+  await expect(page.getByRole("button", { name: "Use cloud" })).toHaveCount(0);
 });
 
 test("automatic downloads wait for an unsaved journal draft", async ({ page }) => {
@@ -451,16 +971,15 @@ test("automatic downloads wait for an unsaved journal draft", async ({ page }) =
   if (remote.profile.progress._dailyWalkSyncSnapshot) {
     remote.profile.progress._dailyWalkSyncSnapshot.p.name = "Remote change";
   }
-  await page.evaluate(() => window.dispatchEvent(new Event("online")));
-  await expect(page.locator("#ubar")).toContainText("Sync error");
+  await page.locator("#prof").evaluate((button) => button.click());
+  await page.getByRole("button", { name: "Sync now" }).click();
   expect(await page.locator("#jt").inputValue()).toBe("Unsaved draft");
   expect(await page.evaluate(() => S.p.name)).toBe("Player 1");
-  await page.locator("#prof").evaluate((button) => button.click());
   await expect(page.locator("#google-auth")).toContainText("Save or discard the journal draft");
 });
 
-test("two browsers automatically exchange changes and stop on offline conflicts", async ({ browser }) => {
-  test.setTimeout(30000);
+test("two browsers sync on request and stop on offline conflicts without polling", async ({ browser }) => {
+  test.setTimeout(35000);
   const cloud = new Map();
   const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
   try {
@@ -474,17 +993,25 @@ test("two browsers automatically exchange changes and stop on offline conflicts"
     await second.getByRole("button", { name: "Connect profile" }).click();
     await expect(second.getByText("Local and cloud profiles may both have changed", { exact: false })).toBeVisible();
     await second.getByRole("button", { name: "Use cloud" }).click();
-    await expect(second.locator("#google-auth")).toContainText("Profiles are synced.");
+    await expect(second.locator("#google-auth")).toContainText("previous local profile was kept");
     const backupCount = await second.evaluate(() => USERS.length);
 
-    await changeName(first, "Automatic cloud update");
+    let remoteReads = 0;
+    second.on("request", (request) => {
+      if (request.url().endsWith("/read_walk_profile")) remoteReads++;
+    });
+    await changeName(first, "Automatic cloud update", true);
     await expect.poll(() => cloud.get(sharedId).profile.profile.name).toBe("Automatic cloud update");
-    await expect.poll(() => second.evaluate(() => S.p.name), { timeout: 12000 }).toBe("Automatic cloud update");
+    await second.waitForTimeout(11000);
+    expect(remoteReads).toBe(0);
+    expect(await second.evaluate(() => S.p.name)).toBe("Player 1");
+    await second.getByRole("button", { name: "Sync now" }).click();
+    await expect.poll(() => second.evaluate(() => S.p.name)).toBe("Automatic cloud update");
     expect(await second.evaluate(() => USERS.length)).toBe(backupCount);
 
     await contexts[1].setOffline(true);
-    await changeName(second, "Offline device edit");
-    await changeName(first, "Online device edit");
+    await changeName(second, "Offline device edit", true);
+    await changeName(first, "Online device edit", true);
     await expect.poll(() => cloud.get(sharedId).profile.profile.name).toBe("Online device edit");
     await contexts[1].setOffline(false);
     await expect(second.getByText("Local and cloud profiles may both have changed", { exact: false })).toBeVisible();
@@ -495,4 +1022,33 @@ test("two browsers automatically exchange changes and stop on offline conflicts"
   } finally {
     await Promise.all(contexts.map((context) => context.close()));
   }
+});
+
+test("editing a field and completing a habit trigger sync without polling", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  await page.locator("#go-info").click();
+  await page.locator("#pn").fill("Field edit");
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Field edit");
+  await page.locator("#pdone").evaluate((button) => button.click());
+  await page.locator('input[data-id="wake"]').check();
+  const date = await page.evaluate(() => today());
+  await expect.poll(() => cloud.get(id).activity.find((entry) => entry.activity_date === date)?.habit_checks.wake).toBe(true);
+});
+
+test("restoring a profile syncs the asynchronously read backup", async ({ page }) => {
+  const cloud = new Map();
+  await setup(page, cloud);
+  const id = Array.from(cloud.keys())[0];
+  const backup = await page.evaluate(() => {
+    const state = structuredClone(S);
+    state.p.name = "Restored profile";
+    return JSON.stringify({ data: state });
+  });
+  await page.locator("#go-info").click();
+  await page.locator("#ufile").setInputFiles({
+    name: "backup.json", mimeType: "application/json", buffer: Buffer.from(backup),
+  });
+  await expect.poll(() => cloud.get(id).profile.profile.name).toBe("Restored profile");
 });

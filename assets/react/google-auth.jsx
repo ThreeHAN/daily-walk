@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createPortal } from "react-dom";
 import { createClient } from "@supabase/supabase-js";
-import { linkProfile } from "./profile-link.js";
+import { linkProfile, newProfileId, storedProfileLink } from "./profile-link.js";
 import { connectCloudProfile, listCloudProfiles, readCloud, syncProfile } from "./profile-sync.js";
 
 const projectUrl = "https://dnnpakvhiipflpvmkymf.supabase.co";
@@ -22,7 +22,7 @@ function StartupDialog({ children }) {
   );
 }
 
-function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, replaceLocalProfile,
+function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, replaceLocalProfile, backupCloudProfile,
   hasCurrentLink, finishStartup, openCloudProfile, setSyncStatus: setBarSyncStatus }) {
   const [client, setClient] = useState(null);
   const [session, setSession] = useState(null);
@@ -35,7 +35,6 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncStatus, setSyncStatus] = useState("");
   const [syncError, setSyncError] = useState("");
-  const [conflict, setConflict] = useState(null);
   const [cloudProfiles, setCloudProfiles] = useState(null);
   const [selectedCloud, setSelectedCloud] = useState("");
   const [startup, setStartup] = useState("checking");
@@ -45,8 +44,11 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
   const [startupAttempt, setStartupAttempt] = useState(0);
   const sessionRef = useRef(null);
   const runningRef = useRef(false);
-  const conflictsRef = useRef(new Map());
   const autoSyncRef = useRef(null);
+  const queuedSyncRef = useRef(false);
+  const reconnectSyncRef = useRef(false);
+  const linkStateRef = useRef({ busy: false, ready: false });
+  const retryLinkOwnerRef = useRef(null);
   const supported = window.location.protocol === "https:" || window.location.protocol === "http:";
 
   useEffect(() => {
@@ -135,8 +137,9 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
     hasCurrentLink, finishStartup, openCloudProfile]);
 
   useEffect(() => {
-    conflictsRef.current.clear();
-    setConflict(null);
+    queuedSyncRef.current = false;
+    reconnectSyncRef.current = false;
+    retryLinkOwnerRef.current = null;
     setSyncStatus("");
     setSyncError("");
     setCloudProfiles(null);
@@ -150,7 +153,6 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
       setLinkBusy(false);
       setSyncStatus("");
       setSyncError("");
-      setConflict(null);
       setCloudProfiles(null);
       return;
     }
@@ -158,7 +160,17 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
     setLinkBusy(true);
     setLinkStatus("Linking the current profile...");
     setLinkError("");
-    linkProfile(client, session, getLocalProfile).then((name) => {
+    async function prepareLink() {
+      const profile = getLocalProfile();
+      const link = storedProfileLink(session, profile);
+      if (link?.status === "linked") return profile.state.p.name || "Current profile";
+      if (link?.status === "pending" && retryLinkOwnerRef.current !== session.user.id) {
+        throw new Error("Profile linking needs an explicit retry.");
+      }
+      retryLinkOwnerRef.current = null;
+      return linkProfile(client, session, getLocalProfile);
+    }
+    prepareLink().then((name) => {
       if (active) setLinkStatus(`Linked ${name} to this Google account.`);
     }).catch((err) => {
       console.error("Could not link profile", err);
@@ -177,55 +189,61 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
   }, [client, session?.user?.id, getLocalProfile, linkAttempt, startup]);
 
   const linkReady = !!linkStatus || !!linkError;
+  linkStateRef.current = { busy: linkBusy, ready: linkReady };
   useEffect(() => {
-    if (!client || !session || startup !== "ready" || linkBusy || !linkReady) return;
+    if (!client || !session || startup !== "ready") return;
     let disposed = false;
-    let timer;
-    let pending = false;
-    let retryDelay = 2000;
+    let scheduled = false;
+    let onlineGeneration = 0;
+    const pendingKey = "dailywalk_admin_max:profile-sync-pending:v1:" + encodeURIComponent(session.user.id);
     const current = () => !disposed && sessionRef.current?.user?.id === session.user.id
       && sessionRef.current?.access_token === session.access_token;
-    function schedule(delay) {
-      if (disposed) return;
-      clearTimeout(timer);
-      timer = setTimeout(run, delay);
+    function pendingStorageError(err) {
+      console.error("Could not store pending profile sync", err);
+      setSyncError("Changes are saved locally, but sync retry information could not be stored.");
     }
-    function wake() {
-      pending = true;
-      schedule(500);
+    function markPending(offline) {
+      try {
+        localStorage.setItem(pendingKey, JSON.stringify({ id: newProfileId(), offline }));
+      } catch (err) {
+        pendingStorageError(err);
+      }
+    }
+    function drain() {
+      if (disposed || scheduled || !queuedSyncRef.current) return;
+      scheduled = true;
+      queueMicrotask(() => {
+        scheduled = false;
+        if (!disposed) run();
+      });
     }
     async function run() {
       if (!current()) return;
       if (!navigator.onLine) {
+        reconnectSyncRef.current ||= queuedSyncRef.current;
+        queuedSyncRef.current = false;
         setBarSyncStatus("Offline · changes saved locally");
         setSyncStatus("Offline. Changes will sync after reconnecting.");
-        schedule(10000);
         return;
       }
-      if (runningRef.current) {
-        pending = true;
-        schedule(500);
-        return;
-      }
+      if (runningRef.current || linkStateRef.current.busy || !linkStateRef.current.ready) return;
       runningRef.current = true;
-      pending = false;
+      queuedSyncRef.current = false;
       setSyncBusy(true);
       setBarSyncStatus("Syncing…");
+      const attemptGeneration = onlineGeneration;
+      let pendingAtStart;
       let failed = false;
       let message = "";
       try {
+        pendingAtStart = localStorage.getItem(pendingKey);
         const targets = getSyncTargets(session.user.id);
         for (const id of targets) {
           if (!current()) return;
-          if (conflictsRef.current.has(id)) continue;
           try {
-            const result = await syncProfile(client, session, () => getSyncLocalProfile(id),
-              replaceLocalProfile, undefined, undefined, current);
+            await syncProfile(client, session, () => getSyncLocalProfile(id),
+              replaceLocalProfile, backupCloudProfile, current);
             if (!current()) return;
-            if (result.conflict) {
-              const profile = getSyncLocalProfile(id);
-              conflictsRef.current.set(id, { ...result.conflict, profileName: profile.state.p.name || "Profile" });
-            }
             if (id === targets[0]) {
               const profile = getSyncLocalProfile(id);
               setLinkError("");
@@ -238,70 +256,125 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
             message = err.message === "Local profiles changed. Reload before syncing."
               || err.message === "Save or discard the journal draft before downloading cloud changes."
               ? err.message
-              : "Could not sync a profile. Changes remain local; retrying.";
+              : "Could not sync a profile. Changes remain local; use Sync now to retry.";
           }
         }
         if (!current()) return;
-        const nextConflict = conflictsRef.current.values().next().value || null;
-        setConflict(nextConflict);
+        if (pendingAtStart !== null && localStorage.getItem(pendingKey) === pendingAtStart) {
+          if (failed) {
+            const pending = JSON.parse(pendingAtStart);
+            localStorage.setItem(pendingKey, JSON.stringify({ ...pending, offline: !navigator.onLine }));
+          } else {
+            localStorage.removeItem(pendingKey);
+          }
+        }
         setSyncError(failed ? message : "");
+        reconnectSyncRef.current = failed;
+        if (failed && navigator.onLine && onlineGeneration !== attemptGeneration) {
+          reconnectSyncRef.current = false;
+          queuedSyncRef.current = true;
+        }
         const offline = !navigator.onLine;
         setSyncStatus(offline ? "Offline. Changes will sync after reconnecting."
-          : nextConflict ? "Choose how to resolve the sync conflict."
-            : failed ? "" : pending ? "Changes are waiting to sync." : "Profiles are synced.");
+          : failed ? "" : queuedSyncRef.current ? "Changes are waiting to sync." : "Profiles are synced.");
         setBarSyncStatus(offline ? "Offline · changes saved locally"
-          : nextConflict ? "Sync conflict · action needed"
-            : failed ? "Sync error · retrying" : pending ? "Changes pending · syncing" : "Synced ✓");
+          : failed ? "Sync error · retry needed" : queuedSyncRef.current ? "Changes pending · syncing" : "Synced ✓");
       } catch (err) {
         if (!current()) return;
         console.error("Could not start profile sync", err);
         failed = true;
-        setSyncError("Could not sync profiles. Changes remain local; retrying.");
-        setBarSyncStatus("Sync error · retrying");
-      } finally {
-        runningRef.current = false;
-        if (!disposed) {
-          setSyncBusy(false);
-          if (failed) {
-            schedule(retryDelay);
-            retryDelay = Math.min(retryDelay * 2, 60000);
-          } else {
-            retryDelay = 2000;
-            schedule(pending ? 500 : 10000);
+        reconnectSyncRef.current = true;
+        if (pendingAtStart != null) {
+          try {
+            if (localStorage.getItem(pendingKey) === pendingAtStart) {
+              const pending = JSON.parse(pendingAtStart);
+              localStorage.setItem(pendingKey, JSON.stringify({ ...pending, offline: !navigator.onLine }));
+            }
+          } catch (storageError) {
+            pendingStorageError(storageError);
           }
         }
+        if (navigator.onLine && onlineGeneration !== attemptGeneration) {
+          reconnectSyncRef.current = false;
+          queuedSyncRef.current = true;
+        }
+        setSyncError("Could not sync profiles. Changes remain local; use Sync now to retry.");
+        setBarSyncStatus("Sync error · retry needed");
+      } finally {
+        runningRef.current = false;
+        if (!disposed) setSyncBusy(false);
+        autoSyncRef.current?.drain();
       }
     }
     function onOffline() {
+      try {
+        const saved = localStorage.getItem(pendingKey);
+        if (saved !== null) {
+          const pending = JSON.parse(saved);
+          if (!pending || typeof pending.id !== "string" || typeof pending.offline !== "boolean") {
+            throw new Error("Pending sync metadata is invalid.");
+          }
+          if (!pending.offline) localStorage.setItem(pendingKey, JSON.stringify({ ...pending, offline: true }));
+        }
+      } catch (err) {
+        pendingStorageError(err);
+      }
       setBarSyncStatus("Offline · changes saved locally");
       setSyncStatus("Offline. Changes will sync after reconnecting.");
     }
     function onSaved() {
       setBarSyncStatus(navigator.onLine ? "Changes pending · syncing" : "Offline · changes saved locally");
-      wake();
+      markPending(!navigator.onLine);
+      queuedSyncRef.current = true;
+      drain();
     }
-    function onVisibility() {
-      if (!document.hidden) wake();
+    function onOnline() {
+      onlineGeneration += 1;
+      if (reconnectSyncRef.current) {
+        reconnectSyncRef.current = false;
+        queuedSyncRef.current = true;
+      }
+      drain();
     }
-    autoSyncRef.current = { wake };
+    autoSyncRef.current = { drain };
     window.addEventListener("dailywalk:profile-saved", onSaved);
-    window.addEventListener("online", wake);
+    window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
-    window.addEventListener("storage", wake);
-    document.addEventListener("visibilitychange", onVisibility);
-    schedule(0);
+    try {
+      const saved = localStorage.getItem(pendingKey);
+      if (saved !== null) {
+        const pending = JSON.parse(saved);
+        if (!pending || typeof pending.id !== "string" || typeof pending.offline !== "boolean") {
+          throw new Error("Pending sync metadata is invalid.");
+        }
+        reconnectSyncRef.current = true;
+        if (pending.offline && navigator.onLine) {
+          queuedSyncRef.current = true;
+          setBarSyncStatus("Changes pending · syncing");
+        } else if (!navigator.onLine) {
+          setBarSyncStatus("Offline · changes saved locally");
+          setSyncStatus("Offline. Changes will sync after reconnecting.");
+        } else {
+          setBarSyncStatus("Sync pending · action needed");
+          setSyncStatus("Changes are saved locally. Use Sync now to retry.");
+        }
+        drain();
+      }
+    } catch (err) {
+      pendingStorageError(err);
+    }
     return () => {
       disposed = true;
-      clearTimeout(timer);
-      if (autoSyncRef.current?.wake === wake) autoSyncRef.current = null;
+      if (autoSyncRef.current?.drain === drain) autoSyncRef.current = null;
       window.removeEventListener("dailywalk:profile-saved", onSaved);
-      window.removeEventListener("online", wake);
+      window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
-      window.removeEventListener("storage", wake);
-      document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [client, session?.user?.id, session?.access_token, startup, linkBusy, linkReady,
-    getSyncLocalProfile, getSyncTargets, replaceLocalProfile, setBarSyncStatus]);
+  }, [client, session?.user?.id, session?.access_token, startup,
+    getSyncLocalProfile, getSyncTargets, replaceLocalProfile, backupCloudProfile, setBarSyncStatus]);
+  useEffect(() => {
+    if (!linkBusy && linkReady) autoSyncRef.current?.drain();
+  }, [linkBusy, linkReady]);
 
   async function useLocalProfile() {
     setStartupError("");
@@ -346,34 +419,43 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
     }
   }
 
-  async function sync(choice) {
+  async function sync() {
     if (runningRef.current) return;
     runningRef.current = true;
     setSyncBusy(true);
     setSyncError("");
     setSyncStatus("");
+    setBarSyncStatus("Syncing…");
     try {
+      const pendingKey = "dailywalk_admin_max:profile-sync-pending:v1:" + encodeURIComponent(session.user.id);
+      const pendingAtStart = localStorage.getItem(pendingKey);
       const current = () => sessionRef.current?.user?.id === session.user.id
         && sessionRef.current?.access_token === session.access_token;
-      const id = choice ? conflict?.profileId : getSyncTargets(session.user.id)[0];
-      const result = await syncProfile(client, session, () => getSyncLocalProfile(id), replaceLocalProfile, choice, conflict, current);
-      if (result.conflict) {
-        const profile = getSyncLocalProfile(id);
-        conflictsRef.current.set(id, { ...result.conflict, profileName: profile.state.p.name || "Profile" });
+      const targets = getSyncTargets(session.user.id);
+      const id = targets[0];
+      const result = await syncProfile(client, session, () => getSyncLocalProfile(id), replaceLocalProfile, backupCloudProfile, current);
+      setSyncStatus(result.message || "");
+      if (!queuedSyncRef.current && targets.length === 1 && targets[0] === id
+          && result.message !== "Profile uploaded, but newer local changes still need syncing."
+          && localStorage.getItem(pendingKey) === pendingAtStart) {
+        if (pendingAtStart !== null) localStorage.removeItem(pendingKey);
+        reconnectSyncRef.current = false;
       }
-      else conflictsRef.current.delete(id);
-      setConflict(conflictsRef.current.values().next().value || null);
-      setSyncStatus(result.conflictChanged ? "The profile changed again. Review your choice." : result.message || "");
+      setBarSyncStatus(queuedSyncRef.current ? "Changes pending · syncing"
+          : localStorage.getItem(pendingKey) !== null ||
+            result.message === "Profile uploaded, but newer local changes still need syncing."
+            ? "Changes pending · action needed" : "Synced ✓");
     } catch (err) {
       console.error("Could not sync profile", err);
       setSyncError(err.message === "Local profiles changed. Reload before syncing." ||
         err.message === "Save or discard the journal draft before downloading cloud changes."
         ? err.message
         : "Could not sync this profile. Local data was kept; retry.");
+      setBarSyncStatus("Sync error · retry needed");
     } finally {
       runningRef.current = false;
       setSyncBusy(false);
-      autoSyncRef.current?.wake();
+      autoSyncRef.current?.drain();
     }
   }
 
@@ -393,7 +475,7 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
     } finally {
       runningRef.current = false;
       setSyncBusy(false);
-      autoSyncRef.current?.wake();
+      autoSyncRef.current?.drain();
     }
   }
 
@@ -409,23 +491,19 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
       const local = getSyncLocalProfile();
       await connectCloudProfile(client, session, getSyncLocalProfile, selectedCloud, current);
       setCloudProfiles(null);
-      conflictsRef.current.delete(local.id);
-      setConflict(conflictsRef.current.values().next().value || null);
       setLinkError("");
       setLinkStatus("Linked the current profile to this Google account.");
-      const result = await syncProfile(client, session, () => getSyncLocalProfile(local.id), replaceLocalProfile, undefined, undefined, current);
-      if (result.conflict) conflictsRef.current.set(local.id, {
-        ...result.conflict, profileName: local.state.p.name || "Profile",
-      });
-      setConflict(conflictsRef.current.values().next().value || null);
+      const result = await syncProfile(client, session, () => getSyncLocalProfile(local.id), replaceLocalProfile, backupCloudProfile, current);
       setSyncStatus(result.message || "");
+      setBarSyncStatus("Profile checked ✓");
     } catch (err) {
       console.error("Could not connect cloud profile", err);
       setSyncError("Could not connect this cloud profile. Local data was kept; retry.");
+      setBarSyncStatus("Sync error · retry needed");
     } finally {
       runningRef.current = false;
       setSyncBusy(false);
-      autoSyncRef.current?.wake();
+      autoSyncRef.current?.drain();
     }
   }
 
@@ -497,7 +575,7 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
     </StartupDialog>}
     <div className="acct-box">
       <div className="acct-h"><b>Google account</b></div>
-      <p className="auth-note">Signed-in profiles sync automatically. Offline changes sync after reconnecting.</p>
+      <p className="auth-note">Profile changes sync when you make them. Offline changes retry after reconnecting.</p>
       {!supported ? (
         <p className="auth-note">Sign-in requires the hosted site or local development server.</p>
       ) : (
@@ -528,18 +606,16 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
                   onClick={connectProfile}>Connect profile</button>
               </> : <p className="auth-note">No cloud profiles found.</p>}
             </>}
-            {conflict && <div role="alert">
-              <p className="auth-error">Local and cloud profiles may both have changed for {conflict.profileName}. Using this device replaces the cloud copy; using cloud keeps a local backup.</p>
-              <button type="button" className="ubtn" disabled={syncBusy} onClick={() => sync("local")}>Use this device</button>{" "}
-              <button type="button" className="ubtn sec" disabled={syncBusy} onClick={() => sync("cloud")}>Use cloud</button>
-            </div>}
             {syncStatus && <p className="auth-note" aria-live="polite">{syncStatus}</p>}
             {syncError && <p className="auth-error" role="alert">{syncError}</p>}
           </>}
           {session && linkError && <>
             <p className="auth-error" role="alert">{linkError}</p>
             <button type="button" className="ubtn" disabled={syncBusy || linkBusy}
-              onClick={() => setLinkAttempt((n) => n + 1)}>
+              onClick={() => {
+                retryLinkOwnerRef.current = session.user.id;
+                setLinkAttempt((n) => n + 1);
+              }}>
               Retry linking
             </button>
           </>}

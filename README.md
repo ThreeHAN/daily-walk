@@ -205,7 +205,9 @@ receives current tasks and per-day checks from the legacy state owner.
 - Habit checks and awards use the browser's local date. Checking a habit awards
   XP; completing a group or the whole checklist awards bonuses. Each award key
   is granted at most once per day, even if a habit is unchecked and rechecked.
-  XP also contributes to the active town's progress.
+  XP also contributes to the active town's progress. Habit check changes carry
+  per-day, per-habit timestamps; resetting the checklist records an uncheck for
+  each habit.
 - Your traveler is a pixel-art person, based on the supplied knight sprite.
   The same customizable artwork appears in the wardrobe, profile, and towns.
   The profile's **Wardrobe & traveler** includes an **Appearance** tab for
@@ -282,16 +284,22 @@ receives current tasks and per-day checks from the legacy state owner.
   (or lets the user choose when there are several) without uploading an
   unrelated local profile. If the account has no cloud profiles, users can
   create one or continue locally. Existing local profiles are preserved, and a
-  cloud profile is cached locally for offline use. Local changes
-  sync automatically, including changes to linked inactive profiles. Cloud
-  changes are checked every 10 seconds while the app is open. Offline changes
-  stay local and retry after reconnection; sync failures are visible and retried.
+  cloud profile is cached locally for offline use. User actions that change a
+  profile trigger sync, including queued changes to linked inactive profiles;
+  there is no timed cloud polling or retry. Offline changes stay local across
+  reloads and retry once when the connection returns. Other sync
+  failures remain visible until another profile change or **Sync now**.
   **Sync now** requests an immediate check. **Choose cloud profile** connects
   an existing cloud profile to the current local profile on another device.
-  When both sides changed, or an older link lacks a common sync version, choose
-  the device or cloud copy. Choosing the cloud copy in a conflict keeps the
-  previous local profile as a separate sync backup in **My info**. Unsaved
-  journal drafts block downloads until saved or discarded. Direct
+  Profile, journal, and habit-check edits are merged using the last shared
+  snapshot. For the same habit, the later timestamp wins; equal or unavailable
+  timestamps prefer the device copy. Device clocks must be accurate. Other
+  overlapping changes prefer the device copy, with the cloud version preserved
+  as a separate sync backup in **My info** before upload. Concurrent gameplay
+  progress is kept together rather than combining potentially duplicate
+  rewards. Connecting another cloud profile first backs up the device copy and
+  opens the chosen cloud copy. Unsaved journal drafts remain in the editor while
+  sync continues. Direct
   `file://` usage remains available without sign-in. The Supabase project URL
   and publishable key in `google-auth.jsx` are public; never add secret or
   service-role keys to the browser bundle.

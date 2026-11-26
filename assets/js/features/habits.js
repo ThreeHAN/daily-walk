@@ -9,9 +9,37 @@ function getHabitGroupProgress(tasks, checks, groupId) {
   };
 }
 
+function updateHabitChecks(day, changes) {
+  const stamps = S.checkUpdatedAt === undefined ? {} : S.checkUpdatedAt;
+  const daily = stamps && typeof stamps === "object" && !Array.isArray(stamps)
+    ? (stamps[day] === undefined ? {} : stamps[day]) : null;
+  const timestamp = (entry) => typeof entry === "number" ? entry : entry?.at;
+  if (!daily || typeof daily !== "object" || Array.isArray(daily) ||
+      changes.some(([id]) => daily[id] !== undefined &&
+        (!Number.isSafeInteger(timestamp(daily[id])) || timestamp(daily[id]) <= 0 ||
+          timestamp(daily[id]) >= Number.MAX_SAFE_INTEGER ||
+          (typeof daily[id] !== "number" && (typeof daily[id] !== "object" ||
+            typeof daily[id].value !== "boolean"))))) {
+    reportPersistenceError("Could not update habit sync information. Changes were not saved.",
+      new Error("Invalid habit change timestamps."));
+    return false;
+  }
+  const nextStamps = { ...daily };
+  const checks = { ...(S.checks[day] || {}) };
+  for (const [id, checked] of changes) {
+    checks[id] = checked;
+    nextStamps[id] = { at: Math.max(Date.now(), (timestamp(daily[id]) || 0) + 1), value: checked };
+  }
+  S.checks[day] = checks;
+  S.checkUpdatedAt = { ...stamps, [day]: nextStamps };
+  return true;
+}
+
 function handleHabitCheck(task, checked, day) {
-  S.checks[day] = S.checks[day] || {};
-  S.checks[day][task.id] = checked;
+  if (!updateHabitChecks(day, [[task.id, checked]])) {
+    render();
+    return;
+  }
   const completed = S.tasks.filter((item) => S.checks[day][item.id]).length;
   S.days[day] = completed === S.tasks.length;
   save();
@@ -159,12 +187,13 @@ function waterGoal() {
   if (task && !(S.checks[day] || {})[task.id])
     handleHabitCheck(task, true, day);
 }
-function drawJr() {
+function drawJr(preserveDraft = false) {
   const day = today();
   DailyWalkReact.renderJournal({
     day,
     entry: String(S.jr[day] || ""),
     entries: S.jr,
+    preserveDraft,
     onSave: saveJournal,
     icon: icoSvg,
     iconTextParts,

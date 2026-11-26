@@ -3,6 +3,20 @@ let userBarStatus = "All data saved ✓";
 let userBarStatusTimer;
 let cloudSyncStatus = "";
 let persistenceFailed = false;
+let profileUserInteraction = false;
+let interactionFrame = 0;
+
+for (const type of ["click", "input", "change", "submit", "keydown"]) {
+  document.addEventListener(type, (event) => {
+    if (!event.isTrusted) return;
+    profileUserInteraction = true;
+    cancelAnimationFrame(interactionFrame);
+    interactionFrame = requestAnimationFrame(() => { profileUserInteraction = false; });
+  }, true);
+  window.addEventListener(type, (event) => {
+    if (event.isTrusted) profileUserInteraction = false;
+  });
+}
 
 function renderUserBar() {
   DailyWalkReact.renderProfileStatus({
@@ -67,7 +81,7 @@ function profileMetadata(id, state, users) {
         : "Meadow Valley",
   };
 }
-function save() {
+function save(userInitiated = false) {
   if (startupPending) return false;
   if (stateLoadError) {
     reportPersistenceError(
@@ -82,7 +96,14 @@ function save() {
   const updatedUsers = USERS.slice();
   if (idx >= 0) updatedUsers[idx] = meta;
   else updatedUsers.push(meta);
+  let changed = false;
+  const fromUser = userInitiated === true || profileUserInteraction;
   try {
+    if (fromUser) {
+      const previous = localStorage.getItem(uKey(CUR_UID));
+      changed = previous === null ||
+        DailyWalkReact.profileFingerprint(JSON.parse(previous)) !== DailyWalkReact.profileFingerprint(S);
+    }
     writeStoredProfile(CUR_UID, S, updatedUsers);
   } catch (e) {
     reportPersistenceError(
@@ -93,7 +114,9 @@ function save() {
   }
   USERS = updatedUsers;
   updateUserBar(true);
-  window.dispatchEvent(new CustomEvent("dailywalk:profile-saved", { detail: { id: CUR_UID } }));
+  if (fromUser && changed) {
+    window.dispatchEvent(new CustomEvent("dailywalk:profile-saved", { detail: { id: CUR_UID } }));
+  }
   return true;
 }
 function renderUsers() {
@@ -464,7 +487,7 @@ $("ufile").onchange = (e) => {
       if (!data || typeof data !== "object" || !data.tasks)
         throw new Error("Invalid file");
       S = hydrateState(data);
-      const saved = save();
+      const saved = save(true);
       paint();
       render();
       drawWater();

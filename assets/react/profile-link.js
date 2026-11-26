@@ -63,14 +63,21 @@ async function cloudProfileExists(client, session, profileId) {
   return true;
 }
 
-export async function linkProfile(client, session, getLocalProfile) {
-  const { id, state } = getLocalProfile();
-  const key = linkKey(session.user.id, id);
+export function storedProfileLink(session, profile) {
+  const key = linkKey(session.user.id, profile.id);
   const raw = localStorage.getItem(key);
-  let link = raw === null ? null : JSON.parse(raw);
+  const link = raw === null ? null : JSON.parse(raw);
   if (link && (typeof link.id !== "string" || !["pending", "linked"].includes(link.status))) {
     throw new Error("Saved profile link is invalid");
   }
+  return link;
+}
+
+export async function linkProfile(client, session, getLocalProfile) {
+  const profile = getLocalProfile();
+  const { id, state } = profile;
+  const key = linkKey(session.user.id, id);
+  let link = storedProfileLink(session, profile);
   if (link?.status === "linked") {
     if (!await cloudProfileExists(client, session, link.id)) {
       throw new Error("Linked cloud profile is missing");

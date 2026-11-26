@@ -142,7 +142,7 @@ function storedSession(userId) {
   };
 }
 
-test("a lost link response is recovered automatically without overwriting local progress", async ({ page }) => {
+test("a lost link response can be retried without overwriting local progress", async ({ page }) => {
   await serveApp(page);
   await page.addInitScript((session) => {
     localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
@@ -164,12 +164,14 @@ test("a lost link response is recovered automatically without overwriting local 
   await page.getByRole("button", { name: "Create cloud profile" }).click();
   await openAccounts(page);
   const local = await page.evaluate(() => ({ id: CUR_UID, name: S.p.name, xp: S.xp }));
+  await expect(page.getByText("Could not link the current profile.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Retry linking" }).evaluate((button) => button.click());
   await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
   expect(writes).toBe(1);
   expect(await page.evaluate(() => ({ id: CUR_UID, name: S.p.name, xp: S.xp }))).toEqual(local);
 });
 
-test("a failed link retries the same cloud ID after reconnecting", async ({ page }) => {
+test("a failed link retries the same cloud ID when requested", async ({ page }) => {
   await serveApp(page);
   await page.addInitScript((session) => {
     localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(session));
@@ -196,7 +198,7 @@ test("a failed link retries the same cloud ID after reconnecting", async ({ page
   await expect(page.getByText("Could not link the current profile.", { exact: false })).toBeVisible();
   await page.evaluate(() => { S.p.name = "Still local"; save(); });
   allowed = true;
-  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await page.getByRole("button", { name: "Retry linking" }).evaluate((button) => button.click());
   await expect(page.locator("#google-auth")).toContainText("Linked Still local");
   expect(writes.length).toBeGreaterThanOrEqual(2);
   expect(writes.at(-1).profile_id).toBe(writes[0].profile_id);
@@ -350,7 +352,9 @@ test("a missing linked cloud profile is reported without replacing local progres
   await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
   await page.reload();
   await openAccounts(page);
-  await expect(page.getByText("The linked cloud profile is missing.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sync now" })).toBeEnabled();
+  await page.getByRole("button", { name: "Sync now" }).evaluate((button) => button.click());
+  await expect(page.getByText("Could not sync this profile.", { exact: false })).toBeVisible();
   expect(writes).toBe(1);
   expect(await page.evaluate(() => S.p.name)).toBe("Player 1");
 });

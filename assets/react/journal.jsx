@@ -6,12 +6,12 @@ import { IconText } from "./icon-text.jsx";
 const root = createRoot(document.getElementById("journal"));
 let revision = 0;
 
-function Journal({ entry, entries, day, onSave, icon, iconTextParts, revision }) {
+function Journal({ entry, entries, day, onSave, icon, iconTextParts, revision, preserveDraft }) {
   const [draft, setDraft] = useState(entry);
 
   useLayoutEffect(() => {
-    setDraft(entry);
-  }, [entry, revision]);
+    if (!preserveDraft) setDraft(entry);
+  }, [entry, revision, preserveDraft]);
 
   const previousEntries = Object.keys(entries)
     .sort()
