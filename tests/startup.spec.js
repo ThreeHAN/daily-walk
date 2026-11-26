@@ -148,6 +148,20 @@ test("an empty cloud account offers creation or local mode without uploading aut
   expect(writes[0].state.p.name).toBe("Player 1");
 });
 
+test("an empty cloud account can continue locally without creating a cloud profile", async ({ page }) => {
+  const cloud = new Map();
+  const writes = await setup(page, cloud);
+  await signIn(page, page.getByRole("dialog").getByRole("button", { name: "Sign in with Google" }));
+  const dialog = page.getByRole("dialog", { name: "Welcome to Daily Walk" });
+  await expect(dialog.getByText("This Google account has no cloud profiles yet.")).toBeVisible();
+  await dialog.getByRole("button", { name: "Continue locally" }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(writes).toHaveLength(0);
+  expect(await page.evaluate(() => readStoredProfile(CUR_UID).p.name)).toBe("Player 1");
+  await page.locator("#prof").evaluate((button) => button.click());
+  await expect(page.locator("#google-auth")).toContainText("Not signed in");
+});
+
 test("cloud listing failures preserve local data and can be retried", async ({ page }) => {
   const cloud = new Map();
   const writes = await setup(page, cloud);
@@ -158,6 +172,30 @@ test("cloud listing failures preserve local data and can be retried", async ({ p
   await expect(dialog.getByRole("alert")).toContainText("Could not load your cloud profiles");
   expect(writes).toHaveLength(0);
   cloud.failList = false;
+  await dialog.getByRole("button", { name: "Retry" }).click();
+  await expect.poll(() => page.evaluate(() => S.p.name)).toBe("Cloud Walker");
+});
+
+test("a failed cloud cache write rolls back and can be retried", async ({ page }) => {
+  const cloud = new Map();
+  const writes = await setup(page, cloud);
+  cloud.set("cloud-one", snapshot("cloud-one", await cloudState(page, "Cloud Walker", 33)));
+  await page.addInitScript(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "dailywalk_admin_max:users:v3" && !sessionStorage.getItem("allow-cache")) {
+        throw new Error("Storage blocked");
+      }
+      return original.call(this, key, value);
+    };
+  });
+  await signIn(page, page.getByRole("dialog").getByRole("button", { name: "Sign in with Google" }));
+  const dialog = page.getByRole("dialog", { name: "Welcome to Daily Walk" });
+  await expect(dialog.getByRole("alert")).toContainText("Could not load your cloud profiles");
+  expect(await page.evaluate(() => Object.keys(localStorage).filter((key) =>
+    key.startsWith("dailywalk_admin_max:u:") || key.startsWith("dailywalk_admin_max:profile-link:")))).toEqual([]);
+  expect(writes).toHaveLength(0);
+  await page.evaluate(() => sessionStorage.setItem("allow-cache", "yes"));
   await dialog.getByRole("button", { name: "Retry" }).click();
   await expect.poll(() => page.evaluate(() => S.p.name)).toBe("Cloud Walker");
 });

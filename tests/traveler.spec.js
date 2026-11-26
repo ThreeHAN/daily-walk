@@ -4,6 +4,7 @@ const path = require("node:path");
 
 test.beforeEach(async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
+  await page.getByRole("button", { name: "Continue locally" }).click();
   await page.evaluate(() => {
     S.nb.cur = "meadow";
     S.nb.view = "meadow";
@@ -37,6 +38,7 @@ test("habits help a town and unlock travel without losing existing progress", as
   await page.locator("#wc-seaside .wbt").evaluate((button) => button.click());
   expect(await page.evaluate(() => [S.nb.cur, S.nb.xp.meadow, S.nb.xp.seaside])).toEqual(["seaside", 3000, 123]);
   await page.reload();
+  await page.getByRole("button", { name: "Continue locally" }).click();
   expect(await page.evaluate(() => [S.nb.cur, S.nb.xp.meadow, S.nb.xp.seaside])).toEqual(["seaside", 3000, 123]);
 });
 
@@ -182,6 +184,7 @@ test("town gear unlocks from saved town progress and equips at any level", async
   await expect(scarf).toBeEnabled();
   await scarf.evaluate((button) => button.click());
   await page.reload();
+  await page.getByRole("button", { name: "Continue locally" }).click();
   expect(
     await page.evaluate(() => [
       S.p.hat,
@@ -301,6 +304,7 @@ test("town gear groups clothing and unlocks distinct pants and boots alongside o
   expect(await page.evaluate(() => [S.p.pants, S.p.pantsStyle, S.p.shoes, S.p.shoeStyle]))
     .toEqual(["black", "winter", "black", "crystal"]);
   await page.reload();
+  await page.getByRole("button", { name: "Continue locally" }).click();
   expect(await page.evaluate(() => [S.p.pantsStyle, S.p.shoeStyle])).toEqual(["winter", "crystal"]);
   await page.locator("#prof").click();
   await page.locator("#go-wd").click();
@@ -323,6 +327,7 @@ test("merged hat cards retain level and town unlocks and preserve retired saved 
     save();
   });
   await page.reload();
+  await page.getByRole("button", { name: "Continue locally" }).click();
   expect(await page.evaluate(() => [S.p.hat, personLayers(S.p).includes('class="person-hat"')]))
     .toEqual(["beanie", true]);
   const preserved = await page.evaluate(() => ["halo", "phones", "party", "beanie"].map((hat) => {
@@ -357,6 +362,7 @@ test("legacy off-world progress remains accessible on the single world map", asy
     save();
   });
   await page.reload();
+  await page.getByRole("button", { name: "Continue locally" }).click();
   await page.locator('button[data-p="t"]').evaluate((button) => button.click());
   await expect(page.locator("#tnb")).toHaveText("Pigpatch Sky Farm");
   await page.locator("#wbtn").evaluate((button) => button.click());

@@ -23,6 +23,7 @@ function session() {
 }
 
 async function setup(page, cloud) {
+  let startupList = true;
   await page.addInitScript((value) => {
     localStorage.setItem("sb-dnnpakvhiipflpvmkymf-auth-token", JSON.stringify(value));
   }, session());
@@ -34,6 +35,10 @@ async function setup(page, cloud) {
     const url = new URL(route.request().url());
     const headers = { "Access-Control-Allow-Origin": "*" };
     if (url.pathname.endsWith("/walk_profiles")) {
+      if (startupList) {
+        startupList = false;
+        return route.fulfill({ json: [], headers });
+      }
       return route.fulfill({ json: Array.from(cloud.values(), ({ profile }) => ({
         id: profile.id, display_name: profile.display_name,
       })), headers });
@@ -59,7 +64,9 @@ async function setup(page, cloud) {
       cloud.raceNextSave = false;
       previous.profile.client_modified_at++;
       previous.profile.profile.name = "Concurrent cloud edit";
-      previous.profile.progress._dailyWalkSyncSnapshot.p.name = "Concurrent cloud edit";
+      if (previous.profile.progress._dailyWalkSyncSnapshot) {
+        previous.profile.progress._dailyWalkSyncSnapshot.p.name = "Concurrent cloud edit";
+      }
     }
     if ((previous?.profile.client_modified_at || 0) !== request.expected_modified_at) {
       return route.fulfill({ json: false, headers });
@@ -81,14 +88,20 @@ async function setup(page, cloud) {
     return route.fulfill({ json: true, headers });
   });
   await page.goto(site);
+  await page.getByRole("button", { name: "Create cloud profile" }).click();
+  await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
   await page.evaluate(() => {
     S.tutorialDone = true;
     save();
     document.getElementById("sp").classList.remove("show");
   });
   await page.locator("#prof").evaluate((element) => element.click());
-  await expect(page.locator("#google-auth")).toContainText("Linked Player 1");
   await expect(page.locator("#google-auth")).toContainText("Profiles are synced.");
+  await expect.poll(() => page.evaluate(() => {
+    const key = DailyWalkReact.linkKey("sync-user", CUR_UID);
+    const link = JSON.parse(localStorage.getItem(key));
+    return link.baseFingerprint === DailyWalkReact.profileFingerprint(S);
+  })).toBe(true);
 }
 
 async function changeName(page, name) {
@@ -435,7 +448,9 @@ test("automatic downloads wait for an unsaved journal draft", async ({ page }) =
   const remote = cloud.get(id);
   remote.profile.client_modified_at++;
   remote.profile.profile.name = "Remote change";
-  remote.profile.progress._dailyWalkSyncSnapshot.p.name = "Remote change";
+  if (remote.profile.progress._dailyWalkSyncSnapshot) {
+    remote.profile.progress._dailyWalkSyncSnapshot.p.name = "Remote change";
+  }
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await expect(page.locator("#ubar")).toContainText("Sync error");
   expect(await page.locator("#jt").inputValue()).toBe("Unsaved draft");

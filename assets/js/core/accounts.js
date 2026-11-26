@@ -68,7 +68,7 @@ function profileMetadata(id, state, users) {
   };
 }
 function save() {
-  if (startupPending) return true;
+  if (startupPending) return false;
   if (stateLoadError) {
     reportPersistenceError(
       "Could not load saved profiles. Changes are not saved; reload to retry.",
