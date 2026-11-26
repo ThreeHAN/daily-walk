@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>Daily Walk · Admin Account</title>
-    <link rel="stylesheet" href="assets/css/styles.css" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=pixel-navigation-2" />
   </head>
   <body>
     <div id="buddy">
@@ -31,8 +31,8 @@
           <p class="clock" id="clock"></p>
         </div>
         <div class="pbs">
-          <button id="ixh" class="pbtn" type="button" aria-label="Buddy index">
-            <i class="ic" data-i="shapes"></i></button
+          <button id="ixh" class="pbtn" type="button" aria-label="People index">
+            <i class="ic" data-i="book"></i></button
           ><button
             id="prof"
             class="pbtn profile-avatar"
@@ -98,8 +98,8 @@
     <main id="pg-t" hidden>
       <div class="top">
         <div>
-          <h1>Faith Town</h1>
-          <p class="sub" id="tsub">Your buddies live here</p>
+          <h1>Traveler's World</h1>
+          <p class="sub" id="tsub">Help towns along your journey</p>
         </div>
         <span class="tlv" id="tlv">Town Lv 1</span>
       </div>
@@ -413,12 +413,13 @@
             opacity="0"
             style="pointer-events: none"
           />
+          <g id="sleep-indicators"></g>
         </svg>
         <div id="walkers"></div>
       </div>
       <div class="tstats">
         <div><b id="tc1">0</b><span>🏠 Houses</span></div>
-        <div><b id="tc2">0</b><span>👥 Buddies</span></div>
+        <div><b id="tc2">0</b><span>👥 People in town</span></div>
         <div><b id="tc3">0</b><span>⭐ Town XP</span></div>
       </div>
       <button class="card2" id="wbtn" type="button">
@@ -439,8 +440,8 @@
       <button class="card2" id="ixbtn" type="button">
         <span class="ci g2"><i class="ic" data-i="shapes"></i></span>
         <div>
-          <b>Buddy index</b
-          ><span id="ixsub">See every buddy type you can collect</span>
+          <b>People index</b
+          ><span id="ixsub">People you have met</span>
         </div>
         <em class="arr">›</em>
       </button>
@@ -458,7 +459,7 @@
         <b id="vref"></b>
       </button>
       <div class="gcard ncard" id="ncard" hidden>
-        <div><b>Neighborhood complete!</b><span id="nct"></span></div>
+        <div><b>Town helped!</b><span id="nct"></span></div>
         <button class="done" id="nbtn" type="button">Choose next</button>
       </div>
       <div class="gcard" id="gcard" hidden>
@@ -498,7 +499,7 @@
           🔥 Streak
         </button>
         <button type="button" class="lb-tab" data-lbt="town">
-          🪐 Planets &amp; Towns
+          🌍 Towns helped
         </button>
         <button type="button" class="lb-tab" data-lbt="tasks">
           ✅ Check-offs
@@ -544,27 +545,16 @@
               ><span class="pill" id="mp3"></span>
             </div>
           </div>
-          <button class="card2" id="go-bud" type="button">
-            <span class="ci g2"><i class="ic" data-i="shapes"></i></span>
-            <div>
-              <b>Change buddy</b
-              ><span
-                >Switch between all unlocked Earth, Space &amp; Planet
-                buddies</span
-              >
-            </div>
-            <em class="arr">›</em>
-          </button>
           <button class="card2" id="go-wd" type="button">
-            <span class="ci g1">👕</span>
+            <span class="ci g1"><i class="ic" data-i="wardrobe"></i></span>
             <div>
-              <b>Change clothes</b
-              ><span>Hats, tops, bottoms, face, extras &amp; colors</span>
+              <b>Wardrobe &amp; traveler</b
+              ><span>Change your appearance, clothes, pets and town gear</span>
             </div>
             <em class="arr">›</em>
           </button>
           <button class="card2" id="go-lv" type="button">
-            <span class="ci g2">⭐</span>
+            <span class="ci g2"><i class="ic" data-i="star"></i></span>
             <div>
               <b>Levels &amp; rewards</b
               ><span>See your progress and what you can unlock</span>
@@ -572,22 +562,22 @@
             <em class="arr">›</em>
           </button>
           <button class="card2" id="go-info" type="button">
-            <span class="ci g3">ℹ️</span>
+            <span class="ci g3"><i class="ic" data-i="profile-card"></i></span>
             <div>
               <b>My info</b
-              ><span>Your name, buddy’s name &amp; streak stats</span>
+              ><span>Your name, traveler’s name &amp; streak stats</span>
             </div>
             <em class="arr">›</em>
           </button>
           <button class="card2" id="go-ix" type="button">
-            <span class="ci g1"><i class="ic" data-i="shapes"></i></span>
+            <span class="ci g1"><i class="ic" data-i="book"></i></span>
             <div>
-              <b>Buddy index</b><span>Your collection of buddy types</span>
+              <b>People index</b><span>People you have met on your journey</span>
             </div>
             <em class="arr">›</em>
           </button>
           <button class="card2" id="go-tour" type="button">
-            <span class="ci g3">👋</span>
+            <span class="ci g3"><i class="ic" data-i="tour-map"></i></span>
             <div>
               <b>Show app tour</b
               ><span>Replay the quick interactive guide</span>
@@ -609,18 +599,25 @@
         </div>
         <div id="v-wd" hidden>
           <button class="back" type="button" data-back>‹ Back</button>
-          <div class="stage sm">
-            <svg
-              class="pv"
-              width="84"
-              height="96"
-              viewBox="0 0 56 64"
-              aria-hidden="true"
-            ></svg>
-          </div>
           <h3 class="vt">Wardrobe</h3>
           <div class="chips tabs" id="wtabs"></div>
-          <div id="wbody"></div>
+          <div class="wardrobe-layout">
+            <div class="wardrobe-preview">
+              <div class="stage sm">
+                <svg
+                  class="pv"
+                  width="84"
+                  height="96"
+                  viewBox="0 -6 56 70"
+                  aria-label="Traveler preview"
+                  role="img"
+                ></svg>
+              </div>
+              <b>Your traveler</b>
+              <span id="wardrobe-level"></span>
+            </div>
+            <div id="wbody"></div>
+          </div>
         </div>
         <div id="v-lv" hidden>
           <button class="back" type="button" data-back>‹ Back</button>
@@ -651,7 +648,7 @@
               placeholder="What should I call you?"
           /></label>
           <label class="fl"
-            >Name your buddy<input id="bn" maxlength="20" placeholder="Buddy"
+            >Name your traveler<input id="bn" maxlength="20" placeholder="Traveler"
           /></label>
           <div class="stats">
             <div><b id="s1">0</b><span>🔥 Current streak</span></div>
@@ -663,8 +660,8 @@
               <b>👥 User Profiles</b><span id="syncst">Auto-saved ✓</span>
             </div>
             <div class="how" style="text-align: left; margin-bottom: 8px">
-              Each user has their own habits, buddies, towns, XP, water, and
-              journal saved separately.
+              Each user has their own traveler, people met, habits, towns, XP,
+              water, and journal saved separately.
             </div>
             <div id="ulist"></div>
             <div class="acct-act">
@@ -705,22 +702,22 @@
           >
             <path
               id="fp1"
-              d="M40 4C45 24 68 34 68 60C68 81 55 94 40 94C25 94 12 81 12 60C12 47 20 40 25 32C28 42 32 45 35 45C32 30 35 16 40 4Z"
+              d="M36 4h8v12h8v12h8v12h8v40h-8v8h-8v6H28v-6h-8v-8h-8V48h8V32h8v12h8V20h-4V12h4z"
               fill="#ff6a1a"
             />
             <path
               id="fp2"
-              d="M40 26C44 40 58 47 58 64C58 80 50 90 40 90C30 90 22 80 22 64C22 52 30 46 34 38C36 44 38 44 40 26Z"
+              d="M36 26h8v12h8v12h6v30h-6v8H28v-8h-6V56h6V44h8z"
               fill="#ff9e22"
             />
             <path
               id="fp3"
-              d="M40 44C43 55 52 60 52 72C52 83 46 89 40 89C34 89 28 83 28 72C28 63 34 58 36 51C38 55 39 55 40 44Z"
+              d="M36 44h8v12h8v24h-6v8H34v-8h-6V64h8z"
               fill="#ffd23f"
             />
             <path
               id="fp4"
-              d="M40 62C42 68 47 71 47 77C47 83 43 87 40 87C37 87 33 83 33 77C33 72 37 69 40 62Z"
+              d="M37 62h6v8h4v12h-4v5h-6v-5h-4V72h4z"
               fill="#fff7c2"
             />
           </svg>
@@ -772,33 +769,28 @@
       </div>
     </div>
     <nav id="nav">
-      <button class="nv on" data-p="h" type="button"><i>✅</i>Habits</button
-      ><button class="nv" data-p="t" type="button"><i>🏘️</i>Town</button
-      ><button class="nv" data-p="l" type="button"><i>🏆</i>Ranks</button>
+      <button class="nv on" data-p="h" type="button"><i data-i="check" aria-hidden="true"></i>Habits</button
+      ><button class="nv" data-p="t" type="button"><i data-i="globe" aria-hidden="true"></i>World</button
+      ><button class="nv" data-p="l" type="button"><i data-i="trophy" aria-hidden="true"></i>Ranks</button>
     </nav>
     <div class="gl" id="gl">
       <div class="glb">
         <button class="back" id="glx" type="button">‹ Close</button>
-        <h3 class="vt" id="glt">Your Solar System</h3>
-        <div class="pbar" id="pbar"></div>
+        <h3 class="vt" id="glt">Your world</h3>
         <p class="how" id="glh"></p>
         <div class="gsv" id="gsv">
           <svg
             id="gsvg"
             viewBox="-26 0 292 240"
-            aria-label="Interactive 3D Planet Globe"
+            aria-label="Interactive world globe"
           >
             <defs>
-              <radialGradient id="gsea" cx="35%" cy="30%" r="80%">
+              <linearGradient id="gsea" x1="0" y1="0" x2="0" y2="1">
                 <stop id="gs0" offset="0" stop-color="#86d6ff" />
-                <stop id="gs1" offset=".6" stop-color="#3a95e0" />
+                <stop id="gs1" offset="0" stop-color="#3a95e0" />
                 <stop id="gs2" offset="1" stop-color="#1b5fa8" />
-              </radialGradient>
-              <radialGradient id="gshade" cx="35%" cy="30%" r="75%">
-                <stop offset=".55" stop-color="#000" stop-opacity="0" />
-                <stop offset="1" stop-color="#000" stop-opacity=".38" />
-              </radialGradient>
-              <clipPath id="gcl"><circle cx="120" cy="120" r="108" /></clipPath>
+              </linearGradient>
+              <clipPath id="gcl"><path d="M88 12h64v8h24v8h16v8h12v12h8v16h8v24h8v64h-8v24h-8v16h-8v12h-12v8h-16v8h-24v8H88v-8H64v-8H48v-8H36v-12h-8v-16h-8v-24h-8V88h8V64h8V48h8V36h12v-8h16v-8h24z" /></clipPath>
             </defs>
             <g id="gringb" opacity="0">
               <ellipse
@@ -813,33 +805,12 @@
                 opacity=".55"
               />
             </g>
-            <circle
-              id="ghalo"
-              cx="120"
-              cy="120"
-              r="116"
-              fill="#9fdcff"
-              opacity=".22"
-            />
-            <circle cx="120" cy="120" r="108" fill="url(#gsea)" />
+            <path id="ghalo" d="M84 4h72v8h24v8h16v8h16v16h8v16h8v24h8v72h-8v24h-8v16h-8v16h-16v8h-16v8h-24v8H84v-8H60v-8H44v-8H28v-16h-8v-16h-8v-24H4V84h8V60h8V44h8V28h16v-8h16v-8h24z" fill="#9fdcff" opacity=".22" />
+            <rect x="12" y="12" width="216" height="216" fill="#3a95e0" clip-path="url(#gcl)" />
             <g clip-path="url(#gcl)">
-              <g
-                id="ggrid"
-                fill="none"
-                stroke="#fff"
-                stroke-opacity=".16"
-                stroke-width="1"
-              ></g>
+              <g id="gland" style="pointer-events: none"></g>
               <g id="gisl"></g>
-              <g id="gcld"></g>
             </g>
-            <circle
-              cx="120"
-              cy="120"
-              r="108"
-              fill="url(#gshade)"
-              style="pointer-events: none"
-            />
             <g id="gringf" opacity="0" style="pointer-events: none">
               <path
                 d="M-18 148 A142 30 -14 0 0 258 100"
@@ -894,15 +865,14 @@
       </div>
     </div>
     <div class="modal" id="ix">
-      <div class="sheet" role="dialog" aria-label="Buddy index">
+      <div class="sheet" role="dialog" aria-label="People index">
         <div class="grab"></div>
-        <h3 class="vt">Buddy Index</h3>
-        <div class="ixtabs">
-          <button type="button" class="ixtab on" id="ixt-b">🔷 Buddies</button
-          ><button type="button" class="ixtab" id="ixt-p">🐾 Pets</button>
-        </div>
+        <h3 class="vt">People Index</h3>
         <div class="ixs" id="ixs"></div>
-        <div class="ixbar"><i id="ixbar"></i></div>
+        <label class="index-search" for="ixsearch">Find someone
+          <input id="ixsearch" type="search" placeholder="Search by name or town" />
+        </label>
+        <p class="index-empty" id="ixempty" hidden></p>
         <div class="ixg" id="ixl"></div>
         <button class="done" id="ixdone" type="button">Done</button>
       </div>
@@ -930,18 +900,24 @@
     </div>
     <div class="toast" id="toast"></div>
     <script src="assets/js/core/storage.js"></script>
-    <script src="assets/js/core/state.js?v=royal-pig"></script>
-    <script src="assets/js/ui/icons.js"></script>
+    <script src="assets/js/core/state.js?v=pixel-categories-1"></script>
+    <script src="assets/js/ui/icon-art.js?v=organization-1"></script>
+    <script src="assets/js/ui/icons.js?v=organization-1"></script>
     <script src="assets/js/core/runtime.js"></script>
-    <script src="assets/js/features/buddies.js?v=normal-pig-1"></script>
-    <script src="assets/js/features/pets.js?v=royal-pig"></script>
-    <script src="assets/js/features/profile.js"></script>
-    <script src="assets/js/features/town.js?v=normal-pig-farm-1"></script>
+    <script src="assets/js/features/buddies.js?v=organization-1"></script>
+    <script src="assets/js/features/buddy-art.js?v=organization-1"></script>
+    <script src="assets/js/features/buddy-render.js?v=organization-1"></script>
+    <script src="assets/js/features/pets.js?v=pixel-pets-1"></script>
+    <script src="assets/js/features/profile.js?v=profile-menu-2"></script>
+    <script src="assets/js/features/town-data.js?v=organization-1"></script>
+    <script src="assets/js/features/town-scene.js?v=organization-1"></script>
+    <script src="assets/js/features/world-map.js?v=world-land-1"></script>
+    <script src="assets/js/features/town.js?v=organization-1"></script>
     <script src="assets/js/features/town-progress.js"></script>
     <script src="assets/js/features/habits.js"></script>
-    <script src="assets/js/features/collection.js?v=static-pet-scenes-1"></script>
-    <script src="assets/js/features/tutorial.js"></script>
+    <script src="assets/js/features/collection.js?v=pixel-flame-1"></script>
+    <script src="assets/js/features/tutorial.js?v=pixel-traveler-1"></script>
     <script src="assets/js/core/accounts.js"></script>
-    <script src="assets/js/app.js"></script>
+    <script src="assets/js/app.js?v=pixel-categories-1"></script>
   </body>
 </html>

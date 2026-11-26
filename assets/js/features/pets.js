@@ -5,7 +5,7 @@ function petArt(pt) {
     '<g transform="translate(14 14) scale(' +
     (pt.scale || 1) +
     ') translate(-14 -14)"><image href="' +
-    pt.art +
+    pt.art + "?v=pixel-pets-1" +
     '" x="4" y="5" width="20" height="18" preserveAspectRatio="xMidYMid meet"/></g>'
   );
 }

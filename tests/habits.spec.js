@@ -82,6 +82,40 @@ test("group progress and collapse preserve the checked habit", async ({ page }) 
   await expect(morning.locator(".gb")).toHaveClass(/fx/);
 });
 
+test("category and navigation icons stay pixel art after rerender and navigation", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.reload();
+  await page.evaluate(() => {
+    S.tasks.push({ id: "c999", g: "more", t: "My habit" });
+    render();
+  });
+  const groups = await page.evaluate(() => Array.from(
+    document.querySelectorAll("#list .grp"),
+    (group) => {
+      const name = group.querySelector(".gn").textContent;
+      const definition = G.find((item) => item.n === name);
+      const expected = document.createElement("span");
+      expected.innerHTML = icoSvg(definition.e);
+      return group.querySelector(".ge").innerHTML === expected.innerHTML;
+    },
+  ));
+  expect(groups).toEqual([true, true, true, true, true, true]);
+  for (const [pageId, icon] of [["h", "check"], ["t", "globe"], ["l", "trophy"]]) {
+    const button = page.locator(`.nv[data-p="${pageId}"]`);
+    const artwork = button.locator(`i[data-i="${icon}"] svg`);
+    await expect(artwork).toBeVisible();
+    const size = await artwork.boundingBox();
+    expect(size.width).toBeGreaterThanOrEqual(20);
+    expect(size.height).toBeGreaterThanOrEqual(20);
+    await button.evaluate((element) => element.click());
+    await expect(page.locator(`#pg-${pageId}`)).toBeVisible();
+  }
+  await page.locator('.nv[data-p="h"]').evaluate((button) => button.click());
+  await expect(page.locator("#list .ge svg")).toHaveCount(6);
+  expect(errors).toEqual([]);
+});
+
 test("a new habit is highlighted and can still be removed", async ({ page }) => {
   await page.locator("#fab").evaluate((button) => button.click());
   await page.locator("#hn").fill("Take a walk");
@@ -111,5 +145,5 @@ test("crossing a town building threshold announces the new building", async ({
     S.nb.xp[S.nb.cur] = 55;
   });
   await clickHabit(page, "wake");
-  await expect(page.locator("#toast")).toContainText("Your town built: Garden");
+  await expect(page.locator("#toast")).toContainText("Your help brought Garden to town");
 });

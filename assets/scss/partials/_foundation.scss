@@ -276,6 +276,9 @@ button {
 #pal * {
   transform-box: fill-box;
 }
+#pal .pixel-person > g:first-child {
+  transform-box: view-box;
+}
 .arm-l {
   transform-origin: 100% 0;
 }

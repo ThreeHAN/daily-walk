@@ -282,7 +282,7 @@
     transform: rotate(2.5deg);
   }
 }
-.sm {
+.scene .sm {
   transform-box: fill-box;
   transform-origin: center;
   opacity: 0;
@@ -310,6 +310,24 @@
   fill: #ffe9a3;
   animation: none;
   filter: drop-shadow(0 0 2px #ffd36b);
+}
+.sleep-z {
+  display: none;
+  fill: #fff3c1;
+  font: 10px Tiny5, monospace;
+  paint-order: stroke;
+  stroke: #263d58;
+  stroke-width: 1.5px;
+  pointer-events: none;
+}
+.sleeping .sleep-z {
+  display: block;
+  animation: sleep-float 2.5s ease-in-out infinite;
+}
+@keyframes sleep-float {
+  50% {
+    transform: translate(2px, -4px);
+  }
 }
 .wtr {
   animation: shim 2.2s ease-in-out infinite;

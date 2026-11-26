@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 5 20 18">
-  <ellipse cx="14" cy="16" rx="6.5" ry="4.4" fill="#6ab8ff"/>
-  <polygon points="6,16 3.5,13.5 4.5,16 3.5,18.5" fill="#4a95e0"/>
-  <ellipse cx="14" cy="17.5" rx="4.5" ry="2" fill="#d8f0ff"/>
-  <circle cx="17.2" cy="15.2" r=".9" fill="#222"/>
-  <path d="M13 11.5q-1-2.5-2.5-2M14 11.5q1-2.5 2.5-2" stroke="#bfe8ff" stroke-width="1" fill="none" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <path fill="#bfe8ff" d="M7 2h1v2H7zm2 0h1v2H9zM6 1h1v1H6zm4 0h1v1h-1z"/>
+  <path fill="#4a95e0" d="M1 5h2v2h2V5h7v1h2v1h1v4h-1v1h-2v1H6v-1H4v-1H3v1H1v-2h1V7H1z"/>
+  <path fill="#6ab8ff" d="M5 6h7v1h2v3h-2v1H5v-1H4V7h1z"/>
+  <path fill="#d8f0ff" d="M6 10h6v2H6z"/>
+  <path fill="#222" d="M11 7h1v1h-1z"/>
 </svg>

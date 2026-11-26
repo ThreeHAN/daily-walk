@@ -22,40 +22,17 @@ function nextPlanet() {
   return idx >= 0 && idx < PLANET_LIST.length - 1 ? PLANET_LIST[idx + 1] : null;
 }
 function nbState(id) {
-  const pl = NB[id] ? NB[id].pl : "earth";
-  if (!planetUnlocked(pl)) return "locked";
   if (id === S.nb.cur) return nbDone(id) ? "done" : "cur";
-  if (S.nb.xp[id] !== undefined) return nbDone(id) ? "done" : "visited";
-  const anyInPlanet = planetNbs(pl).some((k) => S.nb.xp[k] !== undefined);
-  if (!anyInPlanet) return "avail";
   return nbDone(S.nb.cur) ? "avail" : "locked";
 }
 function checkNbWin() {
-  const c = S.nb.cur,
-    pl = NB[c] ? NB[c].pl : "earth";
+  const c = S.nb.cur;
   if (nbDone(c) && !S.nb.cel[c]) {
     S.nb.cel[c] = 1;
     save();
-    const nxPl = nextPlanet();
-    if (planetDone(pl) && nxPl) {
-      setTimeout(() => {
-        toast(
-          "🚀 " +
-            PLANETS[pl].n +
-            " is 100% complete! " +
-            PLANETS[nxPl].n +
-            " is now unlocked on the Solar Map!",
-        );
-        burst(innerWidth / 2, innerHeight / 3, 65, CONF);
-      }, 1800);
-    } else {
-      setTimeout(() => {
-        toast(
-          NB[c].n +
-            " is complete! Open the Solar Map to choose your next ecosystem.",
-        );
-        burst(innerWidth / 2, innerHeight / 3, 50, CONF);
-      }, 1800);
-    }
+    setTimeout(() => {
+      toast(NB[c].n + " is helped! Your town gear is ready in the wardrobe.");
+      burst(innerWidth / 2, innerHeight / 3, 50, CONF);
+    }, 1800);
   }
 }

@@ -1,0 +1,137 @@
+@font-face {
+  font-family: "Tiny5";
+  src: url("../fonts/tiny5/Tiny5.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+body {
+  background: var(--bg);
+  font-size: 19px;
+}
+
+body,
+body * {
+  font-family: "Tiny5", monospace !important;
+  border-radius: 0 !important;
+}
+
+h1 {
+  background: none;
+  color: var(--acc);
+  font-size: 36px;
+}
+
+svg {
+  shape-rendering: crispEdges;
+}
+
+.hero,
+.banner {
+  background: #b86544;
+}
+
+.lb-hero {
+  background: #334e70;
+}
+
+.splash,
+.splash.t2,
+.splash.t3 {
+  background: #28170e;
+}
+
+.splash.t4,
+.cs {
+  background: #30204b;
+}
+
+.splash.t5,
+.gl {
+  background: #18334c;
+}
+
+.splash .faura,
+.splash .fring {
+  display: none;
+}
+
+.splash .flame {
+  filter: none;
+}
+
+.ci.g1 {
+  background: #4a86d9;
+}
+
+.ci.g2 {
+  background: #e8941a;
+}
+
+.ci.g3 {
+  background: #3f9d63;
+}
+
+#go-wd .ic,
+#go-info .ic,
+#go-tour .ic {
+  width: 32px;
+  height: 32px;
+}
+
+#go-lv .ci {
+  background: #7650ad;
+}
+
+#go-lv .ic {
+  width: 38px;
+  height: 38px;
+}
+
+.bar i,
+.ixbar i {
+  background: var(--acc);
+}
+
+.wardrobe-preview,
+.profile-avatar {
+  background: var(--acc2);
+}
+
+.grp,
+.xc,
+.add,
+.scene,
+.sheet,
+.pcard,
+.lb-card,
+.wardrobe-preview {
+  box-shadow: 4px 4px 0 var(--line);
+}
+
+.pcard.on,
+.lb-card.me {
+  box-shadow: 3px 3px 0 var(--acc);
+}
+
+.say {
+  box-shadow: 3px 3px 0 #51473a;
+  font-size: 14px;
+}
+
+.nm {
+  font-size: 12px;
+  text-shadow: 1px 1px #2b2622;
+}
+
+#nav {
+  background: var(--card);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--acc);
+  outline-offset: 2px;
+}

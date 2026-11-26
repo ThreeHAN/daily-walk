@@ -1,220 +1,50 @@
-let ixTab = "b",
-  ixPl = "earth";
 function fillIndex() {
-  $("ixt-b").classList.toggle("on", ixTab === "b");
-  $("ixt-p").classList.toggle("on", ixTab === "p");
-  const all = [{ n: S.p.buddy || "Buddy", p: S.p }].concat(
-      S.res.map((r) => ({ n: r.n, p: r.l })),
-    ),
-    allKinds = Object.keys(KINDS);
-  const unl = unlockedKinds();
-  const have = (k) => all.filter((b) => (b.p.kind || "square") === k);
-  const unlockedB = allKinds.filter(
-    (k) => have(k).length > 0 || (KINDS[k].nb && unl.has(k)),
-  ).length;
-  const best = Math.max(curStreak, streakBest());
-  const unlockedP = PETS.filter((pt) => isPetUnlocked(pt, best)).length;
-  $("ixsub").textContent =
-    unlockedB +
-    " of " +
-    allKinds.length +
-    " buddies · " +
-    unlockedP +
-    " of " +
-    PETS.length +
-    " pets";
-  const L = $("ixl");
-  L.innerHTML = "";
-  if (ixTab === "b") {
-    const pbar = el("div", "ixpbar");
-    pbar.style.gridColumn = "1/-1";
-    PLANET_LIST.forEach((pid) => {
-      const pc = PLANETS[pid],
-        b = el(
-          "button",
-          "ixpchip" + (ixPl === pid ? " on" : ""),
-          pc.icon + " " + pc.n,
-        );
-      b.type = "button";
-      b.onclick = () => {
-        ixPl = pid;
-        fillIndex();
-      };
-      pbar.appendChild(b);
+  const people = S.peopleMet.filter(
+    (person) => person && person.name && person.look && NB[person.town],
+  );
+  const towns = new Set(people.map((person) => person.town));
+  const query = $("ixsearch").value.trim().toLocaleLowerCase();
+  $("ixsub").textContent = people.length + (people.length === 1 ? " person met" : " people met");
+  $("ixs").textContent = people.length
+    ? people.length + (people.length === 1 ? " person" : " people") +
+      " met in " + towns.size + (towns.size === 1 ? " town" : " towns")
+    : "Tap a person in a town to meet them.";
+  const list = $("ixl");
+  list.innerHTML = "";
+  const matches = people.filter((person) =>
+    (person.name + " " + NB[person.town].n).toLocaleLowerCase().includes(query),
+  );
+  $("ixsearch").parentElement.hidden = !people.length;
+  $("ixempty").hidden = !people.length || matches.length > 0;
+  $("ixempty").textContent = "No people found. Try another name or town.";
+  NBK.forEach((town) => {
+    const residents = matches.filter((person) => person.town === town);
+    if (!residents.length) return;
+    const group = el("section", "index-town");
+    const heading = el("h4", "", NB[town].n);
+    const cards = el("div", "index-cards");
+    residents.forEach((person) => {
+      const card = el("div", "ixc own");
+      const portrait = el("div", "ixp buddy-scene pet-eco-meadow");
+      portrait.appendChild(svgOf(person.look, 64, 72));
+      card.append(portrait, el("b", "", person.name), el("div", "ixo", "Met in " + NB[town].n));
+      cards.appendChild(card);
     });
-    L.appendChild(pbar);
-    const kinds = allKinds.filter((k) => (KINDS[k].pl || "earth") === ixPl);
-    const plUnlocked = kinds.filter(
-      (k) => have(k).length > 0 || (KINDS[k].nb && unl.has(k)),
-    ).length;
-    $("ixs").textContent =
-      PLANETS[ixPl].n +
-      ": " +
-      plUnlocked +
-      " of " +
-      kinds.length +
-      " buddies unlocked · Total: " +
-      unlockedB +
-      "/" +
-      allKinds.length;
-    const bar = $("ixbar");
-    bar.style.width = "0%";
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        bar.style.width = (plUnlocked / kinds.length) * 100 + "%";
-      }),
-    );
-    const pool = chestPool(),
-      totW = pool.reduce((a, b) => a + b[1], 0);
-    kinds.forEach((k, i) => {
-      const hv = have(k),
-        own = hv.length > 0,
-        isUnl = unl.has(k),
-        kd = KINDS[k];
-      const unlocked = own || (kd.nb && isUnl);
-      const c = el(
-        "div",
-        "ixc " +
-          (unlocked ? "own" : "unk") +
-          ((k === "duck" || k === "cosmo" || k.endsWith("planet")) && own
-            ? " gold"
-            : ""),
-      );
-      c.style.setProperty("--i", i);
-      const buddyEco =
-        kd.nb && NB[kd.nb]
-          ? NB[kd.nb].pl === "earth"
-            ? NB[kd.nb].eco || "meadow"
-            : NB[kd.nb].pl
-          : kd.pl || "meadow";
-      const pv = el("div", "ixp buddy-scene pet-eco-" + buddyEco);
-      if (unlocked) {
-        pv.appendChild(svgOf(own ? hv[hv.length - 1].p : freshLook(k), 64, 72));
-      } else {
-        pv.appendChild(el("span", "ixq", "?"));
-      }
-      c.appendChild(pv);
-      if (own && hv.length > 1)
-        c.appendChild(el("span", "ixn", "x" + hv.length));
-      c.appendChild(el("b", "", unlocked ? kd.n : "???"));
-      const tg = el("span", "stag", unlocked ? kd.r : "Locked");
-      tg.style.background = unlocked ? kd.c : "#8a8f98";
-      c.appendChild(tg);
-      const wEntry = pool.find((r) => r[0] === k),
-        pct = wEntry ? Math.round((wEntry[1] / totW) * 100) : 0;
-      c.appendChild(
-        el(
-          "div",
-          "ixo",
-          own
-            ? hv.map((b) => b.n).join(", ")
-            : kd.nb
-              ? isUnl
-                ? "Unlocked via " + NB[kd.nb].n
-                : "Settle " + NB[kd.nb].n + " on " + PLANETS[kd.pl || "earth"].n
-              : k === "square"
-                ? "Your starter buddy"
-                : "Reach Level 10 & open chests",
-        ),
-      );
-      if (k !== "square" && unlocked)
-        c.appendChild(
-          el("div", "ixo", pct + "% chance in a chest at level 10"),
-        );
-      if (unlocked) {
-        const eq = S.p.kind === k;
-        const eb = el(
-          "button",
-          "ubtn" + (eq ? " sec" : ""),
-          eq ? "Equipped ✓" : "Equip Buddy",
-        );
-        eb.type = "button";
-        eb.style.marginTop = "6px";
-        eb.onclick = () => {
-          S.p.kind = k;
-          if (!BODY[S.p.body]) S.p.body = kd.body;
-          save();
-          paint();
-          react();
-          fillIndex();
-          toast("Equipped " + kd.n + "!");
-        };
-        c.appendChild(eb);
-      }
-      L.appendChild(c);
-    });
-  } else {
-    $("ixs").textContent =
-      unlockedP +
-      " of " +
-      PETS.length +
-      " pets unlocked · Streak & Solar System rewards";
-    const bar = $("ixbar");
-    bar.style.width = "0%";
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        bar.style.width = (unlockedP / PETS.length) * 100 + "%";
-      }),
-    );
-    PETS.forEach((pt, i) => {
-      const unlPt = isPetUnlocked(pt, best);
-      const eq = S.p.pet === pt.id;
-      const c = el(
-        "div",
-        "ixc " + (unlPt ? "own" : "unk") + (eq ? " gold" : ""),
-      );
-      c.style.setProperty("--i", i);
-      const pv = el("div", "ixp pet-scene pet-eco-" + (pt.eco || "meadow"));
-      if (unlPt) {
-        pv.innerHTML = petSvg(pt.id, 56, 52);
-      } else {
-        pv.appendChild(el("span", "ixq", "?"));
-      }
-      c.appendChild(pv);
-      c.appendChild(el("b", "", unlPt ? pt.n : "???"));
-      const badge = eq
-        ? "Equipped ✓"
-        : unlPt
-          ? "Unlocked"
-          : pt.nb
-            ? PLANETS[pt.pl].icon + " " + PLANETS[pt.pl].n
-            : pt.st + "-day streak";
-      const tg = el("span", "stag", badge);
-      tg.style.background = eq ? "#3f9d63" : unlPt ? "var(--acc)" : "#8a8f98";
-      c.appendChild(tg);
-      c.appendChild(
-        el(
-          "div",
-          "ixo",
-          unlPt
-            ? pt.d
-            : pt.nb
-              ? "Settle " + NB[pt.nb].n + " on " + PLANETS[pt.pl].n
-              : "Keep a " + pt.st + "-day streak to unlock",
-        ),
-      );
-      L.appendChild(c);
-    });
-  }
+    group.append(heading, cards);
+    list.appendChild(group);
+  });
 }
-$("ixt-b").onclick = () => {
-  ixTab = "b";
-  fillIndex();
-};
-$("ixt-p").onclick = () => {
-  ixTab = "p";
-  fillIndex();
-};
-function openIx(tab) {
-  if (tab) ixTab = tab;
+function openIx() {
+  $("ixsearch").value = "";
   fillIndex();
   $("ix").classList.add("show");
 }
-$("ixh").onclick = () => openIx("b");
-$("ixbtn").onclick = () => openIx("b");
+$("ixsearch").oninput = fillIndex;
+$("ixh").onclick = openIx;
+$("ixbtn").onclick = openIx;
 $("go-ix").onclick = () => {
   $("pm").classList.remove("show");
-  openIx("b");
+  openIx();
 };
 $("ixdone").onclick = () => $("ix").classList.remove("show");
 $("ix").onclick = (e) => {
@@ -317,29 +147,9 @@ function startFireAnim(tier) {
     }
     FIRE_ANIM.t += 0.055;
     const t = FIRE_ANIM.t;
-    // Morph SVG flame paths organically so the fire dances and licks upward
     if (tier.rate > 0 && p1) {
-      const s = tier.rate;
-      const w1 = Math.sin(t * 2.1) * (3.5 + s * 1.3),
-        w2 = Math.cos(t * 2.8) * (3 + s * 1.2),
-        w3 = Math.sin(t * 3.6) * (2.5 + s);
-      const tipY = 4 - Math.abs(Math.sin(t * 2.4)) * (2 + s * 1.5);
-      p1.setAttribute(
-        "d",
-        `M${(40 + w1).toFixed(1)} ${tipY.toFixed(1)}C${(45 + w2).toFixed(1)} 24 ${(68 + w1 * 0.7).toFixed(1)} 34 68 60C68 81 55 94 40 94C25 94 12 81 12 60C12 47 ${(20 - w2 * 0.7).toFixed(1)} 40 25 32C28 42 32 45 35 45C32 30 ${(35 + w1 * 0.6).toFixed(1)} 16 ${(40 + w1).toFixed(1)} ${tipY.toFixed(1)}Z`,
-      );
-      p2.setAttribute(
-        "d",
-        `M${(40 - w2 * 0.9).toFixed(1)} 26C${(44 + w3).toFixed(1)} 40 58 47 58 64C58 80 50 90 40 90C30 90 22 80 22 64C22 52 30 46 34 38C36 44 38 44 ${(40 - w2 * 0.9).toFixed(1)} 26Z`,
-      );
-      p3.setAttribute(
-        "d",
-        `M${(40 + w3 * 0.8).toFixed(1)} 44C43 55 52 60 52 72C52 83 46 89 40 89C34 89 28 83 28 72C28 63 34 58 36 51C38 55 39 55 ${(40 + w3 * 0.8).toFixed(1)} 44Z`,
-      );
-      p4.setAttribute(
-        "d",
-        `M${(40 - w1 * 0.5).toFixed(1)} 62C42 68 47 71 47 77C47 83 43 87 40 87C37 87 33 83 33 77C33 72 37 69 ${(40 - w1 * 0.5).toFixed(1)} 62Z`,
-      );
+      p2.setAttribute("transform", "translate(" + (Math.sin(t * 2) > 0 ? 2 : -2) + " 0)");
+      p3.setAttribute("transform", "translate(" + (Math.sin(t * 3) > 0 ? -2 : 2) + " 0)");
     }
     ctx.clearRect(0, 0, W, H);
     // Spawn rising sparks & glowing embers proportional to streak tier
@@ -371,11 +181,8 @@ function startFireAnim(tier) {
       ctx.save();
       ctx.globalAlpha = Math.max(0, pt.life);
       ctx.fillStyle = pt.col;
-      ctx.shadowColor = pt.col;
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, pt.r * pt.life, 0, Math.PI * 2);
-      ctx.fill();
+      const size = Math.max(2, Math.round(pt.r * pt.life * 2));
+      ctx.fillRect(Math.round(pt.x), Math.round(pt.y), size, size);
       ctx.restore();
     }
     FIRE_ANIM.raf = requestAnimationFrame(frame);

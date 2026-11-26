@@ -1,27 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200">
-  <defs>
-    <linearGradient id="pig" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffc0d0"/>
-      <stop offset="1" stop-color="#e781a2"/>
-    </linearGradient>
-  </defs>
-  <g stroke="#813c5d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M48 119C42 151 63 179 87 174L93 143M192 119C198 151 177 179 153 174L147 143" fill="url(#pig)"/>
-    <path d="M66 104C74 71 98 56 120 56C142 56 166 71 174 104L163 158C152 181 88 181 77 158Z" fill="url(#pig)"/>
-    <path d="M81 151L73 190H100L108 166M159 151L167 190H140L132 166" fill="#d97d9e"/>
-
-    <path d="M82 79L70 42L95 52M158 79L170 42L145 52" fill="#f29ab7"/>
-    <path d="M84 61C79 38 94 22 120 22C146 22 161 38 156 61L149 87C140 103 100 103 91 87Z" fill="url(#pig)"/>
-    <circle cx="102" cy="62" r="5" fill="#552f42" stroke="none"/>
-    <circle cx="138" cy="62" r="5" fill="#552f42" stroke="none"/>
-    <circle cx="100.5" cy="60" r="1.5" fill="#fff" stroke="none"/>
-    <circle cx="136.5" cy="60" r="1.5" fill="#fff" stroke="none"/>
-    <path d="M96 76C103 68 137 68 144 76L139 91C132 98 108 98 101 91Z" fill="#ec8daa"/>
-    <ellipse cx="112" cy="83" rx="5" ry="6" fill="#8b4562" stroke="none"/>
-    <ellipse cx="128" cy="83" rx="5" ry="6" fill="#8b4562" stroke="none"/>
-    <path d="M107 100C115 106 125 106 133 100" fill="none" stroke="#9e486b" stroke-width="4"/>
-
-    <path d="M74 115C61 108 49 115 43 132M166 115C179 108 191 115 197 132" fill="none" stroke="#f0a3bb" stroke-width="10"/>
-    <path d="M177 147C192 142 204 127 196 114C191 105 176 109 174 122" fill="none" stroke="#c96c8f" stroke-width="7"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <path fill="#ad5878" d="M3 2h3v2h4V2h3v5h1v5h-2v3H9v-2H7v2H4v-3H2V7h1z"/>
+  <path fill="#f3a5bb" d="M4 3h2v2h4V3h2v4h1v4h-1v2H4v-2H3V7h1z"/>
+  <path fill="#ffc7d4" d="M5 5h6v5H5z"/>
+  <path fill="#6d334a" d="M5 6h1v1H5zm5 0h1v1h-1z"/>
+  <path fill="#e785a1" d="M6 8h4v3H6z"/>
+  <path fill="#813c5d" d="M6 9h1v1H6zm3 0h1v1H9z"/>
+  <path fill="#d77d9a" d="M5 13h2v1H5zm4 0h2v1H9z"/>
 </svg>

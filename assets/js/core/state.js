@@ -348,12 +348,19 @@ function freshState(userName) {
       topColor: "purple",
       pants: "black",
       shoes: "white",
+      pantsStyle: "classic",
+      shoeStyle: "classic",
       eyes: "happy",
       glasses: "shades",
       mouth: "smile",
       body: "yellow",
       kind: "cosmo",
       pet: "royalpig",
+      gender: "unspecified",
+      skin: "medium",
+      hair: "short",
+      hairColor: "brown",
+      eyeColor: "brown",
       ex: {
         scarf: true,
         bowtie: true,
@@ -369,6 +376,7 @@ function freshState(userName) {
     life: 144000,
     aw: { d: today(), k: {} },
     res: residents,
+    peopleMet: [],
     nb: {
       planet: "neptune",
       vplanet: "neptune",
@@ -404,6 +412,9 @@ function hydrateState(raw) {
   s.days = s.days && typeof s.days === "object" ? s.days : {};
   s.days[today()] = true;
   s.p = Object.assign(freshState("").p, s.p || {});
+  delete s.p.genderLocked;
+  if (s.p.topStyle === "none") s.p.topStyle = "tee";
+  if (s.p.pants === "none") s.p.pants = "black";
   if (s.p.jacket && s.p.jacket !== "none") {
     s.p.topStyle = "jacket";
     s.p.topColor = s.p.jacket;
@@ -425,6 +436,7 @@ function hydrateState(raw) {
   s.aw = s.aw && typeof s.aw === "object" ? s.aw : { d: "", k: {} };
   s.aw.k = s.aw.k && typeof s.aw.k === "object" ? s.aw.k : {};
   s.res = Array.isArray(s.res) ? s.res : [];
+  s.peopleMet = Array.isArray(s.peopleMet) ? s.peopleMet : [];
   s.res.forEach((resident) => {
     if (resident?.l?.pet === "nebula") resident.l.pet = "royalpig";
   });
@@ -496,10 +508,10 @@ try {
   USERS = [{ id: CUR_UID, label: S.p.name || "Admin" }];
 }
 const G = [
-  { id: "morning", n: "Morning", e: "☀️", c: "#f5a623" },
-  { id: "nutrition", n: "Nutrition", e: "🥗", c: "#4cae6a" },
-  { id: "exercise", n: "Exercise", e: "🏃", c: "#e5624a" },
-  { id: "cleaning", n: "Cleaning", e: "🧹", c: "#4a90d9" },
-  { id: "faith", n: "Faith & Kindness", e: "🙏", c: "#9a6bd6" },
-  { id: "more", n: "My Habits", e: "⭐", c: "#b8863b" },
+  { id: "morning", n: "Morning", e: "sun", c: "#f5a623" },
+  { id: "nutrition", n: "Nutrition", e: "salad", c: "#4cae6a" },
+  { id: "exercise", n: "Exercise", e: "runner", c: "#e5624a" },
+  { id: "cleaning", n: "Cleaning", e: "broom", c: "#4a90d9" },
+  { id: "faith", n: "Faith & Kindness", e: "pray", c: "#9a6bd6" },
+  { id: "more", n: "My Habits", e: "star", c: "#b8863b" },
 ];

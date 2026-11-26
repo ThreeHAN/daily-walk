@@ -77,6 +77,10 @@ h1 {
   background: color-mix(in srgb, var(--gc) 20%, transparent);
   font-size: 20px;
 }
+.ge svg {
+  width: 26px;
+  height: 26px;
+}
 .gbar i {
   background: var(--gc);
 }
@@ -167,6 +171,92 @@ h1 {
 .stage.sm::after {
   left: 22px;
   right: 22px;
+}
+.wardrobe-layout {
+  display: grid;
+  grid-template-columns: minmax(94px, 138px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+body:has(#pm.show #v-wd:not([hidden])) #buddy {
+  visibility: hidden;
+}
+#av,
+#pal.hop,
+#pal.hop *,
+#pal .head-pet,
+.wardrobe-preview .pv,
+.wardrobe-preview .head-pet {
+  animation: none;
+}
+.wardrobe-preview {
+  position: sticky;
+  top: 8px;
+  text-align: center;
+  color: var(--ink);
+  background: linear-gradient(160deg, var(--acc2), var(--card));
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 10px 5px 14px;
+}
+.wardrobe-preview .stage {
+  width: 100%;
+}
+.wardrobe-preview .stage::before {
+  background: var(--card);
+}
+.wardrobe-preview b,
+.wardrobe-preview span {
+  display: block;
+  font-size: 12px;
+}
+.wardrobe-preview span {
+  color: var(--mute);
+  margin-top: 3px;
+}
+.wardrobe-layout #wbody {
+  min-width: 0;
+  margin-top: 0;
+}
+#v-wd .tabs {
+  margin: 8px 0 16px;
+  scrollbar-width: thin;
+}
+#wbody .fl {
+  margin: 0 0 12px;
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+#wbody .chips {
+  margin-top: 9px;
+}
+#wbody .chip {
+  max-width: 100%;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: left;
+}
+#wbody .chip:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+.wardrobe-gear-group {
+  margin: 18px 0;
+}
+.wardrobe-gear-group h4 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font: 700 18px Georgia, serif;
+}
+#wbody .pgrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+#wbody .pcard {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .banner h2 {
   font:

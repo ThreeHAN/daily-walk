@@ -370,7 +370,7 @@ function renderLeaderboard() {
     lbSort === "streak"
       ? "🔥 " + me.streak + "d"
       : lbSort === "town"
-        ? "🪐 " + me.towns + "/48"
+        ? "🌍 " + me.towns + "/48"
         : lbSort === "tasks"
           ? "✅ " + me.tasks
           : "⭐ " + me.xp.toLocaleString() + " XP";
@@ -411,7 +411,7 @@ function renderLeaderboard() {
     if (lbSort === "streak") {
       val.innerHTML = "🔥 " + u.streak + "<small>day streak</small>";
     } else if (lbSort === "town") {
-      val.innerHTML = "🪐 " + u.towns + "<small>ecosystems</small>";
+      val.innerHTML = "🌍 " + u.towns + "<small>towns helped</small>";
     } else if (lbSort === "tasks") {
       val.innerHTML = "✅ " + u.tasks + "<small>habits done</small>";
     } else {

@@ -311,6 +311,10 @@ button {
   transform-box: fill-box;
 }
 
+#pal .pixel-person > g:first-child {
+  transform-box: view-box;
+}
+
 .arm-l {
   transform-origin: 100% 0;
 }
@@ -1403,6 +1407,11 @@ h1 {
   font-size: 20px;
 }
 
+.ge svg {
+  width: 26px;
+  height: 26px;
+}
+
 .gbar i {
   background: var(--gc);
 }
@@ -1508,6 +1517,110 @@ h1 {
 .stage.sm::after {
   left: 22px;
   right: 22px;
+}
+
+.wardrobe-layout {
+  display: grid;
+  grid-template-columns: minmax(94px, 138px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+body:has(#pm.show #v-wd:not([hidden])) #buddy {
+  visibility: hidden;
+}
+
+#av,
+#pal.hop,
+#pal.hop *,
+#pal .head-pet,
+.wardrobe-preview .pv,
+.wardrobe-preview .head-pet {
+  animation: none;
+}
+
+.wardrobe-preview {
+  position: sticky;
+  top: 8px;
+  text-align: center;
+  color: var(--ink);
+  background: linear-gradient(160deg, var(--acc2), var(--card));
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 10px 5px 14px;
+}
+
+.wardrobe-preview .stage {
+  width: 100%;
+}
+
+.wardrobe-preview .stage::before {
+  background: var(--card);
+}
+
+.wardrobe-preview b,
+.wardrobe-preview span {
+  display: block;
+  font-size: 12px;
+}
+
+.wardrobe-preview span {
+  color: var(--mute);
+  margin-top: 3px;
+}
+
+.wardrobe-layout #wbody {
+  min-width: 0;
+  margin-top: 0;
+}
+
+#v-wd .tabs {
+  margin: 8px 0 16px;
+  scrollbar-width: thin;
+}
+
+#wbody .fl {
+  margin: 0 0 12px;
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+#wbody .chips {
+  margin-top: 9px;
+}
+
+#wbody .chip {
+  max-width: 100%;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: left;
+}
+
+#wbody .chip:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.wardrobe-gear-group {
+  margin: 18px 0;
+}
+
+.wardrobe-gear-group h4 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font: 700 18px Georgia, serif;
+}
+
+#wbody .pgrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#wbody .pcard {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .banner h2 {
@@ -1883,9 +1996,17 @@ main {
 }
 
 .nv i {
+  width: 24px;
+  height: 24px;
   font-style: normal;
   font-size: 22px;
   transition: transform 0.2s;
+}
+
+.nv i svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .nv.on {
@@ -2228,7 +2349,7 @@ main {
     transform: rotate(2.5deg);
   }
 }
-.sm {
+.scene .sm {
   transform-box: fill-box;
   transform-origin: center;
   opacity: 0;
@@ -2260,6 +2381,26 @@ main {
   filter: drop-shadow(0 0 2px #ffd36b);
 }
 
+.sleep-z {
+  display: none;
+  fill: #fff3c1;
+  font: 10px Tiny5, monospace;
+  paint-order: stroke;
+  stroke: #263d58;
+  stroke-width: 1.5px;
+  pointer-events: none;
+}
+
+.sleeping .sleep-z {
+  display: block;
+  animation: sleep-float 2.5s ease-in-out infinite;
+}
+
+@keyframes sleep-float {
+  50% {
+    transform: translate(2px, -4px);
+  }
+}
 .wtr {
   animation: shim 2.2s ease-in-out infinite;
 }
@@ -3245,7 +3386,6 @@ main {
   color: #fff;
   font-weight: 800;
   font-size: 15px;
-  box-shadow: 0 8px 22px rgba(217, 119, 87, 0.5);
   animation: fabIn 0.5s cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 
@@ -3263,26 +3403,6 @@ main {
   transform: rotate(90deg);
 }
 
-.fab::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 30px;
-  border: 2px solid rgba(217, 119, 87, 0.6);
-  animation: fabRing 2.4s ease-out infinite;
-  pointer-events: none;
-}
-
-@keyframes fabRing {
-  from {
-    transform: scale(1);
-    opacity: 0.8;
-  }
-  to {
-    transform: scale(1.35, 1.6);
-    opacity: 0;
-  }
-}
 @keyframes fabIn {
   from {
     transform: scale(0.4) translateY(30px);
@@ -3859,10 +3979,49 @@ main {
 }
 
 .ixg {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
   margin-bottom: 14px;
+}
+
+.index-search {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 14px 0;
+}
+
+.index-search input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+}
+
+.index-empty {
+  color: var(--mute);
+  text-align: center;
+  padding: 16px;
+}
+
+.index-town h4 {
+  margin: 16px 0 8px;
+  color: var(--ink);
+  font: 700 17px Georgia, serif;
+}
+
+.index-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.index-town .ixc {
+  animation: none;
 }
 
 .ixc {
@@ -4749,4 +4908,141 @@ main {
   background: var(--acc);
   color: #fff;
   border-color: var(--acc);
+}
+
+@font-face {
+  font-family: "Tiny5";
+  src: url("../fonts/tiny5/Tiny5.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+body {
+  background: var(--bg);
+  font-size: 19px;
+}
+
+body,
+body * {
+  font-family: "Tiny5", monospace !important;
+  border-radius: 0 !important;
+}
+
+h1 {
+  background: none;
+  color: var(--acc);
+  font-size: 36px;
+}
+
+svg {
+  shape-rendering: crispEdges;
+}
+
+.hero,
+.banner {
+  background: #b86544;
+}
+
+.lb-hero {
+  background: #334e70;
+}
+
+.splash,
+.splash.t2,
+.splash.t3 {
+  background: #28170e;
+}
+
+.splash.t4,
+.cs {
+  background: #30204b;
+}
+
+.splash.t5,
+.gl {
+  background: #18334c;
+}
+
+.splash .faura,
+.splash .fring {
+  display: none;
+}
+
+.splash .flame {
+  filter: none;
+}
+
+.ci.g1 {
+  background: #4a86d9;
+}
+
+.ci.g2 {
+  background: #e8941a;
+}
+
+.ci.g3 {
+  background: #3f9d63;
+}
+
+#go-wd .ic,
+#go-info .ic,
+#go-tour .ic {
+  width: 32px;
+  height: 32px;
+}
+
+#go-lv .ci {
+  background: #7650ad;
+}
+
+#go-lv .ic {
+  width: 38px;
+  height: 38px;
+}
+
+.bar i,
+.ixbar i {
+  background: var(--acc);
+}
+
+.wardrobe-preview,
+.profile-avatar {
+  background: var(--acc2);
+}
+
+.grp,
+.xc,
+.add,
+.scene,
+.sheet,
+.pcard,
+.lb-card,
+.wardrobe-preview {
+  box-shadow: 4px 4px 0 var(--line);
+}
+
+.pcard.on,
+.lb-card.me {
+  box-shadow: 3px 3px 0 var(--acc);
+}
+
+.say {
+  box-shadow: 3px 3px 0 #51473a;
+  font-size: 14px;
+}
+
+.nm {
+  font-size: 12px;
+  text-shadow: 1px 1px #2b2622;
+}
+
+#nav {
+  background: var(--card);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--acc);
+  outline-offset: 2px;
 }

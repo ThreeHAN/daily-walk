@@ -152,8 +152,11 @@ function renderHabitGroups(d, c, effects) {
       e.textContent = tx;
       return e;
     };
+    const icon = mk("ge", "");
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = icoSvg(g.e);
     h.append(
-      mk("ge", g.e),
+      icon,
       mk("gn", g.n),
       mk("gc", dn === ts.length ? "✓ Done" : dn + "/" + ts.length),
       mk("chev", "⌄"),
@@ -227,7 +230,7 @@ function showHabitCompletionEffects(effects, fullEl) {
   if (effects.newBuilding) {
     const nn = effects.newBuilding;
     setTimeout(
-      () => toast("🏗️ Your town built: " + nn + "! Check the Town tab."),
+      () => toast("🏗️ Your help brought " + nn + " to town! Check the World tab."),
       1600,
     );
   }

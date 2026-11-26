@@ -12,32 +12,32 @@ const TOUR_STEPS = [
   },
   {
     icon: "🏘️",
-    title: "Faith Town",
-    before: "Open Town to visit the community your progress is building.",
+    title: "Traveler's World",
+    before: "Open World to see the town your traveler is helping.",
     after:
-      "This is Faith Town. Habit XP builds houses, unlocks ecosystems and planets, and fills the town with your buddies and pets.",
-    open: "Open Town",
+      "Habit XP helps your current town. Once it is helped, earn gear and choose another town on the world map.",
+    open: "Open World",
     page: "t",
     target: "#scene",
   },
   {
     icon: "🧑‍🤝‍🧑",
-    title: "Your buddy profile",
-    before: "Open your profile to meet your active buddy and equipped pet.",
+    title: "Your traveler profile",
+    before: "Open your profile to customize your traveler and equipped pet.",
     after:
-      "This page controls your buddy, wardrobe, pets, name, profile saves, and rewards. Your buddy and pet also appear in the header button.",
+      "Edit your pixel traveler's appearance, equip town gear, and manage pets, names, profiles, and rewards here.",
     open: "Open Profile",
     page: "h",
     target: "#prof",
     profile: true,
   },
   {
-    icon: "🐾",
-    title: "Buddies, pets, and ecosystems",
-    before: "Open the Buddy Index to browse everything you can collect.",
+    icon: "👋",
+    title: "People you meet",
+    before: "Open the People Index to see the people you have met.",
     after:
-      "Each card shows the buddy or pet and its ecosystem. Use the tabs and planet filters to explore or equip unlocked rewards.",
-    open: "Open Buddy Index",
+      "Tap a person in a town to meet them. They will be remembered here with the town where you met.",
+    open: "Open People Index",
     page: "h",
     target: "#ixh",
     index: true,
@@ -98,7 +98,7 @@ function openTourPage() {
     view("menu");
     $("pm").classList.add("show");
   }
-  if (step.index) openIx("b");
+  if (step.index) openIx();
   tourStepReady = true;
   $("tour-text").textContent = step.after;
   updateTourButtons();
