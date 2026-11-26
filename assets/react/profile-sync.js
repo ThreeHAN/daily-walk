@@ -248,11 +248,16 @@ export async function connectCloudProfile(client, session, getLocalProfile, repl
   localStorage.setItem(key, JSON.stringify({ id, status: "linked" }));
   let updated;
   try {
-    updated = replaceLocalProfile(profile, remote.state, { backup: true });
+    updated = profileFingerprint(profile.state) === profileFingerprint(remote.state)
+      ? profile.state : replaceLocalProfile(profile, remote.state, { backup: true });
   } catch (error) {
     try {
-      if (raw === null) localStorage.removeItem(key);
-      else localStorage.setItem(key, raw);
+      const current = getLocalProfile();
+      if (current.id === profile.id &&
+          profileFingerprint(current.state) === profileFingerprint(profile.state)) {
+        if (raw === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, raw);
+      }
     } catch (rollbackError) {
       console.error("Could not restore the previous cloud link", rollbackError);
     }
