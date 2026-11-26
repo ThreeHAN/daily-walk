@@ -371,6 +371,70 @@ test("a new habit is highlighted and can still be removed", async ({ page }) => 
   await expect(row).toHaveCount(0);
 });
 
+test("the habit editor validates, previews choices, and saves them across reloads", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.locator("#fab").evaluate((button) => button.click());
+  await expect(page.locator("#hprev b")).toHaveText("Your new habit");
+  await page.locator("#hadd").evaluate((button) => button.click());
+  await expect(page.locator("#hn")).toBeFocused();
+  await expect(page.locator("#hn")).toHaveClass(/bad/);
+  await expect(page.locator("#hm")).toHaveClass(/show/);
+  await page.locator("#hn").fill("   ");
+  await page.locator("#hadd").evaluate((button) => button.click());
+  await expect(page.locator("#hn")).toBeFocused();
+  await expect(page.locator("#hm")).toHaveClass(/show/);
+
+  await page.locator("#hn").fill(" Walk 🌙 ");
+  await page.locator("#hw").fill(" Enjoy outside ");
+  await page.locator("#hg .gt").filter({ hasText: "Exercise" }).evaluate((button) => button.click());
+  await page.locator('#hi button[aria-label="runner"]').evaluate((button) => button.click());
+  await expect(page.locator("#hprev b")).toContainText("Walk");
+  await expect(page.locator("#hprev b .ic svg")).toHaveCount(1);
+  await expect(page.locator("#hprev small")).toHaveText("Enjoy outside");
+  await expect(page.locator("#hg .gt.on")).toContainText("Exercise");
+  await expect(page.locator("#hi .it.on")).toHaveAttribute("aria-label", "runner");
+  await page.locator("#hadd").evaluate((button) => button.click());
+  await expect(page.locator("#hm")).not.toHaveClass(/show/);
+  const saved = await page.evaluate(() => S.tasks.find((task) => task.t === "Walk 🌙"));
+  expect(saved).toMatchObject({ g: "exercise", ic: "runner", s: "Enjoy outside" });
+  await page.reload();
+  expect(await page.evaluate((id) => S.tasks.find((task) => task.id === id), saved.id)).toEqual(saved);
+
+  await page.locator("#fab").evaluate((button) => button.click());
+  await expect(page.locator("#hn")).toHaveValue("");
+  await expect(page.locator("#hw")).toHaveValue("");
+  await expect(page.locator("#hg .gt.on")).toContainText("My Habits");
+  await expect(page.locator("#hi .it.on")).toHaveAttribute("aria-label", "star");
+  await page.locator("#hn").fill("Discard this draft");
+  await page.locator("#hw").fill("Discard this description");
+  await page.locator("#hg .gt").filter({ hasText: "Exercise" }).evaluate((button) => button.click());
+  await page.locator('#hi button[aria-label="runner"]').evaluate((button) => button.click());
+  await page.locator("#hm").evaluate((modal) => modal.click());
+  await expect(page.locator("#hm")).not.toHaveClass(/show/);
+  await page.locator("#fab").evaluate((button) => button.click());
+  await expect(page.locator("#hn")).toHaveValue("");
+  await expect(page.locator("#hw")).toHaveValue("");
+  await expect(page.locator("#hg .gt.on")).toContainText("My Habits");
+  await expect(page.locator("#hi .it.on")).toHaveAttribute("aria-label", "star");
+  expect(errors).toEqual([]);
+});
+
+test("the habit editor reports a save failure without losing the new habit", async ({ page }) => {
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key.includes(":u:")) throw new Error("Write blocked");
+      return original.call(this, key, value);
+    };
+  });
+  await page.locator("#fab").evaluate((button) => button.click());
+  await page.locator("#hn").fill("Unsaved walk");
+  await page.locator("#hadd").evaluate((button) => button.click());
+  await expect(page.locator("#ubstat")).toContainText("not saved");
+  await expect(page.locator("#list .item").filter({ hasText: "Unsaved walk" })).toHaveCount(1);
+});
+
 test("the level hero updates for habit and journal rewards and keeps its profile shortcut", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

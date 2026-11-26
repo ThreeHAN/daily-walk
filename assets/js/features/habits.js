@@ -212,77 +212,26 @@ setInterval(() => {
     drawJr();
   } else mealsNow();
 }, 20000);
-let hd = { g: "more", ic: "star" };
-function buildHabit() {
-  const gc = G.find((x) => x.id === hd.g).c;
-  const pv = $("hprev");
-  pv.style.setProperty("--gc", gc);
-  pv.innerHTML = "";
-  const hi = document.createElement("span");
-  hi.className = "hi";
-  hi.innerHTML = icoSvg(hd.ic);
-  const tx = document.createElement("div");
-  const b = document.createElement("b");
-  b.textContent = $("hn").value.trim() || "Your new habit";
-  const sm = document.createElement("small");
-  sm.textContent = $("hw").value.trim() || G.find((x) => x.id === hd.g).n;
-  tx.append(b, sm);
-  pv.append(hi, tx);
-  const gt = $("hg");
-  gt.innerHTML = "";
-  G.forEach((g) => {
-    const bt = document.createElement("button");
-    bt.type = "button";
-    bt.className = "gt" + (g.id === hd.g ? " on" : "");
-    bt.style.setProperty("--gc", g.c);
-    bt.innerHTML = icoSvg(GIC[g.id]);
-    const l = document.createElement("span");
-    l.textContent = g.n;
-    bt.appendChild(l);
-    bt.onclick = () => {
-      hd.g = g.id;
-      buildHabit();
-    };
-    gt.appendChild(bt);
-  });
-  const it = $("hi");
-  it.innerHTML = "";
-  HICONS.forEach((n) => {
-    const bt = document.createElement("button");
-    bt.type = "button";
-    bt.className = "it" + (n === hd.ic ? " on" : "");
-    bt.setAttribute("aria-label", n);
-    bt.innerHTML = icoSvg(n);
-    bt.onclick = () => {
-      hd.ic = n;
-      buildHabit();
-    };
-    it.appendChild(bt);
-  });
-}
 function openHabit() {
-  hd = { g: "more", ic: "star" };
-  $("hn").value = "";
-  $("hw").value = "";
-  buildHabit();
+  DailyWalkReact.renderHabitEditor({
+    groups: G,
+    groupIcons: GIC,
+    icons: HICONS,
+    icon: icoSvg,
+    iconTextParts,
+    onAdd: addHabit,
+    rerun,
+  });
   $("hm").classList.add("show");
 }
 $("fab").onclick = openHabit;
-$("hn").oninput = buildHabit;
-$("hw").oninput = buildHabit;
 $("hm").onclick = (e) => {
   if (e.target === $("hm")) $("hm").classList.remove("show");
 };
-$("hadd").onclick = () => {
-  const v = $("hn").value.trim();
-  if (!v) {
-    rerun($("hn"), "bad");
-    $("hn").focus();
-    return;
-  }
+function addHabit({ name, description, group, icon }) {
   const id = "c" + Date.now();
-  S.tasks.push({ id, g: hd.g, ic: hd.ic, t: v, s: $("hw").value.trim() });
-  shut[hd.g] = false;
+  S.tasks.push({ id, g: group, ic: icon, t: name, s: description });
+  shut[group] = false;
   save();
   $("hm").classList.remove("show");
   render({ addedHabitId: id });
@@ -293,4 +242,4 @@ $("hadd").onclick = () => {
     const q = r.getBoundingClientRect();
     burst(q.left + 40, q.top + 20, 18, CONF);
   }
-};
+}
