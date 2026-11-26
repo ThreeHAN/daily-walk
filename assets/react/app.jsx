@@ -1,4 +1,5 @@
 export { renderBuddyDetails } from "./buddy-details.jsx";
+export { renderBuddyStats } from "./buddy-stats.jsx";
 export { renderDashboardHeading } from "./dashboard-heading.jsx";
 export { renderHabitEditor } from "./habit-editor.jsx";
 export { render as renderHabitList } from "./habit-list.jsx";

@@ -37,6 +37,63 @@ test("town and planet unlocks follow completion progress", async ({ page }) => {
   await expect(page.locator("#ncard")).toBeVisible();
 });
 
+test("buddy stats show totals and ties, refresh while open, and preserve data", async ({ page }) => {
+  await page.clock.install({ time: new Date(2026, 0, 1, 12) });
+  await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.evaluate(() => {
+    S.p.buddy = "Pal 🌙 <b>";
+    S.bs = { born: Date.now() - 60000, clicks: 1, tasks: 2 };
+    S.res = [
+      { n: "Resident ⭐", l: npcLook(0), born: Date.now() - 120000, clicks: 4, tasks: 2 },
+      { n: "Other", l: npcLook(1), born: Date.now() - 180000, clicks: 4, tasks: 0 },
+    ];
+  });
+  await page.locator("#sbtn").evaluate((button) => button.click());
+  const cards = page.locator("#slist .scard");
+  await expect(page.locator("#sm")).toHaveClass(/show/);
+  await expect(cards).toHaveCount(3);
+  await expect(page.locator("#ssum")).toContainText("3 buddies");
+  await expect(page.locator("#ssum")).toContainText("4 tasks");
+  await expect(page.locator("#ssum")).toContainText("9 taps");
+  await expect(cards.first().locator(".sinf > b")).toContainText("<b>");
+  await expect(cards.first().locator(".sinf > b .ic svg")).toHaveCount(1);
+  await expect(cards.locator(".spv svg")).toHaveCount(3);
+  await expect(cards.first()).toContainText("Tapped 1 time");
+  await expect(cards.first()).toContainText("Most tasks");
+  await expect(cards.nth(1)).toContainText("Most tasks");
+  await expect(cards.nth(1)).toContainText("Most clicked");
+  await expect(cards.nth(2)).toContainText("Most clicked");
+  await expect(cards.first()).toContainText("1 min");
+
+  const saved = await page.evaluate(() => {
+    S.bs.clicks = 7;
+    return JSON.stringify({ stats: S.bs, residents: S.res });
+  });
+  await page.clock.fastForward(60000);
+  await expect(page.locator("#ssum")).toContainText("15 taps");
+  await expect(cards.first()).toContainText("Most clicked");
+  await expect(cards.nth(1)).not.toContainText("Most clicked");
+  await expect(cards.first()).toContainText("2 min");
+  expect(await page.evaluate(() => JSON.stringify({ stats: S.bs, residents: S.res }))).toBe(saved);
+  await page.locator("#sdone").evaluate((button) => button.click());
+  await expect(page.locator("#sm")).not.toHaveClass(/show/);
+
+  await page.evaluate(() => {
+    S.res = [];
+    S.bs.clicks = 0;
+    S.bs.tasks = 0;
+  });
+  await page.locator("#sbtn").evaluate((button) => button.click());
+  await expect(page.locator("#ssum")).toContainText("1 buddy");
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first().locator(".hot")).toHaveCount(0);
+  await page.locator("#sm").evaluate((modal) => modal.click());
+  await expect(page.locator("#sm")).not.toHaveClass(/show/);
+  expect(errors).toEqual([]);
+});
+
 test("buddy details switch between traveler and pet without changing their saved data", async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
   const errors = [];

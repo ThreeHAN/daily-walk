@@ -459,65 +459,18 @@ function fillStats() {
   const bl = [{ n: S.p.buddy || "Buddy", p: S.p, bs: S.bs, cur: true }].concat(
     S.res.map((r) => ({ n: r.n, p: r.l, bs: r, cur: false })),
   );
-  const mc = Math.max(...bl.map((b) => b.bs.clicks || 0)),
-    mt = Math.max(...bl.map((b) => b.bs.tasks || 0));
-  const tt = bl.reduce((a, b) => a + (b.bs.tasks || 0), 0),
-    tk = bl.reduce((a, b) => a + (b.bs.clicks || 0), 0);
-  $("ssum").textContent =
-    "👥 " +
-    bl.length +
-    (bl.length === 1 ? " buddy" : " buddies") +
-    "  ·  ✅ " +
-    tt +
-    " tasks  ·  👆 " +
-    tk +
-    " taps";
-  const L = $("slist");
-  L.innerHTML = "";
-  bl.forEach((b) => {
-    const k = KINDS[b.p.kind] || KINDS.square,
-      card = el("div", "scard");
-    const pv = el("div", "spv");
-    pv.appendChild(svgOf(b.p, 48, 52));
-    const inf = el("div", "sinf");
-    inf.appendChild(el("b", "", b.n));
-    const tags = el("div", "stags");
-    const kt = el("span", "stag", k.n + " · " + k.r);
-    kt.style.background = k.c;
-    tags.appendChild(kt);
-    tags.appendChild(
-      el(
-        "span",
-        "stag lvt",
-        b.cur ? "⭐ Level " + lvOf(S.xp) : "🎓 Level 10 resident",
-      ),
-    );
-    if (mc > 0 && (b.bs.clicks || 0) === mc)
-      tags.appendChild(el("span", "stag hot", "🔥 Most clicked"));
-    if (mt > 0 && (b.bs.tasks || 0) === mt)
-      tags.appendChild(el("span", "stag hot", "🏆 Most tasks"));
-    inf.appendChild(tags);
-    inf.appendChild(
-      el(
-        "div",
-        "srow",
-        "⏱ In town: " + fmtDur(Date.now() - (b.bs.born || Date.now())),
-      ),
-    );
-    inf.appendChild(
-      el(
-        "div",
-        "srow",
-        "👆 Tapped " +
-          (b.bs.clicks || 0) +
-          (b.bs.clicks === 1 ? " time" : " times"),
-      ),
-    );
-    inf.appendChild(
-      el("div", "srow", "✅ " + (b.bs.tasks || 0) + " tasks done together"),
-    );
-    card.append(pv, inf);
-    L.appendChild(card);
+  DailyWalkReact.renderBuddyStats({
+    buddies: bl.map((b) => ({
+      name: b.n,
+      stats: b.bs,
+      current: b.cur,
+      kind: KINDS[b.p.kind] || KINDS.square,
+      portrait: svgOf(b.p, 48, 52).outerHTML,
+      duration: fmtDur(Date.now() - (b.bs.born || Date.now())),
+    })),
+    level: lvOf(S.xp),
+    icon: icoSvg,
+    iconTextParts,
   });
 }
 $("sbtn").onclick = () => {
