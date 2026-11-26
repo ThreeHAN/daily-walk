@@ -74,7 +74,11 @@ not synchronized across devices; use Profile export and restore to move it.
     ├── react
     │   ├── app.jsx
     │   ├── habit-list.jsx
-    │   └── water-tracker.jsx
+    │   ├── icon-text.jsx
+    │   ├── journal.jsx
+    │   ├── progress-summary.jsx
+    │   ├── water-tracker.jsx
+    │   └── weekly-chart.jsx
     └── js
         ├── app.js
         ├── generated
@@ -108,10 +112,11 @@ not synchronized across devices; use Profile export and restore to move it.
   partials.
 - `assets/css/styles.css` is generated from Sass and remains the stylesheet
   loaded by Chrome and other browsers.
-- `assets/react/` contains the habit list and water tracker React components.
-  Their generated classic script, `assets/js/generated/react-ui.js`, is checked
-  in so the site also works directly from `index.html`. The bundle includes the
-  MIT license for React, React DOM, and Scheduler.
+- `assets/react/` contains the habit list, progress summary, water tracker,
+  journal, and weekly chart React components. Their generated classic script,
+  `assets/js/generated/react-ui.js`, is checked in so the site also works
+  directly from `index.html`. The bundle includes the MIT license for React,
+  React DOM, and Scheduler.
 - `assets/js/app.js` is the final bootstrap and bridges existing state and
   actions to the React habit list. The legacy app remains the state owner.
 - `assets/js/core/` contains application state, shared UI helpers, profile
@@ -141,14 +146,17 @@ not synchronized across devices; use Profile export and restore to move it.
 The scripts in `index.html` are classic scripts loaded in dependency order.
 Keep that order when moving code, and update the version in a changed script's
 URL so browsers do not use a stale cached copy. React exclusively owns the
-contents of `#list`, `#cups`, and `#wn`; legacy code must not mutate those
-subtrees. The water tracker and habit list call the same habit-check action.
+contents of `#list`, `#cups`, `#wn`, `#journal`, `#week`, and
+`#progress-summary`; legacy code must not mutate those subtrees. The water tracker and habit list call the same
+habit-check action. The journal keeps an editable React draft and reloads the
+saved entry when the profile, backup, or local date changes. The weekly chart
+receives current tasks and per-day checks from the legacy state owner.
 
 ## Feature map and behavior
 
 | Feature                                         | Main implementation                                                                                                                         |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Habit checklist, groups, water, and journal     | [`habit-list.jsx`](assets/react/habit-list.jsx), [`water-tracker.jsx`](assets/react/water-tracker.jsx), [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js) |
+| Habit checklist, progress, water, journal, and weekly activity | [`habit-list.jsx`](assets/react/habit-list.jsx), [`progress-summary.jsx`](assets/react/progress-summary.jsx), [`water-tracker.jsx`](assets/react/water-tracker.jsx), [`journal.jsx`](assets/react/journal.jsx), [`weekly-chart.jsx`](assets/react/weekly-chart.jsx), [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js) |
 | Pixel traveler and appearance                   | [`buddy-render.js`](assets/js/features/buddy-render.js), [`buddies.js`](assets/js/features/buddies.js), [`profile.js`](assets/js/features/profile.js) |
 | Town data, rewards, and progression            | [`town-data.js`](assets/js/features/town-data.js), [`town-progress.js`](assets/js/features/town-progress.js)                               |
 | Town buildings, scenery, and cast               | [`town-scene.js`](assets/js/features/town-scene.js)                                                                                        |

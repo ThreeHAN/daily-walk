@@ -82,6 +82,33 @@ test("group progress and collapse preserve the checked habit", async ({ page }) 
   await expect(morning.locator(".gb")).toHaveClass(/fx/);
 });
 
+test("progress summary reflects completion changes and consecutive-day streaks", async ({ page }) => {
+  await page.evaluate(() => {
+    S.tasks = [{ id: "one", g: "morning", t: "One" }, { id: "two", g: "morning", t: "Two" }];
+    S.checks = {};
+    S.checks[today()] = { one: true };
+    S.days = { [today()]: false };
+    for (let daysAgo = 1; daysAgo <= 2; daysAgo++) {
+      const date = new Date();
+      date.setDate(date.getDate() - daysAgo);
+      S.days[dkey(date)] = true;
+    }
+    render();
+  });
+  await expect(page.locator("#count")).toHaveText("1 of 2 done");
+  await expect(page.locator("#fill")).toHaveAttribute("style", "width: 50%;");
+  await expect(page.locator("#streak")).toContainText("2-day streak");
+
+  await page.locator('input[data-id="two"]').evaluate((input) => input.click());
+  await expect(page.locator("#count")).toHaveText("2 of 2 done");
+  await expect(page.locator("#fill")).toHaveAttribute("style", "width: 100%;");
+  await expect(page.locator("#streak")).toContainText("3-day streak");
+
+  await page.locator('input[data-id="one"]').evaluate((input) => input.click());
+  await expect(page.locator("#count")).toHaveText("1 of 2 done");
+  await expect(page.locator("#streak")).toContainText("2-day streak");
+});
+
 test("the water goal opens the group and checks the habit without clicking its checkbox", async ({ page }) => {
   const initial = await habitState(page);
   await page.evaluate(() => {
@@ -132,6 +159,100 @@ test("water resets when the local date changes", async ({ page }) => {
   await expect(page.locator("#cups .full")).toHaveCount(0);
 });
 
+test("journal drafts survive other updates and saving awards XP only once", async ({ page }) => {
+  const initial = await page.evaluate(() => {
+    S.jr = {};
+    for (let i = 1; i <= 31; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      S.jr[dkey(date)] = "Earlier entry " + i;
+    }
+    drawJr();
+    return { xp: S.xp, entries: { ...S.jr } };
+  });
+  const journal = page.locator("#jt");
+  await journal.fill("   ");
+  await page.locator("#jsave").evaluate((button) => button.click());
+  await expect(page.locator("#toast")).toContainText("Write a little something first");
+  expect(await page.evaluate(() => ({ xp: S.xp, entries: { ...S.jr } }))).toEqual(initial);
+
+  await journal.fill("  Thank you 🌙  ");
+  await page.locator('#cups button[aria-label="Cup 3"]').evaluate((button) => button.click());
+  await page.evaluate(() => render());
+  await expect(journal).toHaveValue("  Thank you 🌙  ");
+  await page.locator("#jsave").evaluate((button) => button.click());
+  await expect(journal).toHaveValue("Thank you 🌙");
+  await expect(page.locator("#jst")).toHaveText("Saved today ✓");
+  expect(await page.evaluate(() => ({ xp: S.xp, count: Object.keys(S.jr).length })))
+    .toEqual({ xp: initial.xp + 10, count: 30 });
+  const expectedKeys = Object.keys(initial.entries).sort().slice(2);
+  expect(await page.evaluate(() => Object.keys(S.jr).filter((key) => key !== today()).sort()))
+    .toEqual(expectedKeys);
+  await expect(page.locator("#jl .jrow")).toHaveCount(3);
+
+  await journal.fill("Updated entry");
+  await page.locator("#jsave").evaluate((button) => button.click());
+  expect(await page.evaluate(() => S.xp)).toBe(initial.xp + 10);
+  await journal.fill("x".repeat(610));
+  await expect(journal).toHaveValue("x".repeat(600));
+  await page.locator("#jsave").evaluate((button) => button.click());
+  await page.reload();
+  await expect(journal).toHaveValue("x".repeat(600));
+});
+
+test("the journal resets on the next day and renders saved history safely", async ({ page }) => {
+  await page.clock.install({ time: new Date(2026, 0, 1, 23, 59, 50) });
+  await page.reload();
+  await page.evaluate(() => {
+    S.jr = {};
+    drawJr();
+  });
+  await page.locator("#jt").fill("Thankful 🌙 <b>today</b>");
+  await page.locator("#jsave").evaluate((button) => button.click());
+  await page.locator("#jt").fill("Unsaved draft");
+  await page.clock.fastForward(25000);
+  await expect(page.locator("#jt")).toHaveValue("");
+  await expect(page.locator("#jst")).toHaveText("");
+  const previous = page.locator("#jl .jrow").first();
+  const text = previous.locator(":scope > span");
+  await expect(text).toContainText("Thankful");
+  await expect(text.locator(".ic svg")).toHaveCount(1);
+  await expect(text).toContainText("<b>today</b>");
+  await expect(text.locator("b")).toHaveCount(0);
+});
+
+test("weekly chart shows seven accurate daily totals and updates with habit changes", async ({ page }) => {
+  await page.evaluate(() => {
+    S.tasks = [{ id: "one" }, { id: "two" }];
+    S.checks = {};
+    const counts = [0, 1, 2, 1, 0, 1, 2];
+    counts.forEach((count, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - index));
+      S.checks[dkey(date)] = {
+        one: count >= 1,
+        two: count >= 2,
+      };
+    });
+    render();
+  });
+  await expect(page.locator("#week .xh b")).toHaveText(" This week");
+  await expect(page.locator("#week .wcol")).toHaveCount(7);
+  await expect(page.locator("#week .wp")).toHaveText(["0", "1", "2", "1", "0", "1", "2"]);
+  await expect(page.locator("#wavg")).toHaveText("avg 50% per day");
+  await expect(page.locator("#week .wcol").last()).toHaveClass(/td/);
+  await expect.poll(() =>
+    page.locator("#week .wbar i").evaluateAll((bars) => bars.map((bar) => bar.style.height)),
+  ).toEqual(["0%", "50%", "100%", "50%", "0%", "50%", "100%"]);
+
+  await page.evaluate(() => {
+    S.checks[today()] = { one: true, two: false };
+    render();
+  });
+  await expect(page.locator("#week .wp").last()).toHaveText("1");
+  await expect(page.locator("#wavg")).toHaveText("avg 43% per day");
+});
+
 test("React renders habit text and emoji icons through repeated updates", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -155,8 +276,10 @@ test("restoring a backup refreshes the React habit list", async ({ page }) => {
     data.tasks.push({ id: "c999", g: "morning", t: "Restored habit" });
     data.checks[today()] = { c999: true };
     data.water = { d: today(), n: 3 };
+    data.jr[today()] = "Restored journal";
     return JSON.stringify({ data });
   });
+  await page.locator("#jt").fill("Unsaved draft");
   await page.locator("#ufile").setInputFiles({
     name: "backup.json",
     mimeType: "application/json",
@@ -165,9 +288,11 @@ test("restoring a backup refreshes the React habit list", async ({ page }) => {
   const restored = page.locator("#list .item").filter({ hasText: "Restored habit" });
   await expect(restored.locator("input")).toBeChecked();
   await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
+  await expect(page.locator("#jt")).toHaveValue("Restored journal");
   await page.reload();
   await expect(restored.locator("input")).toBeChecked();
   await expect(page.locator("#cups .full")).toHaveCount(3);
+  await expect(page.locator("#jt")).toHaveValue("Restored journal");
 });
 
 test("category and navigation icons stay pixel art after rerender and navigation", async ({ page }) => {

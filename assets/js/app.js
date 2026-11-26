@@ -96,8 +96,6 @@ function renderHabitGroups(d, c, effects) {
 function renderHabitProgress(c) {
   const n = S.tasks.filter((t) => c[t.id]).length,
     tot = S.tasks.length;
-  $("fill").style.width = (tot ? (n / tot) * 100 : 0) + "%";
-  $("count").textContent = n + " of " + tot + " done";
   let st = 0,
     dt = new Date();
   if (!S.days[today()]) dt.setDate(dt.getDate() - 1);
@@ -105,7 +103,14 @@ function renderHabitProgress(c) {
     st++;
     dt.setDate(dt.getDate() - 1);
   }
-  $("streak").textContent = st ? "🔥 " + st + "-day streak" : "";
+  DailyWalkReact.renderProgressSummary({
+    completed: n,
+    total: tot,
+    percent: tot ? (n / tot) * 100 : 0,
+    streak: st,
+    icon: icoSvg,
+    iconTextParts,
+  });
   const sbT = "🔥" + st;
   if ($("sb").textContent !== sbT) {
     $("sb").textContent = sbT;

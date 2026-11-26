@@ -1,17 +1,10 @@
 import { useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
+import { IconText } from "./icon-text.jsx";
 
 const root = createRoot(document.getElementById("list"));
 let renderId = 0;
-
-function IconText({ text, icon, iconTextParts }) {
-  return iconTextParts(String(text)).map((part, index) =>
-    part.icon
-      ? <span key={index} className="ic" aria-hidden="true" dangerouslySetInnerHTML={{ __html: icon(part.icon) }} />
-      : part.text,
-  );
-}
 
 function HabitRow({ task, checks, effects, icon, iconTextParts, defaultIcons, groupIcons, onCheck, onRemove }) {
   const now = new Date();

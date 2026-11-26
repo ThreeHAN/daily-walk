@@ -67,32 +67,14 @@
         </div>
         <div class="xbar"><i id="xfill"></i></div>
       </div>
-      <div class="bar"><i id="fill"></i></div>
-      <div class="stat"><span id="count"></span><span id="streak"></span></div>
+      <div id="progress-summary"></div>
       <div id="list"></div>
       <div class="xc">
         <div class="xh"><b>💧 Water</b><span id="wn"></span></div>
         <div class="cups" id="cups"></div>
       </div>
-      <div class="xc">
-        <div class="xh">
-          <b>🙏 Gratitude &amp; prayer journal</b><span id="jst"></span>
-        </div>
-        <textarea
-          id="jt"
-          rows="3"
-          maxlength="600"
-          placeholder="What are you thankful for today? Anything on your heart?"
-        ></textarea
-        ><button class="done" id="jsave" type="button">
-          Save today’s entry (+10 XP)
-        </button>
-        <div id="jl"></div>
-      </div>
-      <div class="xc">
-        <div class="xh"><b>📈 This week</b><span id="wavg"></span></div>
-        <div class="wk7" id="wk7"></div>
-      </div>
+      <div class="xc" id="journal"></div>
+      <div class="xc" id="week"></div>
       <button class="reset" id="reset">Uncheck everything</button>
     </main>
     <main id="pg-t" hidden>
@@ -902,7 +884,7 @@
     <script src="assets/js/core/storage.js"></script>
     <script src="assets/js/core/state.js?v=pixel-categories-1"></script>
     <script src="assets/js/ui/icon-art.js?v=organization-1"></script>
-    <script src="assets/js/ui/icons.js?v=react-habits-1"></script>
+    <script src="assets/js/ui/icons.js?v=react-progress-1"></script>
     <script src="assets/js/core/runtime.js"></script>
     <script src="assets/js/features/buddies.js?v=organization-1"></script>
     <script src="assets/js/features/buddy-art.js?v=organization-1"></script>
@@ -914,11 +896,11 @@
     <script src="assets/js/features/world-map.js?v=world-land-1"></script>
     <script src="assets/js/features/town.js?v=organization-1"></script>
     <script src="assets/js/features/town-progress.js"></script>
-    <script src="assets/js/features/habits.js?v=react-water-1"></script>
+    <script src="assets/js/features/habits.js?v=react-weekly-1"></script>
     <script src="assets/js/features/collection.js?v=pixel-flame-1"></script>
     <script src="assets/js/features/tutorial.js?v=pixel-traveler-1"></script>
     <script src="assets/js/core/accounts.js"></script>
-    <script src="assets/js/generated/react-ui.js?v=react-water-1"></script>
-    <script src="assets/js/app.js?v=react-water-1"></script>
+    <script src="assets/js/generated/react-ui.js?v=react-progress-1"></script>
+    <script src="assets/js/app.js?v=react-progress-1"></script>
   </body>
 </html>

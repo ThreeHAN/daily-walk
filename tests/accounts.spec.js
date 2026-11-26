@@ -58,6 +58,46 @@ test("water progress stays separate when switching profiles", async ({ page }) =
   await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
 });
 
+test("journal drafts are replaced with the selected profile's saved entry", async ({ page }) => {
+  await page.locator("#jt").fill("Admin journal");
+  await click(page, "#jsave");
+  await click(page, "#ubar");
+  await click(page, "#uadd");
+  const playerEntry = await page.locator("#jt").inputValue();
+  await page.locator("#jt").fill("Unsaved player draft");
+  await click(page, "#ubar");
+  await page.locator("#ulist .uitem").filter({ hasText: "Admin" })
+    .getByRole("button", { name: "Switch" })
+    .evaluate((button) => button.click());
+  await expect(page.locator("#jt")).toHaveValue("Admin journal");
+  await click(page, "#ubar");
+  await page.locator("#ulist .uitem").filter({ hasText: "Player 2" })
+    .getByRole("button", { name: "Switch" })
+    .evaluate((button) => button.click());
+  await expect(page.locator("#jt")).toHaveValue(playerEntry);
+});
+
+test("journal save failures remain visible and can be retried", async ({ page }) => {
+  await page.evaluate(() => {
+    window.originalSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key.includes(":u:")) throw new DOMException("Storage full", "QuotaExceededError");
+      return window.originalSetItem.call(this, key, value);
+    };
+  });
+  await page.locator("#jt").fill("Journal while offline");
+  await click(page, "#jsave");
+  await expect(page.locator("#ubstat")).toContainText("not saved");
+  await expect(page.locator("#jt")).toHaveValue("Journal while offline");
+  await page.evaluate(() => {
+    Storage.prototype.setItem = window.originalSetItem;
+  });
+  await click(page, "#jsave");
+  await expect(page.locator("#ubstat")).toContainText("Saved");
+  await page.reload();
+  await expect(page.locator("#jt")).toHaveValue("Journal while offline");
+});
+
 test("save failures remain visible, block profile creation, and recover", async ({
   page,
 }) => {

@@ -163,33 +163,18 @@ function waterGoal() {
     handleHabitCheck(task, true, day);
 }
 function drawJr() {
-  const d = today(),
-    t = S.jr[d] || "";
-  $("jt").value = t;
-  $("jst").textContent = t ? "Saved today ✓" : "";
-  const L = $("jl");
-  L.innerHTML = "";
-  Object.keys(S.jr)
-    .sort()
-    .reverse()
-    .filter((k) => k !== d)
-    .slice(0, 3)
-    .forEach((k) => {
-      const r = document.createElement("div");
-      r.className = "jrow";
-      const b = document.createElement("b");
-      b.textContent = new Date(k + "T12:00:00").toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      });
-      const sp = document.createElement("span");
-      sp.textContent = S.jr[k];
-      r.append(b, sp);
-      L.appendChild(r);
-    });
+  const day = today();
+  DailyWalkReact.renderJournal({
+    day,
+    entry: String(S.jr[day] || ""),
+    entries: S.jr,
+    onSave: saveJournal,
+    icon: icoSvg,
+    iconTextParts,
+  });
 }
-$("jsave").onclick = () => {
-  const v = $("jt").value.trim();
+function saveJournal(draft) {
+  const v = draft.trim();
   if (!v) {
     toast("Write a little something first 🙏");
     return;
@@ -209,44 +194,16 @@ $("jsave").onclick = () => {
     burst(r.left + 40, r.top, 12, CONF);
     if (lvOf(S.xp) > lb) levelUp(lvOf(S.xp));
   } else toast("Entry updated ✓");
-};
-const wkPrev = {};
+}
 function drawWeek() {
-  const box = $("wk7");
-  box.innerHTML = "";
-  const tot = S.tasks.length || 1;
-  let sum = 0;
-  for (let k = 6; k >= 0; k--) {
-    const dt = new Date();
-    dt.setDate(dt.getDate() - k);
-    const key = dkey(dt),
-      c = S.checks[key] || {};
-    const n = S.tasks.filter((t) => c[t.id]).length,
-      pct = Math.round((n / tot) * 100);
-    sum += pct;
-    const col = document.createElement("div");
-    col.className = "wcol" + (k === 0 ? " td" : "");
-    const bar = document.createElement("div");
-    bar.className = "wbar";
-    const f = document.createElement("i");
-    f.style.height = (wkPrev[key] || 0) + "%";
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        f.style.height = pct + "%";
-      }),
-    );
-    wkPrev[key] = pct;
-    bar.appendChild(f);
-    const l = document.createElement("span");
-    l.className = "wl";
-    l.textContent = dt.toLocaleDateString(undefined, { weekday: "narrow" });
-    const pp = document.createElement("span");
-    pp.className = "wp";
-    pp.textContent = n;
-    col.append(bar, l, pp);
-    box.appendChild(col);
-  }
-  $("wavg").textContent = "avg " + Math.round(sum / 7) + "% per day";
+  DailyWalkReact.renderWeeklyChart({
+    tasks: S.tasks,
+    checks: S.checks,
+    now: new Date(),
+    previousWidths: (drawWeek.previousWidths ||= {}),
+    icon: icoSvg,
+    iconTextParts,
+  });
 }
 function mealsNow() {
   const hr = new Date().getHours() + new Date().getMinutes() / 60,
