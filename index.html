@@ -458,6 +458,7 @@
     <div class="modal" id="pm">
       <div class="sheet" role="dialog" aria-label="Profile">
         <div class="grab"></div>
+        <div id="profile-react-shell" hidden></div>
         <div id="v-menu">
           <div class="banner">
             <div class="stage">
@@ -472,56 +473,7 @@
             </div>
             <div id="profile-banner"></div>
           </div>
-          <button class="card2" id="go-wd" type="button">
-            <span class="ci g1"><i class="ic" data-i="wardrobe"></i></span>
-            <div>
-              <b>Wardrobe &amp; traveler</b
-              ><span>Change your appearance, clothes, pets and town gear</span>
-            </div>
-            <em class="arr">›</em>
-          </button>
-          <button class="card2" id="go-lv" type="button">
-            <span class="ci g2"><i class="ic" data-i="star"></i></span>
-            <div>
-              <b>Levels &amp; rewards</b
-              ><span>See your progress and what you can unlock</span>
-            </div>
-            <em class="arr">›</em>
-          </button>
-          <button class="card2" id="go-info" type="button">
-            <span class="ci g3"><i class="ic" data-i="profile-card"></i></span>
-            <div>
-              <b>My info</b
-              ><span>Your name, traveler’s name &amp; streak stats</span>
-            </div>
-            <em class="arr">›</em>
-          </button>
-          <button class="card2" id="go-ix" type="button">
-            <span class="ci g1"><i class="ic" data-i="book"></i></span>
-            <div>
-              <b>People index</b><span>People you have met on your journey</span>
-            </div>
-            <em class="arr">›</em>
-          </button>
-          <button class="card2" id="go-tour" type="button">
-            <span class="ci g3"><i class="ic" data-i="tour-map"></i></span>
-            <div>
-              <b>Show app tour</b
-              ><span>Replay the quick interactive guide</span>
-            </div>
-            <em class="arr">›</em>
-          </button>
-          <button class="card2" id="go-grad" type="button" hidden>
-            <span class="ci g2">🎓</span>
-            <div>
-              <b>Graduate to town</b
-              ><span
-                >Max level! Move your buddy into town &amp; start a new
-                one</span
-              >
-            </div>
-            <em class="arr">›</em>
-          </button>
+          <div id="profile-menu"></div>
           <div id="google-auth"></div>
           <button class="done" id="pdone" type="button">Done</button>
         </div>
@@ -759,23 +711,23 @@
     <script src="assets/js/core/storage.js"></script>
     <script src="assets/js/core/state.js?v=startup-choice-1"></script>
     <script src="assets/js/ui/icon-art.js?v=habit-icons-2"></script>
-    <script src="assets/js/ui/icons.js?v=react-profile-info-1"></script>
+    <script src="assets/js/ui/icons.js?v=react-profile-shell-1"></script>
     <script src="assets/js/core/runtime.js"></script>
     <script src="assets/js/features/buddies.js?v=organization-1"></script>
     <script src="assets/js/features/buddy-art.js?v=organization-1"></script>
     <script src="assets/js/features/buddy-render.js?v=streak-no-pet-1"></script>
     <script src="assets/js/features/pets.js?v=pixel-pets-1"></script>
-    <script src="assets/js/features/profile.js?v=react-profile-info-1"></script>
+    <script src="assets/js/features/profile.js?v=react-profile-shell-2"></script>
     <script src="assets/js/features/town-data.js?v=organization-1"></script>
     <script src="assets/js/features/town-scene.js?v=town-birds-1"></script>
     <script src="assets/js/features/world-map.js?v=travel-landscape-1"></script>
-    <script src="assets/js/features/town.js?v=react-buddy-stats-1"></script>
+    <script src="assets/js/features/town.js?v=react-profile-menu-1"></script>
     <script src="assets/js/features/town-progress.js"></script>
     <script src="assets/js/features/habits.js?v=sync-draft-1"></script>
-    <script src="assets/js/features/collection.js?v=react-profile-streak-1"></script>
-    <script src="assets/js/features/tutorial.js?v=startup-choice-1"></script>
+    <script src="assets/js/features/collection.js?v=react-profile-menu-1"></script>
+    <script src="assets/js/features/tutorial.js?v=react-profile-menu-1"></script>
     <script src="assets/js/core/accounts.js?v=react-leaderboard-summary-1"></script>
-    <script src="assets/js/generated/react-ui.js?v=react-profile-info-1"></script>
-    <script src="assets/js/app.js?v=onboarding-1"></script>
+    <script src="assets/js/generated/react-ui.js?v=react-profile-shell-2"></script>
+    <script src="assets/js/app.js?v=react-profile-menu-1"></script>
   </body>
 </html>

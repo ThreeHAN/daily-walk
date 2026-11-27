@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot } from "../shared/react-root.js";
 import { createPortal } from "react-dom";
 import { createClient } from "@supabase/supabase-js";
 import { linkProfile, newProfileId, storedProfileLink } from "./profile-link.js";

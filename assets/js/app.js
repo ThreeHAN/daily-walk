@@ -264,6 +264,7 @@ function openCloudProfile(ownerId, cloudId, remote, { appearance, skipSplash = f
   finishStartup({ skipSplash });
 }
 
+initProfileMenu();
 DailyWalkReact.renderGoogleAuth({
   needsOnboarding: !stateLoadError && !startupHasLegacy && readStoredUsers().length === 0,
   appearanceDefaults: Object.fromEntries(Object.keys(APPEARANCE_OPTIONS).map((key) => [key, S.p[key]])),

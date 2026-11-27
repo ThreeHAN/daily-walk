@@ -23,10 +23,10 @@ function openIx() {
 }
 $("ixh").onclick = openIx;
 $("ixbtn").onclick = openIx;
-$("go-ix").onclick = () => {
+function openIndexFromProfile() {
   $("pm").classList.remove("show");
   openIx();
-};
+}
 $("ix").onclick = (e) => {
   if (e.target === $("ix")) $("ix").classList.remove("show");
 };

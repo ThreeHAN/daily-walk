@@ -9,12 +9,13 @@ export { renderLeaderboardList } from "./leaderboard/leaderboard-list.jsx";
 export { renderLeaderboardSummary } from "./leaderboard/leaderboard-summary.jsx";
 export { renderJournal } from "./habits/journal.jsx";
 export { renderLevelHero } from "./progress/level-hero.jsx";
-export { renderLevelList } from "./progress/level-list.jsx";
 export { renderLevelTitle } from "./progress/level-title.jsx";
 export { renderLevelUp } from "./progress/level-up.jsx";
 export { renderPeopleIndex } from "./world/people-index.jsx";
-export { renderProfileBanner } from "./profile/profile-banner.jsx";
-export { renderProfileInfo } from "./profile/profile-info.jsx";
+export {
+  renderProfileBanner, renderProfileInfo, renderProfileMenu, renderWardrobeTabs,
+  renderWardrobePanels, renderWardrobeLevel, renderLevelList, showProfileView,
+} from "./profile/profile-shell.jsx";
 export { renderProfileList } from "./profile/profile-list.jsx";
 export { renderProfilePets } from "./profile/profile-pets.jsx";
 export { renderProfileStatus } from "./profile/profile-status.jsx";
@@ -24,7 +25,5 @@ export { renderTownBirds } from "./world/town-birds.jsx";
 export { renderTravelLandscape } from "./world/travel-landscape.jsx";
 export { renderTutorial } from "./tutorial/tutorial.jsx";
 export { renderWater } from "./habits/water-tracker.jsx";
-export { renderWardrobePanels } from "./profile/wardrobe-panels.jsx";
-export { renderWardrobeTabs } from "./profile/wardrobe-tabs.jsx";
 export { renderWeeklyChart } from "./habits/weekly-chart.jsx";
 export { renderWorldTownList } from "./world/world-town-list.jsx";

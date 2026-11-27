@@ -1,11 +1,7 @@
-import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
 import { IconText } from "../shared/icon-text.jsx";
 import { LevelTitle } from "./level-title.jsx";
 
-const root = createRoot(document.getElementById("lvlist"));
-
-function LevelList({ levels, currentLevel, icon, iconTextParts }) {
+export function LevelList({ levels, currentLevel, icon, iconTextParts }) {
   const text = (value) => <IconText text={value} icon={icon} iconTextParts={iconTextParts} />;
   return levels.map((level) => (
     <div key={level.number} className={"lvrow" +
@@ -20,8 +16,4 @@ function LevelList({ levels, currentLevel, icon, iconTextParts }) {
       <span>{text(level.number < currentLevel ? "✓" : level.number === currentLevel ? "⭐" : "🔒")}</span>
     </div>
   ));
-}
-
-export function renderLevelList(props) {
-  flushSync(() => root.render(<LevelList {...props} />));
 }

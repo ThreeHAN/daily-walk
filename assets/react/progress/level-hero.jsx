@@ -1,5 +1,5 @@
 import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
+import { createRoot } from "../shared/react-root.js";
 import { IconText } from "../shared/icon-text.jsx";
 import { LevelTitle } from "./level-title.jsx";
 

@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
-import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
 import { IconText } from "../shared/icon-text.jsx";
 import { LevelTitle } from "../progress/level-title.jsx";
 
-const root = createRoot(document.getElementById("profile-banner"));
-let revision = 0;
-
-function ProfileBanner({ buddy, level, title, progress, percent, streak, xp, name, icon, iconTextParts }) {
+export function ProfileBanner({ buddy, level, title, progress, percent, streak, xp, name, icon, iconTextParts }) {
   const [width, setWidth] = useState(0);
   useEffect(() => {
     let second;
@@ -38,8 +33,4 @@ function ProfileBanner({ buddy, level, title, progress, percent, streak, xp, nam
       </div>
     </>
   );
-}
-
-export function renderProfileBanner(props) {
-  flushSync(() => root.render(<ProfileBanner key={revision++} {...props} />));
 }

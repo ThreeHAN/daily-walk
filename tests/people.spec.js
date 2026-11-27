@@ -27,6 +27,31 @@ test("all People Index buttons show the book and open the index", async ({ page 
   }
 });
 
+test("icon hydration respects marked React roots without excluding legacy content", async ({ page }) => {
+  const result = await page.evaluate(() => {
+    const react = document.createElement("div");
+    react.setAttribute("data-react-root", "");
+    react.innerHTML = '<span>🔥</span><i data-i="star"></i>';
+    const legacy = document.createElement("div");
+    legacy.innerHTML = '<span>🔥</span><i data-i="star"></i>';
+    document.body.append(react, legacy);
+    iconize(react);
+    iconize(legacy);
+    hydrate();
+    const result = {
+      marked: document.querySelector("#profile-menu").hasAttribute("data-react-root"),
+      reactText: react.querySelector("span").textContent,
+      reactIcon: react.querySelector("i").children.length,
+      legacyTextIcon: legacy.querySelector("span .ic svg") !== null,
+      legacyIcon: legacy.querySelector("i svg") !== null,
+    };
+    react.remove();
+    legacy.remove();
+    return result;
+  });
+  expect(result).toEqual({ marked: true, reactText: "🔥", reactIcon: 0, legacyTextIcon: true, legacyIcon: true });
+});
+
 test("profile combines appearance and town gear in one wardrobe", async ({ page }) => {
   await click(page, "#prof");
   await expect(page.locator("#go-bud")).toHaveCount(0);
@@ -57,6 +82,28 @@ test("profile combines appearance and town gear in one wardrobe", async ({ page 
   await expect(page.locator('#go-tour [data-i="tour-map"] svg path[fill="#f3dfaa"]')).toHaveCount(1);
   await click(page, "#go-tour");
   await expect(page.locator("#tour")).toBeVisible();
+});
+
+test("profile menu buttons remain interactive through navigation and reopening", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.locator("#prof").click();
+  await expect(page.locator("#go-grad")).toBeHidden();
+  for (const [button, panel] of [["#go-wd", "#v-wd"], ["#go-lv", "#v-lv"], ["#go-info", "#v-info"]]) {
+    await page.locator(button).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(panel)).toBeVisible();
+    await page.locator(`${panel} [data-back]`).click();
+  }
+  await page.locator("#go-ix").click();
+  await expect(page.locator("#ix")).toHaveClass(/show/);
+  await page.locator("#ixdone").click();
+  await page.locator("#prof").click();
+  await expect(page.locator('#go-wd [data-i="wardrobe"] svg')).toHaveCount(1);
+  await page.locator("#go-tour").click();
+  await expect(page.locator("#tour")).toBeVisible();
+  await page.locator("#tour-skip").click();
+  expect(errors).toEqual([]);
 });
 
 test("wardrobe tabs retain selection and icons across repeated updates", async ({ page }) => {

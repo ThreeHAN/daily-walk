@@ -711,7 +711,7 @@ function finishCut(kind) {
   }, 700);
 }
 $("gbtn").onclick = askGrad;
-$("go-grad").onclick = () => {
+function openGraduationFromProfile() {
   $("pm").classList.remove("show");
   askGrad();
-};
+}

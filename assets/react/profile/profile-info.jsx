@@ -1,12 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
 import { IconText } from "../shared/icon-text.jsx";
 
-const root = createRoot(document.getElementById("profile-info"));
-let revision = 0;
-
-function ProfileInfo({ name, buddy, streak, best, total, animate, onName, onBuddy, icon, iconTextParts, revision }) {
+export function ProfileInfo({ name, buddy, streak, best, total, animate, onName, onBuddy, icon, iconTextParts, revision }) {
   const nameInput = useRef(null);
   const buddyInput = useRef(null);
   const [values, setValues] = useState([0, 0, 0]);
@@ -53,8 +48,4 @@ function ProfileInfo({ name, buddy, streak, best, total, animate, onName, onBudd
       </div>
     </>
   );
-}
-
-export function renderProfileInfo(props) {
-  flushSync(() => root.render(<ProfileInfo {...props} revision={++revision} />));
 }

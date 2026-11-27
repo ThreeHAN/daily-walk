@@ -1,8 +1,7 @@
 import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
+import { createRoot } from "../shared/react-root.js";
 
 const roots = {
-  wardrobe: createRoot(document.getElementById("wardrobe-level")),
   levelUp: createRoot(document.getElementById("lut")),
 };
 
@@ -18,7 +17,6 @@ export function LevelTitle({ level, id, children }) {
 export function renderLevelTitle(place, level, title) {
   flushSync(() => roots[place].render(
     <>
-      {place === "wardrobe" && <span className="wardrobe-level-number">Lv {level}</span>}
       <LevelTitle level={level}>{title}</LevelTitle>
     </>
   ));

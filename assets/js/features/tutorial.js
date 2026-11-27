@@ -230,6 +230,11 @@ function maybeStartTour() {
   }
 }
 
+function startTourFromProfile() {
+  $("pm").classList.remove("show");
+  startTour();
+}
+
 function initTutorial() {
   document.addEventListener("click", (event) => {
     if ($("tour").hidden || $("tour").contains(event.target)) return;
@@ -243,10 +248,6 @@ function initTutorial() {
       event.stopPropagation();
     }
   }, true);
-  $("go-tour").onclick = () => {
-    $("pm").classList.remove("show");
-    startTour();
-  };
   $("spgo").addEventListener("click", () => setTimeout(maybeStartTour, 150));
   $("sp").addEventListener("click", (event) => {
     if (event.target === $("sp")) setTimeout(maybeStartTour, 150);

@@ -408,7 +408,7 @@ function buildWd() {
   });
   const p = S.p;
   const wardrobeLevel = lvOf(S.xp);
-  DailyWalkReact.renderLevelTitle("wardrobe", wardrobeLevel, ttl(wardrobeLevel));
+  DailyWalkReact.renderWardrobeLevel(wardrobeLevel, ttl(wardrobeLevel));
   renderWardrobePanel(wTab, p);
   popTok = null;
 }
@@ -428,57 +428,81 @@ function fillLv() {
     iconTextParts,
   });
 }
-function fillInfo(anim) {
-  const cur = curStreak,
-    best = Math.max(streakBest(), cur);
-  let tot = 0;
-  Object.values(S.checks).forEach((o) => {
-    Object.values(o).forEach((v) => {
-      if (v) tot++;
+const profileBridge = {
+  getSnapshot() {
+    let total = 0;
+    Object.values(S.checks).forEach((checks) => {
+      Object.values(checks).forEach((checked) => {
+        if (checked) total++;
+      });
     });
-  });
-  DailyWalkReact.renderProfileInfo({
-    name: S.p.name,
-    buddy: S.p.buddy,
-    streak: cur,
-    best,
-    total: tot,
-    animate: !!anim,
-    icon: icoSvg,
-    iconTextParts,
-    onName: (value) => {
+    return {
+      name: S.p.name,
+      buddy: S.p.buddy,
+      xp: S.xp,
+      streak: curStreak,
+      best: Math.max(streakBest(), curStreak),
+      total,
+      level: lvInfo(),
+    };
+  },
+  actions: {
+    setName(value) {
       S.p.name = value.trim();
       save();
       render();
     },
-    onBuddy: (value) => {
+    setBuddy(value) {
       S.p.buddy = value.trim();
       save();
       fillInfo();
     },
+    openWardrobe() {
+      wTab = "gear";
+      colorEditor = null;
+      view("wd");
+    },
+    openLevels: () => view("lv"),
+    openInfo: () => view("info"),
+    openIndex: () => openIndexFromProfile(),
+    openTour: () => startTourFromProfile(),
+    openGraduation: () => openGraduationFromProfile(),
+  },
+};
+function fillInfo(anim) {
+  const { name, buddy, streak, best, total } = profileBridge.getSnapshot();
+  DailyWalkReact.renderProfileInfo({
+    name,
+    buddy,
+    streak,
+    best,
+    total,
+    animate: !!anim,
+    icon: icoSvg,
+    iconTextParts,
+    onName: profileBridge.actions.setName,
+    onBuddy: profileBridge.actions.setBuddy,
   });
   renderUsers();
 }
 function view(v) {
-  ["menu", "wd", "lv", "info"].forEach((x) => {
-    $("v-" + x).hidden = x !== v;
-  });
+  DailyWalkReact.showProfileView(v);
   rerun($("v-" + v), "fx");
   if (v === "menu") {
-    const I = lvInfo();
+    const snapshot = profileBridge.getSnapshot();
+    const I = snapshot.level;
     DailyWalkReact.renderProfileBanner({
-      buddy: S.p.buddy || "Buddy",
+      buddy: snapshot.buddy || "Buddy",
       level: I.n,
       title: ttl(I.n),
       progress: I.max ? "Max level reached! 🎉" : I.into + " / " + I.need + " XP to level " + (I.n + 1),
       percent: I.pct,
-      streak: curStreak,
-      xp: S.xp,
-      name: S.p.name || "Friend",
+      streak: snapshot.streak,
+      xp: snapshot.xp,
+      name: snapshot.name || "Friend",
       icon: icoSvg,
       iconTextParts,
     });
-    $("go-grad").hidden = true;
   }
   if (v === "wd") buildWd();
   if (v === "lv") fillLv();
@@ -488,13 +512,20 @@ $("prof").onclick = () => {
   view("menu");
   $("pm").classList.add("show");
 };
-$("go-wd").onclick = () => {
-  wTab = "gear";
-  colorEditor = null;
-  view("wd");
-};
-$("go-lv").onclick = () => view("lv");
-$("go-info").onclick = () => view("info");
+function initProfileMenu() {
+  const actions = profileBridge.actions;
+  DailyWalkReact.renderProfileMenu({
+    icon: icoSvg,
+    actions: {
+      "go-wd": actions.openWardrobe,
+      "go-lv": actions.openLevels,
+      "go-info": actions.openInfo,
+      "go-ix": actions.openIndex,
+      "go-tour": actions.openTour,
+      "go-grad": actions.openGraduation,
+    },
+  });
+}
 document.querySelectorAll("[data-back]").forEach((b) => {
   b.onclick = () => view("menu");
 });

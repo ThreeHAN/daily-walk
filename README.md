@@ -149,12 +149,22 @@ Google sign-in enables automatic synchronization between devices.
 
 The scripts in `index.html` are classic scripts loaded in dependency order.
 Keep that order when moving code, and update the version in a changed script's
-URL so browsers do not use a stale cached copy. React exclusively owns the
-contents of `#tour`, `#town-birds`, `#travel-landscape`, `#dashboard-heading`, `#ubar`, `#ulist`, `#profile-banner`, `#profile-info`, `#wtabs`, `#wbody`, `#hero`, `#lvlist`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, `#spw`, `#lblist`, `#leaderboard-summary`, `#ix`, `#bbody`, `#buddy-stats`, `#glist`, and
-`#progress-summary`; legacy code must not mutate those subtrees except for the
-guided tour's temporary highlight on `#ix .sheet`. React also owns the contents
-of `#wardrobe-level` and `#lut` for their shared level-title badges and the
-four `.profile-pet` containers. The wardrobe panels receive their choices and
+URL so browsers do not use a stale cached copy. React roots use the shared
+`createRoot` helper in `assets/react/shared/react-root.js`, which marks their
+containers with `data-react-root`. Portal targets use the same marker. Legacy
+icon hydration and text replacement skip marked subtrees; legacy code must not
+mutate their contents except for the guided tour's temporary highlight on
+`#ix .sheet`.
+
+The profile shell renders its banner, menu, info, wardrobe tabs, wardrobe
+panels, level list, and wardrobe level title through one root and portals into
+the existing screen containers. Profile pets, account list, and sign-in remain
+independent roots. The shell controls which existing profile view is
+visible; avatar artwork and account controls remain owned by legacy code.
+`profileBridge` supplies current profile snapshots and actions to the profile
+UI on explicit refreshes. The existing state owner, save logic, and sync remain
+authoritative. Profile logic supplies level-up rewards and controls the
+celebration's timing and dismissal. The wardrobe panels receive their choices and
 actions from the legacy state owner. The water tracker and habit list call the same
 habit-check action. The journal keeps an editable React draft and reloads the
 saved entry when the profile, backup, or local date changes. The weekly chart
@@ -166,8 +176,8 @@ receives current tasks and per-day checks from the legacy state owner.
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dashboard heading and clock                     | [`dashboard-heading.jsx`](assets/react/habits/dashboard-heading.jsx), [`habits.js`](assets/js/features/habits.js)                                  |
 | Profile status bar                              | [`profile-status.jsx`](assets/react/profile/profile-status.jsx), [`accounts.js`](assets/js/core/accounts.js)                                       |
-| Profile banner, pets, and wardrobe              | [`profile-banner.jsx`](assets/react/profile/profile-banner.jsx), [`profile-pets.jsx`](assets/react/profile/profile-pets.jsx), [`wardrobe-tabs.jsx`](assets/react/profile/wardrobe-tabs.jsx), [`wardrobe-panels.jsx`](assets/react/profile/wardrobe-panels.jsx), [`profile.js`](assets/js/features/profile.js) |
-| XP, levels, and rewards                         | [`level-hero.jsx`](assets/react/progress/level-hero.jsx), [`level-list.jsx`](assets/react/progress/level-list.jsx), [`level-title.jsx`](assets/react/progress/level-title.jsx), [`profile.js`](assets/js/features/profile.js) |
+| Profile banner, menu, pets, and wardrobe        | [`profile-shell.jsx`](assets/react/profile/profile-shell.jsx), [`profile-banner.jsx`](assets/react/profile/profile-banner.jsx), [`profile-menu.jsx`](assets/react/profile/profile-menu.jsx), [`profile-pets.jsx`](assets/react/profile/profile-pets.jsx), [`wardrobe-tabs.jsx`](assets/react/profile/wardrobe-tabs.jsx), [`wardrobe-panels.jsx`](assets/react/profile/wardrobe-panels.jsx), [`profile.js`](assets/js/features/profile.js) |
+| XP, levels, and rewards                         | [`level-hero.jsx`](assets/react/progress/level-hero.jsx), [`level-list.jsx`](assets/react/progress/level-list.jsx), [`level-title.jsx`](assets/react/progress/level-title.jsx), [`level-up.jsx`](assets/react/progress/level-up.jsx), [`profile.js`](assets/js/features/profile.js) |
 | New habit editor                                | [`habit-editor.jsx`](assets/react/habits/habit-editor.jsx), [`habits.js`](assets/js/features/habits.js)                                            |
 | Habit checklist, progress, water, journal, and weekly activity | [`habit-list.jsx`](assets/react/habits/habit-list.jsx), [`progress-summary.jsx`](assets/react/habits/progress-summary.jsx), [`water-tracker.jsx`](assets/react/habits/water-tracker.jsx), [`journal.jsx`](assets/react/habits/journal.jsx), [`weekly-chart.jsx`](assets/react/habits/weekly-chart.jsx), [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js) |
 | Pixel traveler and appearance                   | [`buddy-render.js`](assets/js/features/buddy-render.js), [`buddies.js`](assets/js/features/buddies.js), [`profile.js`](assets/js/features/profile.js) |

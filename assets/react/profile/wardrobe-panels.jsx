@@ -1,9 +1,5 @@
 import { Fragment } from "react";
-import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
 import { IconText } from "../shared/icon-text.jsx";
-
-const root = createRoot(document.getElementById("wbody"));
 
 function ChoiceSection({ title, options, value, popping, onSelect }) {
   return (
@@ -53,7 +49,7 @@ function ClothingBlocks({ blocks, text }) {
   });
 }
 
-function WardrobePanels({ tab, sections, glasses, gear, blocks, pets, best, icon, iconTextParts, onPet }) {
+export function WardrobePanels({ tab, sections, glasses, gear, blocks, pets, best, icon, iconTextParts, onPet }) {
   const text = (value) => <IconText text={value} icon={icon} iconTextParts={iconTextParts} />;
   if (tab === "gear" || tab === "tops" || tab === "bottoms")
     return <ClothingBlocks blocks={blocks} text={text} />;
@@ -107,8 +103,4 @@ function WardrobePanels({ tab, sections, glasses, gear, blocks, pets, best, icon
       ))}
     </>
   );
-}
-
-export function renderWardrobePanels(props) {
-  flushSync(() => root.render(<WardrobePanels {...props} />));
 }
