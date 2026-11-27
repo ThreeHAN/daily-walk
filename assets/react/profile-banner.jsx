@@ -7,7 +7,7 @@ import { LevelTitle } from "./level-title.jsx";
 const root = createRoot(document.getElementById("profile-banner"));
 let revision = 0;
 
-function ProfileBanner({ buddy, level, title, gender, progress, percent, streak, xp, name, icon, iconTextParts }) {
+function ProfileBanner({ buddy, level, title, progress, percent, streak, xp, name, icon, iconTextParts }) {
   const [width, setWidth] = useState(0);
   useEffect(() => {
     let second;
@@ -24,9 +24,12 @@ function ProfileBanner({ buddy, level, title, gender, progress, percent, streak,
     <>
       <h2 id="mt">{text(buddy)}</h2>
       <div className="mst" id="mst">
-        {"Level " + level + " · "}<LevelTitle level={level}>{title}</LevelTitle>{gender ? " · " + gender : ""}
+        <LevelTitle level={level}>{title}</LevelTitle>
       </div>
-      <div className="xbar"><i id="mxf" style={{ width: width + "%" }} /></div>
+      <div className="xbar">
+        <i id="mxf" style={{ width: width + "%" }} />
+        <span className="profile-level-number">Level {level}</span>
+      </div>
       <div className="xtxt" id="mxt">{text(progress)}</div>
       <div className="pills">
         <span className="pill" id="mp1">{text("🔥 " + streak + "-day streak")}</span>

@@ -1,10 +1,11 @@
 const { test, expect } = require("@playwright/test");
+const { continueLocally } = require("./helpers/onboarding");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 
 test("town and planet unlocks follow completion progress", async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   const progress = await page.evaluate(() => {
     S.nb.cur = "meadow";
     S.nb.view = "meadow";
@@ -41,7 +42,7 @@ test("town and planet unlocks follow completion progress", async ({ page }) => {
 test("town walkers alternate their steps and respect reduced motion", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 0, 1, 12));
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   const steps = await page.evaluate(() => {
     go("t");
     townStop();
@@ -83,7 +84,7 @@ test("town birds fly and flap, while reduced motion keeps them still in the sky"
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.evaluate(() => go("t"));
   const birds = page.locator("#town-birds .fly");
   await expect(birds).toHaveCount(3);
@@ -141,7 +142,7 @@ test("town birds fly and flap, while reduced motion keeps them still in the sky"
 test("buddy stats show totals and ties, refresh while open, and preserve data", async ({ page }) => {
   await page.clock.install({ time: new Date(2026, 0, 1, 12) });
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.evaluate(() => {
@@ -198,7 +199,7 @@ test("buddy stats show totals and ties, refresh while open, and preserve data", 
 
 test("buddy details switch between traveler and pet without changing their saved data", async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const before = await page.evaluate(() => {
@@ -247,7 +248,7 @@ test("buddy details switch between traveler and pet without changing their saved
 test("resident companions follow their owners without changing player or resident saves", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 0, 1, 12));
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   const before = await page.evaluate(() => {
     S.nb.cur = "meadow";
     S.p.pet = "puppy";
@@ -304,7 +305,7 @@ test("resident companions follow their owners without changing player or residen
 test("people sleep in built homes overnight and wake in every town", async ({ page }) => {
   await page.clock.install({ time: new Date(2026, 0, 1, 19, 59) });
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.evaluate(() => {
     S.res = freshState("").res;
     S.nb.cur = "meadow";

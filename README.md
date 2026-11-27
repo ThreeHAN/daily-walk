@@ -77,6 +77,7 @@ Google sign-in enables automatic synchronization between devices.
     │   ├── buddy-stats.jsx
     │   ├── dashboard-heading.jsx
     │   ├── google-auth.jsx
+    │   ├── onboarding.jsx
     │   ├── profile-link.js
     │   ├── profile-sync.js
     │   ├── habit-editor.jsx
@@ -134,7 +135,7 @@ Google sign-in enables automatic synchronization between devices.
   partials.
 - `assets/css/styles.css` is generated from Sass and remains the stylesheet
   loaded by Chrome and other browsers.
-- `assets/react/` contains Google sign-in, the guided tour, town birds and travel landscape, dashboard heading, profile banner, profile pets, status and list, wardrobe tabs, level hero and list, habit list and editor,
+- `assets/react/` contains onboarding, Google sign-in, the guided tour, town birds and travel landscape, dashboard heading, profile banner, profile pets, status and list, wardrobe tabs, level hero and list, habit list and editor,
   progress summary, water tracker, journal, weekly chart, streak week, leaderboard list, people index, buddy details, buddy stats, and world town list React components.
   Their generated classic script,
   `assets/js/generated/react-ui.js`, is checked in so the site also works
@@ -198,7 +199,7 @@ receives current tasks and per-day checks from the legacy state owner.
 | Shared icon artwork and rendering               | [`icon-art.js`](assets/js/ui/icon-art.js), [`icons.js`](assets/js/ui/icons.js)                                                             |
 | Streak celebration                              | [`streak-week.jsx`](assets/react/streak-week.jsx), [`collection.js`](assets/js/features/collection.js)                                    |
 | Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js), [`profile-list.jsx`](assets/react/profile-list.jsx), [`leaderboard-list.jsx`](assets/react/leaderboard-list.jsx) |
-| Google sign-in and profile sync                 | [`google-auth.jsx`](assets/react/google-auth.jsx), [`profile-link.js`](assets/react/profile-link.js), [`profile-sync.js`](assets/react/profile-sync.js) |
+| Onboarding, Google sign-in, and profile sync    | [`onboarding.jsx`](assets/react/onboarding.jsx), [`google-auth.jsx`](assets/react/google-auth.jsx), [`profile-link.js`](assets/react/profile-link.js), [`profile-sync.js`](assets/react/profile-sync.js) |
 | Guided introduction                             | [`tutorial.jsx`](assets/react/tutorial.jsx), [`tutorial.js`](assets/js/features/tutorial.js)                                                |
 | Defaults, saved-state hydration, and migrations | [`state.js`](assets/js/core/state.js)                                                                                                       |
 
@@ -278,6 +279,11 @@ receives current tasks and per-day checks from the legacy state owner.
   and saves it. `hydrateState()` supplies missing fields and migrates older
   data. Preserve existing storage keys and backup compatibility when changing
   the state shape, and test migrations against older saves.
+- A new browser starts with a welcome screen and avatar editor, followed by
+  Google sign-in or local mode and the guided tour. Avatar choices are kept
+  temporarily in the browser tab until a new profile is created; signing into
+  an existing cloud profile opens it unchanged. Existing local profiles skip
+  these new-user steps.
 - Google sign-in is optional and available in the main profile menu on the
   hosted site or local HTTP server. At launch, signed-out users choose Google
   sign-in or a local profile. Sign-in opens the account's existing cloud profile

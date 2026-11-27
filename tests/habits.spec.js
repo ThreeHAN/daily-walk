@@ -1,10 +1,11 @@
 const { test, expect } = require("@playwright/test");
+const { continueLocally } = require("./helpers/onboarding");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 
 test.beforeEach(async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
 });
 
 async function clickHabit(page, id) {
@@ -66,7 +67,7 @@ test("finishing all habits persists progress and rewards across reloads", async 
   );
 
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await habitState(page)).toEqual(completed);
   await expect(page.locator('input[data-id="wake"]')).toBeChecked();
 });
@@ -138,7 +139,7 @@ test("the water goal opens the group and checks the habit without clicking its c
   await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
   expect((await habitState(page)).xp).toBe(initial.xp + 10);
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator('input[data-id="water"]')).toBeChecked();
   await expect(page.locator("#wn")).toHaveText("8 / 8 cups");
 });
@@ -154,7 +155,7 @@ test("the water goal does not award XP again when the habit is already checked",
 test("water resets when the local date changes", async ({ page }) => {
   await page.clock.install({ time: new Date(2026, 0, 1, 23, 59, 50) });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.locator('#cups button[aria-label="Cup 3"]').evaluate((button) => button.click());
   await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
   await page.clock.fastForward(25000);
@@ -162,28 +163,29 @@ test("water resets when the local date changes", async ({ page }) => {
   await expect(page.locator("#cups .full")).toHaveCount(0);
 });
 
-test("dashboard heading updates greeting, clock, and date without losing its icons", async ({ page }) => {
+test("dashboard heading updates greeting, clock, and date without a greeting icon", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.clock.install({ time: new Date(2026, 0, 1, 4, 59, 50) });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#dashboard-heading h1")).toHaveText("Daily Walk");
   await expect(page.locator("#clock")).toContainText("Good night, Player 1");
   const expectedTime = await page.evaluate(() =>
     new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
   );
   await expect(page.locator("#clock")).toContainText(expectedTime);
-  await expect(page.locator("#clock .ic svg")).toHaveCount(1);
+  await expect(page.locator("#clock svg")).toHaveCount(0);
   const initialDate = await page.locator("#date").textContent();
   await page.clock.fastForward(25000);
   await expect(page.locator("#clock")).toContainText("Good morning, Player 1");
-  await expect(page.locator("#clock .ic svg")).toHaveCount(1);
+  await expect(page.locator("#clock svg")).toHaveCount(0);
 
   for (const [hour, greeting] of [[12, "Good afternoon"], [17, "Good evening"], [20, "Good evening"]]) {
     await page.clock.setFixedTime(new Date(2026, 0, 1, hour));
     await page.evaluate(() => tickClock());
     await expect(page.locator("#clock")).toContainText(greeting);
+    await expect(page.locator("#clock svg")).toHaveCount(0);
   }
   await page.clock.setFixedTime(new Date(2026, 0, 2, 0, 1));
   await page.evaluate(() => tickClock());
@@ -230,14 +232,14 @@ test("journal drafts survive other updates and saving awards XP only once", asyn
   await expect(journal).toHaveValue("x".repeat(600));
   await page.locator("#jsave").evaluate((button) => button.click());
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(journal).toHaveValue("x".repeat(600));
 });
 
 test("the journal resets on the next day and renders saved history safely", async ({ page }) => {
   await page.clock.install({ time: new Date(2026, 0, 1, 23, 59, 50) });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.evaluate(() => {
     S.jr = {};
     drawJr();
@@ -325,7 +327,7 @@ test("restoring a backup refreshes the React habit list", async ({ page }) => {
   await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
   await expect(page.locator("#jt")).toHaveValue("Restored journal");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(restored.locator("input")).toBeChecked();
   await expect(page.locator("#cups .full")).toHaveCount(3);
   await expect(page.locator("#jt")).toHaveValue("Restored journal");
@@ -335,7 +337,7 @@ test("category and navigation icons stay pixel art after rerender and navigation
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.evaluate(() => {
     S.tasks.push({ id: "c999", g: "more", t: "My habit" });
     render();
@@ -372,7 +374,7 @@ test("exercise uses dumbbells and the cold shower has straight snowflake lines",
     save();
   });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   const icons = await page.evaluate(() => {
     const iconFor = (id) => document.querySelector(`input[data-id="${id}"]`).closest("label").querySelector(".hi").innerHTML;
     const artwork = (name) => {
@@ -471,7 +473,7 @@ test("the habit editor validates, previews choices, and saves them across reload
   const saved = await page.evaluate(() => S.tasks.find((task) => task.t === "Walk 🌙"));
   expect(saved).toMatchObject({ g: "exercise", ic: "runner", s: "Enjoy outside" });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate((id) => S.tasks.find((task) => task.id === id), saved.id)).toEqual(saved);
 
   await page.locator("#fab").evaluate((button) => button.click());
@@ -529,7 +531,7 @@ test("the level hero updates for habit and journal rewards and keeps its profile
   await expect(page.locator("#xpn")).toHaveText("20 / 80 XP");
   await expect(page.locator("#xfill")).toHaveAttribute("style", "width: 25%;");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#xpn")).toHaveText("20 / 80 XP");
   await page.locator("#hero").evaluate((element) => element.click());
   await expect(page.locator("#pm")).toHaveClass(/show/);

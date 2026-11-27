@@ -1,10 +1,11 @@
 const { test, expect } = require("@playwright/test");
+const { continueLocally } = require("./helpers/onboarding");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 
 test.beforeEach(async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
 });
 
 async function click(page, selector) {
@@ -60,7 +61,7 @@ test("leaderboard cards sort, import friends, and persist hidden accounts", asyn
   await expect(cara).toHaveCount(0);
   await expect(page.locator("#lbcnt")).toHaveText("3 Accounts");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await click(page, '.nv[data-p="l"]');
   await expect(cards.filter({ hasText: "Cara" })).toHaveCount(0);
   await click(page, "#lbreset");
@@ -131,7 +132,7 @@ test("profile changes and separate habit progress survive switching and reload",
   await expect(page.locator('input[data-id="cold"]')).not.toBeChecked();
 
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => CUR_UID)).toBe(firstId);
   await expect(page.locator('input[data-id="wake"]')).toBeChecked();
   await click(page, "#ubar");
@@ -178,7 +179,7 @@ test("profile list renders names safely, switches from the row, and deletes afte
     exists: localStorage.getItem(uKey(id)) !== null,
   }), secondId)).toEqual({ listed: false, exists: false });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await click(page, "#ubar");
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toHaveClass(/cur/);
@@ -216,7 +217,7 @@ test("the level hero refreshes when switching and restoring profiles", async ({ 
   await expect(page.locator("#lvb")).toHaveText("Lv 2");
   await expect(page.locator("#xpn")).toHaveText("20 / 160 XP");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#xpn")).toHaveText("20 / 160 XP");
 });
 
@@ -241,9 +242,9 @@ test("the dashboard greeting follows the active profile and restored name", asyn
     buffer: Buffer.from(backup),
   });
   await expect(page.locator("#clock")).toContainText("Restored");
-  await expect(page.locator("#clock .ic svg")).toHaveCount(2);
+  await expect(page.locator("#clock .ic svg")).toHaveCount(1);
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#clock")).toContainText("Restored");
 });
 
@@ -260,7 +261,7 @@ test("water progress stays separate when switching profiles", async ({ page }) =
   await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
   await expect(page.locator("#cups .full")).toHaveCount(3);
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
 });
 
@@ -301,7 +302,7 @@ test("journal save failures remain visible and can be retried", async ({ page })
   await click(page, "#jsave");
   await expect(page.locator("#ubstat")).toContainText("Saved");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#jt")).toHaveValue("Journal while offline");
 });
 
@@ -331,7 +332,7 @@ test("save failures remain visible, block profile creation, and recover", async 
   await click(page, 'input[data-id="cold"]');
   await expect(page.locator("#ubstat")).toContainText("Saved");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator('input[data-id="wake"]')).toBeChecked();
   await expect(page.locator('input[data-id="cold"]')).toBeChecked();
 });
@@ -358,7 +359,7 @@ test("a profile read failure does not replace or switch the current profile", as
   await expect(page.locator("#ubstat")).toContainText("Could not load");
   await expect(page.locator('input[data-id="cold"]')).toBeChecked();
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => CUR_UID)).toBe(secondId);
 });
 
@@ -383,7 +384,7 @@ test("a failed destination save leaves the current profile active", async ({ pag
   await expect(page.locator("#ubstat")).toContainText("not saved");
   await expect(page.locator('input[data-id="cold"]')).toBeChecked();
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => CUR_UID)).toBe(secondId);
   await expect(page.locator('input[data-id="cold"]')).toBeChecked();
 });
@@ -420,7 +421,7 @@ test("startup read failures never overwrite existing profiles", async ({ page })
     };
   });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#ubstat")).toContainText("Could not load");
   await page.evaluate(() => save());
   const unchanged = await page.evaluate(() =>
@@ -436,7 +437,7 @@ test("a corrupt profile index is not replaced on startup", async ({ page }) => {
     localStorage.setItem("dailywalk_admin_max:users:v3", "{invalid");
   });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#ubstat")).toContainText("Could not load");
   await page.evaluate(() => save());
   expect(
@@ -485,7 +486,7 @@ test("a failed profile deletion keeps its data and index", async ({ page }) => {
   }), firstId);
   expect(intact).toEqual({ listed: true, exists: true });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await click(page, "#ubar");
   await expect(page.locator("#ulist .uitem").filter({ hasText: "Player 1" })).toHaveCount(1);
 });

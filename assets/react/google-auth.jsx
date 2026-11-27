@@ -4,9 +4,11 @@ import { createPortal } from "react-dom";
 import { createClient } from "@supabase/supabase-js";
 import { linkProfile, newProfileId, storedProfileLink } from "./profile-link.js";
 import { connectCloudProfile, listCloudProfiles, readCloud, syncProfile } from "./profile-sync.js";
+import { AvatarSetup } from "./onboarding.jsx";
 
 const projectUrl = "https://dnnpakvhiipflpvmkymf.supabase.co";
 const publishableKey = "sb_publishable_lSHa1JshQ3lKb4k7MFtEcw_Kigs8Yy8";
+const onboardingKey = "dailywalk_admin_max:onboarding:v1";
 
 function StartupDialog({ children }) {
   const ref = useRef(null);
@@ -23,7 +25,8 @@ function StartupDialog({ children }) {
 }
 
 function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, replaceLocalProfile, backupCloudProfile,
-  hasCurrentLink, finishStartup, openCloudProfile, setSyncStatus: setBarSyncStatus }) {
+  hasCurrentLink, finishStartup, openCloudProfile, setSyncStatus: setBarSyncStatus,
+  needsOnboarding, appearanceDefaults, appearanceOptions, renderAvatar }) {
   const [client, setClient] = useState(null);
   const [session, setSession] = useState(null);
   const [busy, setBusy] = useState(true);
@@ -49,7 +52,34 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
   const reconnectSyncRef = useRef(false);
   const linkStateRef = useRef({ busy: false, ready: false });
   const retryLinkOwnerRef = useRef(null);
+  const onboardingRef = useRef(null);
+  const onboardingCheckedRef = useRef(false);
+  const [appearance, setAppearance] = useState(appearanceDefaults);
   const supported = window.location.protocol === "https:" || window.location.protocol === "http:";
+
+  function updateOnboarding(step, nextAppearance = appearance) {
+    try {
+      const draft = { step, appearance: nextAppearance };
+      sessionStorage.setItem(onboardingKey, JSON.stringify(draft));
+      onboardingRef.current = draft;
+      setAppearance(nextAppearance);
+      setStartupError("");
+      setStartup(step);
+    } catch (err) {
+      console.error("Could not save onboarding progress", err);
+      setStartupError("Could not save your setup. Check browser storage and try again.");
+    }
+  }
+
+  function finishOnboarding() {
+    if (!onboardingRef.current) return;
+    onboardingRef.current = null;
+    try {
+      sessionStorage.removeItem(onboardingKey);
+    } catch (err) {
+      console.error("Could not clear completed onboarding progress", err);
+    }
+  }
 
   useEffect(() => {
     if (!supported) {
@@ -96,6 +126,33 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
 
   useEffect(() => {
     if (busy || startup === "ready" || !["checking", "choice"].includes(startup)) return;
+    if (needsOnboarding && !onboardingCheckedRef.current) {
+      try {
+        const raw = sessionStorage.getItem(onboardingKey);
+        const draft = raw === null ? null : JSON.parse(raw);
+        if (draft && (!["welcome", "avatar", "choice"].includes(draft.step) ||
+            !draft.appearance || typeof draft.appearance !== "object" || Array.isArray(draft.appearance) ||
+            Object.keys(draft.appearance).length !== Object.keys(appearanceDefaults).length ||
+            Object.keys(appearanceDefaults).some((key) =>
+              draft.appearance[key] !== appearanceDefaults[key] &&
+              !appearanceOptions[key].some(([value]) => value === draft.appearance[key])))) {
+          throw new Error("Invalid onboarding progress.");
+        }
+        onboardingCheckedRef.current = true;
+        if (draft || !session) {
+          const currentDraft = draft || { step: "welcome", appearance: appearanceDefaults };
+          onboardingRef.current = currentDraft;
+          setAppearance(currentDraft.appearance);
+          setStartup(currentDraft.step);
+          return;
+        }
+      } catch (err) {
+        console.error("Could not load onboarding progress", err);
+        setStartupError("Could not load your setup. Check browser storage and retry.");
+        setStartup("setup-error");
+        return;
+      }
+    }
     if (!session) {
       setStartup("choice");
       return;
@@ -116,7 +173,8 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
         if (profiles.length === 1) {
           const remote = await readCloud(client, session, profiles[0].id);
           if (!current()) return;
-          openCloudProfile(session.user.id, profiles[0].id, remote);
+          openCloudProfile(session.user.id, profiles[0].id, remote, { skipSplash: !!onboardingRef.current });
+          finishOnboarding();
           setStartup("ready");
         } else {
           setStartupProfiles(profiles);
@@ -134,7 +192,7 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
     prepare();
     return () => { active = false; };
   }, [busy, client, session?.user?.id, session?.access_token, startup, startupAttempt,
-    hasCurrentLink, finishStartup, openCloudProfile]);
+    hasCurrentLink, finishStartup, openCloudProfile, needsOnboarding, appearanceDefaults, appearanceOptions]);
 
   useEffect(() => {
     queuedSyncRef.current = false;
@@ -382,11 +440,16 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
         const { error: signOutError } = await client.auth.signOut({ scope: "local" });
         if (signOutError) throw signOutError;
       }
-      finishStartup();
+      finishStartup({
+        appearance: onboardingRef.current?.appearance,
+        skipSplash: !!onboardingRef.current,
+      });
+      finishOnboarding();
       setStartup("ready");
     } catch (err) {
       console.error("Could not start a local profile", err);
-      setStartupError("Could not start locally. Check browser storage and try again.");
+      setStartupError(err.message === "Local profiles changed. Reload before continuing."
+        ? err.message : "Could not start locally. Check browser storage and try again.");
     }
   }
 
@@ -398,7 +461,8 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
         && sessionRef.current?.access_token === session.access_token;
       const remote = await readCloud(client, session, startupSelected);
       if (!current()) throw new Error("The signed-in account changed.");
-      openCloudProfile(session.user.id, startupSelected, remote);
+      openCloudProfile(session.user.id, startupSelected, remote, { skipSplash: !!onboardingRef.current });
+      finishOnboarding();
       setStartup("ready");
     } catch (err) {
       console.error("Could not open cloud profile", err);
@@ -410,7 +474,11 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
   function createCloudProfile() {
     setStartupError("");
     try {
-      openCloudProfile(session.user.id, null, null);
+      openCloudProfile(session.user.id, null, null, {
+        appearance: onboardingRef.current?.appearance,
+        skipSplash: !!onboardingRef.current,
+      });
+      finishOnboarding();
       setStartup("ready");
     } catch (err) {
       console.error("Could not create a cloud profile", err);
@@ -537,7 +605,14 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
 
   return (<>
     {startup !== "ready" && <StartupDialog>
-      <h2 id="startup-title">Welcome to Daily Walk</h2>
+      <h2 id="startup-title">{startup === "welcome" ? "Ready to begin your journey with Steadfast Steps?"
+        : startup === "avatar" ? "Edit your avatar" : "Welcome to Daily Walk"}</h2>
+      {startup === "welcome" && <button type="button" className="ubtn"
+        onClick={() => updateOnboarding("avatar")}>Ready</button>}
+      {startup === "avatar" && <AvatarSetup appearance={appearance} options={appearanceOptions}
+        renderAvatar={renderAvatar}
+        onChange={(key, value) => updateOnboarding("avatar", { ...appearance, [key]: value })}
+        onBack={() => updateOnboarding("welcome")} onNext={() => updateOnboarding("choice")} />}
       {startup === "choice" && <>
         <p>Sign in to use your cloud profile, or continue with a profile on this device.</p>
         {supported && <button type="button" className="ubtn" disabled={busy || !client} onClick={signIn}>Sign in with Google</button>}
@@ -569,6 +644,11 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
         }}>Retry</button>
         <button type="button" className="ubtn sec" onClick={useLocalProfile}>Continue locally</button>
       </>}
+      {startup === "setup-error" && <button type="button" className="ubtn" onClick={() => {
+        setStartupError("");
+        setStartup("checking");
+        setStartupAttempt((attempt) => attempt + 1);
+      }}>Retry</button>}
       {(startupError || error) && <p className="auth-error" role="alert">{startupError || error}</p>}
     </StartupDialog>}
     <div className="acct-box">

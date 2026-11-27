@@ -122,7 +122,7 @@ h1 {
 .banner {
   background: linear-gradient(160deg, #f2b774, #d97757 75%);
   border-radius: 24px;
-  padding: 14px 16px 18px;
+  padding: 30px 16px 18px;
   text-align: center;
   color: #fff;
   margin-bottom: 14px;
@@ -291,6 +291,19 @@ body:has(#pm.show #v-wd:not([hidden])) #buddy {
   font-weight: 600;
   margin: 2px 0 8px;
   opacity: 0.95;
+}
+.banner .xbar {
+  position: relative;
+  height: 20px;
+}
+.profile-level-number {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #251912;
+  font-size: 13px;
+  line-height: 1;
 }
 .xtxt {
   font-size: 12px;

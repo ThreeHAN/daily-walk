@@ -99,6 +99,25 @@
   margin: 4px 8px 4px 0;
   padding: 10px 14px;
 }
+.onboarding-avatar {
+  display: grid;
+  place-items: center;
+  margin: 8px auto;
+}
+.onboarding-avatar svg {
+  width: 100px;
+  height: 114px;
+}
+.onboarding-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0 12px;
+}
+.onboarding-fields select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+}
 .uitem {
   display: flex;
   align-items: center;

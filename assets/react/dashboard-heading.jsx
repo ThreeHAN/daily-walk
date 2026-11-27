@@ -6,7 +6,6 @@ const root = createRoot(document.getElementById("dashboard-heading"));
 
 function DashboardHeading({ now, name, icon, iconTextParts }) {
   const hour = now.getHours();
-  const symbol = hour < 5 ? "🌙" : hour < 12 ? "🌅" : hour < 17 ? "☀️" : hour < 20 ? "🌇" : "🌙";
   const greeting = hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const date = now.toLocaleDateString(undefined, {
     weekday: "long",
@@ -14,7 +13,7 @@ function DashboardHeading({ now, name, icon, iconTextParts }) {
     day: "numeric",
     year: "numeric",
   });
-  const clock = symbol + " " + greeting + (name ? ", " + name : "") +
+  const clock = greeting + (name ? ", " + name : "") +
     " · " + now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
   return (

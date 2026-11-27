@@ -1,10 +1,11 @@
 const { test, expect } = require("@playwright/test");
+const { continueLocally } = require("./helpers/onboarding");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 
 test.beforeEach(async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
 });
 
 async function click(page, selector) {
@@ -63,7 +64,7 @@ test("wardrobe tabs retain selection and icons across repeated updates", async (
   page.on("pageerror", (error) => errors.push(error.message));
   await page.evaluate(() => { S.tutorialDone = true; S.splash = today(); save(); });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await click(page, "#prof");
   await click(page, "#go-wd");
   const tabs = page.locator("#wtabs button");
@@ -156,7 +157,7 @@ test("levels and rewards reflect XP thresholds when reopened and after reload", 
   await expect(rows.nth(2)).not.toHaveClass(/cur|past/);
   await page.evaluate(() => { S.xp = 3600; save(); });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await click(page, "#prof");
   await click(page, "#go-lv");
   await expect(rows).toHaveCount(10);
@@ -164,6 +165,35 @@ test("levels and rewards reflect XP thresholds when reopened and after reload", 
   await expect(rows.filter({ hasText: "Legendary Grandmaster" })).toHaveCount(1);
   await expect(page.locator("#lvlist .lvrow.past")).toHaveCount(9);
   expect(errors).toEqual([]);
+});
+
+test("profile level overlays the progress bar without showing gender", async ({ page }) => {
+  for (const [width, gender] of [[320, "male"], [1000, "female"]]) {
+    await page.setViewportSize({ width, height: 720 });
+    await page.evaluate((value) => { S.p.gender = value; S.xp = LV_START(10); }, gender);
+    await click(page, "#prof");
+    const title = page.locator("#mst .level-title");
+    const level = page.locator("#profile-banner .profile-level-number");
+    await expect(title).toBeVisible();
+    await expect(level).toHaveText("Level 10");
+    await expect(page.locator("#mst")).not.toContainText(/male/i);
+    const layout = await page.evaluate(() => ({
+      bannerTop: document.querySelector("#v-menu .banner").getBoundingClientRect().top,
+      stageTop: document.querySelector("#v-menu .stage").getBoundingClientRect().top,
+      title: document.querySelector("#mst .level-title").getBoundingClientRect().toJSON(),
+      level: document.querySelector(".profile-level-number").getBoundingClientRect().toJSON(),
+      bar: document.querySelector("#profile-banner .xbar").getBoundingClientRect().toJSON(),
+      nameSize: parseFloat(getComputedStyle(document.querySelector("#mt")).fontSize),
+      levelSize: parseFloat(getComputedStyle(document.querySelector(".profile-level-number")).fontSize),
+    }));
+    expect(layout.level.y).toBeGreaterThanOrEqual(layout.title.bottom);
+    expect(layout.stageTop - layout.bannerTop).toBeGreaterThanOrEqual(30);
+    expect(layout.level.y).toBe(layout.bar.y);
+    expect(layout.level.height).toBe(layout.bar.height);
+    expect(layout.levelSize).toBeLessThan(layout.nameSize);
+    expect(await page.evaluate(() => S.p.gender)).toBe(gender);
+    await click(page, "#pdone");
+  }
 });
 
 test("supplied level titles load and fit throughout the traveler journey", async ({ page }) => {
@@ -190,7 +220,7 @@ test("supplied level titles load and fit throughout the traveler journey", async
   }
   await page.evaluate(() => save());
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#lvt")).toHaveText("Legendary Grandmaster");
   await expect(page.locator("#lvt")).toHaveAttribute("data-level", "10");
   await click(page, "#prof");
@@ -280,7 +310,7 @@ test("customizes and persists a pixel traveler and their clothes", async ({ page
   expect(before.avatar).toContain("#5c8c68");
   expect(before.avatar).toContain("#c94a4a");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => document.querySelector("#pal").innerHTML)).toBe(before.avatar);
   expect(await page.evaluate(() => [S.p.gender, S.p.skin, S.p.hair, S.p.hairColor, S.p.eyeColor, S.p.topStyle, S.p.topColor])).toEqual(before.person);
   await click(page, 'button[data-p="t"]');
@@ -293,7 +323,7 @@ test("saved blush is preserved without rendering or offering it", async ({ page 
     save();
   });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => ({
     saved: S.p.ex.cheeks,
     matchesWithoutBlush: personLayers(S.p) === personLayers({ ...S.p, ex: { ...S.p.ex, cheeks: false } }),
@@ -392,7 +422,7 @@ test("keeps the preview alongside the options and preserves old gender values un
   });
   expect(pinned).toBe(true);
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => S.p.gender)).toBe("nonbinary");
   await expect(page.locator("#buddy")).toBeVisible();
   await click(page, "#prof");
@@ -400,7 +430,7 @@ test("keeps the preview alongside the options and preserves old gender values un
   await page.getByRole("button", { name: "Male", exact: true })
     .evaluate((button) => button.click());
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => S.p.gender)).toBe("male");
 });
 
@@ -418,7 +448,7 @@ test("gender can be changed repeatedly with distinct appearance and without chan
     save();
   });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   if (await page.locator("#sp").isVisible()) await page.locator("#spgo").click();
   if (await page.locator("#tour").isVisible()) await page.locator("#tour-skip").click();
   await page.locator("#prof").click();
@@ -447,7 +477,7 @@ test("gender can be changed repeatedly with distinct appearance and without chan
   expect(await preview.evaluate((e) => getComputedStyle(e).opacity)).toBe("1");
   expect(await preview.evaluate((e) => getComputedStyle(e).animationName)).toBe("none");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => S.p.gender)).toBe("male");
   await page.locator("#prof").click();
   await openAppearance(page);
@@ -528,7 +558,7 @@ test("habit levels unlock optional warrior gear and keep equipped gear on reload
   expect(gear.avatar).toContain("warrior-sword");
   expect(gear.avatar).toContain("warrior-shield");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => [S.p.topStyle, S.p.hat, S.p.ex.sword, S.p.ex.shield])).toEqual(["armor", "knight", true, true]);
 });
 
@@ -555,7 +585,7 @@ test("equipped warrior armor and helmet can be removed and re-equipped", async (
   await expect(armor).toHaveAttribute("aria-pressed", "false");
   await expect(helmet).toHaveAttribute("aria-pressed", "false");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => [S.p.topStyle, S.p.hat])).toEqual(["tee", "none"]);
   await page.locator("#prof").click();
   await page.locator("#go-wd").click();
@@ -675,7 +705,7 @@ test("the expanded tour guides every feature, preserves progress, and can be rep
   }
   expect(await page.evaluate(() => JSON.stringify({ tasks: S.tasks, checks: S.checks, xp: S.xp, town: S.nb.cur, player: S.p }))).toBe(before);
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => S.tutorialDone)).toBe(true);
   await expect(page.locator("#tour")).toBeHidden();
   await click(page, "#prof");
@@ -693,11 +723,11 @@ test("the tour starts for an unfinished profile and skipping remains saved", asy
     save();
   });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#tour")).toBeVisible();
   await page.locator("#tour-skip").click();
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => S.tutorialDone)).toBe(true);
   await page.waitForTimeout(600);
   await expect(page.locator("#tour")).toBeHidden();
@@ -766,7 +796,7 @@ test("the people index records only people tapped and keeps encounters across to
   await expect(page.locator("#ix")).not.toContainText("Equip Buddy");
   const met = await page.evaluate(() => S.peopleMet);
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => S.peopleMet)).toEqual(met);
   await click(page, "#ixh");
   await expect(page.locator("#ixl .ixc")).toHaveCount(2);
@@ -831,7 +861,7 @@ test("old saves hydrate without losing existing progress and backups restore new
   });
   await expect(page.locator("#toast")).toContainText("restored");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => [S.p.skin, S.p.gender, S.p.genderLocked, S.peopleMet]))
     .toEqual(["deep", "female", undefined, backup.peopleMet]);
   expect(await page.evaluate(() => [S.p.pantsStyle, S.p.shoeStyle])).toEqual(["cargo", "desert"]);
@@ -846,7 +876,7 @@ test("old saves hydrate without losing existing progress and backups restore new
     buffer: Buffer.from(JSON.stringify({ data: old })),
   });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => [S.p.gender, S.p.genderLocked])).toEqual(["unspecified", undefined]);
   const undressed = structuredClone(old);
   undressed.p.topStyle = "none";
@@ -857,7 +887,7 @@ test("old saves hydrate without losing existing progress and backups restore new
     buffer: Buffer.from(JSON.stringify({ data: undressed })),
   });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => [S.p.topStyle, S.p.pants, S.p.shoes, S.xp]))
     .toEqual(["tee", "black", old.p.shoes, old.xp]);
 });

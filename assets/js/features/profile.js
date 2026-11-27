@@ -174,6 +174,13 @@ const TABS = [
   ["face", "😎 Face"],
   ["extras", "✨ Extras"],
 ];
+const APPEARANCE_OPTIONS = {
+  gender: [["female", "Female"], ["male", "Male"]],
+  skin: cn(SKIN),
+  hair: [["none", "Bald"], ["short", "Short"], ["long", "Long"], ["curly", "Curly"], ["ponytail", "Ponytail"]],
+  hairColor: cn(HAIR_COLOR),
+  eyeColor: cn(EYE_COLOR),
+};
 function sec(host, title, list, cur, pick, cat) {
   const l = document.createElement("div");
   l.className = "fl";
@@ -315,20 +322,11 @@ function buildWd() {
         "Hats and glasses can cover hair or eyes.",
       ),
     );
-    sec(h, "Gender", [
-      ["female", "Female"],
-      ["male", "Male"],
-    ], p.gender, (v) => setP("gender", v));
-    sec(h, "Skin color", cn(SKIN), p.skin, (v) => setP("skin", v));
-    sec(h, "Hair type", [
-      ["none", "Bald"],
-      ["short", "Short"],
-      ["long", "Long"],
-      ["curly", "Curly"],
-      ["ponytail", "Ponytail"],
-    ], p.hair, (v) => setP("hair", v));
-    sec(h, "Hair color", cn(HAIR_COLOR), p.hairColor, (v) => setP("hairColor", v));
-    sec(h, "Eye color", cn(EYE_COLOR), p.eyeColor, (v) => setP("eyeColor", v));
+    sec(h, "Gender", APPEARANCE_OPTIONS.gender, p.gender, (v) => setP("gender", v));
+    sec(h, "Skin color", APPEARANCE_OPTIONS.skin, p.skin, (v) => setP("skin", v));
+    sec(h, "Hair type", APPEARANCE_OPTIONS.hair, p.hair, (v) => setP("hair", v));
+    sec(h, "Hair color", APPEARANCE_OPTIONS.hairColor, p.hairColor, (v) => setP("hairColor", v));
+    sec(h, "Eye color", APPEARANCE_OPTIONS.eyeColor, p.eyeColor, (v) => setP("eyeColor", v));
   }
   if (wTab === "warrior") {
     h.appendChild(el("div", "fl", "Earn XP from habits to unlock warrior gear. Tap an equipped item to take it off."));
@@ -572,7 +570,6 @@ function view(v) {
       buddy: S.p.buddy || "Buddy",
       level: I.n,
       title: ttl(I.n),
-      gender: S.p.gender === "female" || S.p.gender === "male" ? cap(S.p.gender) : "",
       progress: I.max ? "Max level reached! 🎉" : I.into + " / " + I.need + " XP to level " + (I.n + 1),
       percent: I.pct,
       streak: curStreak,

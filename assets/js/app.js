@@ -181,18 +181,31 @@ function getSavedProfileForSync(id = CUR_UID) {
   }
   return { id, state: stored };
 }
-function finishStartup() {
+function finishStartup({ appearance, skipSplash = false } = {}) {
   if (!startupPending) return;
+  if (appearance && (readStoredUsers().length || readStoredJson(K_LEGACY) !== null)) {
+    throw new Error("Local profiles changed. Reload before continuing.");
+  }
+  const previousAppearance = S.p;
+  const previousSplash = S.splash;
+  if (appearance) S.p = { ...S.p, ...appearance };
+  if (appearance && skipSplash) S.splash = today();
   startupPending = false;
   if (!save()) {
+    S.p = previousAppearance;
+    S.splash = previousSplash;
     startupPending = true;
     throw new Error("Could not save this profile on this device.");
   }
-  showSplash();
+  if (appearance) {
+    paint();
+    render();
+  }
+  if (!skipSplash) showSplash();
   maybeStartTour();
 }
 
-function openCloudProfile(ownerId, cloudId, remote) {
+function openCloudProfile(ownerId, cloudId, remote, { appearance, skipSplash = false } = {}) {
   if (stateLoadError) throw stateLoadError;
   const storedUsers = readStoredUsers();
   if (storedUsers.length && JSON.stringify(storedUsers) !== JSON.stringify(USERS)) {
@@ -210,6 +223,8 @@ function openCloudProfile(ownerId, cloudId, remote) {
   } else {
     nextId = "u_cloud_" + DailyWalkReact.newProfileId();
     nextState = cloudId ? hydrateState(remote.state) : newPlayerState("Player 1");
+    if (!cloudId && appearance) nextState.p = { ...nextState.p, ...appearance };
+    if (!cloudId && appearance && skipSplash) nextState.splash = today();
     const previousUsers = storedUsers.length ? storedUsers : startupHasLegacy ? USERS : [];
     const nextUsers = [...previousUsers, profileMetadata(nextId, nextState, previousUsers)];
     const writes = [
@@ -246,10 +261,14 @@ function openCloudProfile(ownerId, cloudId, remote) {
   render();
   drawWater();
   drawJr();
-  finishStartup();
+  finishStartup({ skipSplash });
 }
 
 DailyWalkReact.renderGoogleAuth({
+  needsOnboarding: !stateLoadError && !startupHasLegacy && readStoredUsers().length === 0,
+  appearanceDefaults: Object.fromEntries(Object.keys(APPEARANCE_OPTIONS).map((key) => [key, S.p[key]])),
+  appearanceOptions: APPEARANCE_OPTIONS,
+  renderAvatar: (appearance) => personLayers({ ...newPlayerState().p, ...appearance }),
   getLocalProfile: () => getSavedProfileForSync(),
   getSyncLocalProfile: getSavedProfileForSync,
   getSyncTargets: (ownerId) => [

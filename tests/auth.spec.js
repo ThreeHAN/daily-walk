@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { continueLocally } = require("./helpers/onboarding");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 
@@ -36,12 +37,13 @@ function snapshotFor(save, owner) {
   };
 }
 
-test("Google sign-in is on the main profile menu", async ({ page }) => {
+test("Google sign-in is above Done on the main profile menu", async ({ page }) => {
   await serveApp(page);
   await page.goto(site);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await openAccounts(page);
   await expect(page.locator("#v-menu #google-auth")).toBeVisible();
+  await expect(page.locator("#google-auth + #pdone")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible();
   await page.locator("#go-info").evaluate((button) => button.click());
   await expect(page.locator("#google-auth")).toBeHidden();
@@ -87,7 +89,7 @@ test("Google sign-in and sign-out preserve an existing local profile", async ({ 
   });
 
   await page.goto(site);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.evaluate(() => {
     S.p.name = "Local Walker";
     S.xp = 123;
@@ -367,7 +369,7 @@ test("Google sign-in redirects back to the GitHub Pages app path", async ({ page
     await route.fulfill({ body: "Google authorization" });
   });
   await page.goto(`${site}/daily-walk/`);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await openAccounts(page);
   const signIn = page.getByRole("button", { name: "Sign in with Google" });
   await expect(signIn).toBeEnabled();
@@ -379,7 +381,7 @@ test("Google sign-in redirects back to the GitHub Pages app path", async ({ page
 test("OAuth callback errors are visible without changing local profiles", async ({ page }) => {
   await serveApp(page);
   await page.goto(`${site}/#error=access_denied&error_description=Denied`);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await openAccounts(page);
   await expect(page.locator("#google-auth [role=alert]")).toContainText("Could not initialize sign-in");
   await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeEnabled();
@@ -388,7 +390,7 @@ test("OAuth callback errors are visible without changing local profiles", async 
 
 test("direct file usage keeps profiles available without offering sign-in", async ({ page }) => {
   await page.goto(pathToFileURL(path.join(root, "index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await openAccounts(page);
   await expect(page.locator("#google-auth")).toContainText("Sign-in requires the hosted site or local development server");
   await page.locator("#go-info").evaluate((button) => button.click());

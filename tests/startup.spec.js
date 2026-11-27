@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { continueLocally, reachStartupChoice } = require("./helpers/onboarding");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
@@ -6,7 +7,7 @@ const site = "http://localhost:43999";
 const supabase = "https://dnnpakvhiipflpvmkymf.supabase.co";
 const headers = { "Access-Control-Allow-Origin": "*" };
 
-async function setup(page, cloud) {
+async function setup(page, cloud, { skipOnboarding = false } = {}) {
   const writes = [];
   await page.route(`${site}/**`, async (route) => {
     const url = new URL(route.request().url());
@@ -46,6 +47,7 @@ async function setup(page, cloud) {
     return route.fulfill({ headers, json: true });
   });
   await page.goto(site);
+  if (!skipOnboarding) await reachStartupChoice(page);
   return writes;
 }
 
@@ -78,6 +80,102 @@ async function signIn(page, button) {
   await page.goto(`${site}/?code=test-code`);
 }
 
+test("first-time onboarding edits an avatar before choosing local mode and starts the tour", async ({ page }) => {
+  await setup(page, new Map(), { skipOnboarding: true });
+  const welcome = page.getByRole("dialog", { name: "Ready to begin your journey with Steadfast Steps?" });
+  await expect(welcome).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("dailywalk_admin_max:users:v3"))).toBeNull();
+  await welcome.getByRole("button", { name: "Ready" }).click();
+  const avatar = page.getByRole("dialog", { name: "Edit your avatar" });
+  const initialPreview = await avatar.getByRole("img", { name: "Traveler preview" }).innerHTML();
+  await avatar.getByLabel("Gender").selectOption("female");
+  await avatar.getByLabel("Skin color").selectOption("deep");
+  await avatar.getByLabel("Hair type").selectOption("curly");
+  await avatar.getByLabel("Hair color").selectOption("auburn");
+  await avatar.getByLabel("Eye color").selectOption("green");
+  expect(await avatar.getByRole("img", { name: "Traveler preview" }).innerHTML()).not.toBe(initialPreview);
+  await page.reload();
+  await expect(avatar.getByLabel("Skin color")).toHaveValue("deep");
+  await avatar.getByRole("button", { name: "Continue", exact: true }).click();
+  expect(await page.evaluate(() => localStorage.getItem("dailywalk_admin_max:users:v3"))).toBeNull();
+  await page.getByRole("button", { name: "Continue locally" }).click();
+  expect(await page.evaluate(() => {
+    const { gender, skin, hair, hairColor, eyeColor } = readStoredProfile(CUR_UID).p;
+    return { gender, skin, hair, hairColor, eyeColor };
+  })).toEqual({ gender: "female", skin: "deep", hair: "curly", hairColor: "auburn", eyeColor: "green" });
+  await expect(page.locator("#tour")).toBeVisible();
+  await expect(page.locator("#tour-title")).toHaveText("Your daily checklist");
+  await expect(page.locator("#sp")).not.toHaveClass(/show/);
+  await page.getByRole("button", { name: "Skip" }).click();
+  await page.reload();
+  await continueLocally(page);
+  await expect(page.locator("#sp")).not.toHaveClass(/show/);
+});
+
+test("onboarding storage failures are visible and can be retried", async ({ page }) => {
+  await setup(page, new Map(), { skipOnboarding: true });
+  await page.evaluate(() => {
+    window.originalStorageSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (this === sessionStorage && key === "dailywalk_admin_max:onboarding:v1") throw new Error("Storage blocked");
+      return window.originalStorageSetItem.call(this, key, value);
+    };
+  });
+  await page.getByRole("button", { name: "Ready" }).click();
+  await expect(page.getByRole("alert")).toContainText("Could not save your setup");
+  expect(await page.evaluate(() => localStorage.getItem("dailywalk_admin_max:users:v3"))).toBeNull();
+  await page.evaluate(() => { Storage.prototype.setItem = window.originalStorageSetItem; });
+  await page.getByRole("button", { name: "Ready" }).click();
+  await expect(page.getByRole("dialog", { name: "Edit your avatar" })).toBeVisible();
+});
+
+test("onboarding does not replace a profile created in another tab", async ({ page, context }) => {
+  await setup(page, new Map(), { skipOnboarding: true });
+  await page.getByRole("button", { name: "Ready" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  const other = await context.newPage();
+  await setup(other, new Map());
+  await continueLocally(other);
+  const existing = await other.evaluate(() => ({
+    id: CUR_UID, users: localStorage.getItem(K_USERS), profile: localStorage.getItem(uKey(CUR_UID)),
+  }));
+  await page.getByRole("button", { name: "Continue locally" }).click();
+  await expect(page.getByRole("alert")).toContainText("Local profiles changed. Reload before continuing.");
+  expect(await page.evaluate((id) => ({
+    users: localStorage.getItem(K_USERS), profile: localStorage.getItem(uKey(id)),
+  }), existing.id)).toEqual({ users: existing.users, profile: existing.profile });
+});
+
+test("avatar choices survive Google sign-in and are used for a new cloud profile", async ({ page }) => {
+  const cloud = new Map();
+  const writes = await setup(page, cloud, { skipOnboarding: true });
+  await page.getByRole("button", { name: "Ready" }).click();
+  await page.getByLabel("Skin color").selectOption("deep");
+  await page.getByLabel("Hair type").selectOption("long");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await signIn(page, page.getByRole("dialog").getByRole("button", { name: "Sign in with Google" }));
+  expect(await page.evaluate(() => localStorage.getItem("dailywalk_admin_max:users:v3"))).toBeNull();
+  await page.getByRole("button", { name: "Create cloud profile" }).click();
+  await expect.poll(() => writes.length).toBe(1);
+  expect(writes[0].state.p).toMatchObject({ skin: "deep", hair: "long" });
+  await expect(page.locator("#tour-title")).toHaveText("Your daily checklist");
+});
+
+test("opening an existing cloud profile does not apply the onboarding avatar", async ({ page }) => {
+  const cloud = new Map();
+  const writes = await setup(page, cloud, { skipOnboarding: true });
+  const remote = await cloudState(page, "Cloud Walker", 245);
+  remote.p.skin = "light";
+  cloud.set("cloud-one", snapshot("cloud-one", remote));
+  await page.getByRole("button", { name: "Ready" }).click();
+  await page.getByLabel("Skin color").selectOption("deep");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await signIn(page, page.getByRole("dialog").getByRole("button", { name: "Sign in with Google" }));
+  await expect.poll(() => page.evaluate(() => S.p.name)).toBe("Cloud Walker");
+  expect(await page.evaluate(() => readStoredProfile(CUR_UID).p.skin)).toBe("light");
+  expect(writes).toHaveLength(0);
+});
+
 test("startup offers local mode without creating a profile before the choice", async ({ page }) => {
   await setup(page, new Map());
   const dialog = page.getByRole("dialog", { name: "Welcome to Daily Walk" });
@@ -109,7 +207,7 @@ test("sign-in opens the only cloud profile without creating or uploading a local
 test("sign-in lets users select a cloud profile and preserves existing local profiles", async ({ page }) => {
   const cloud = new Map();
   const writes = await setup(page, cloud);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.evaluate(() => {
     S.p.name = "Local Walker";
     S.xp = 61;

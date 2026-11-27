@@ -1,11 +1,12 @@
 const { test, expect } = require("@playwright/test");
+const { continueLocally } = require("./helpers/onboarding");
 const { readFileSync } = require("node:fs");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 
 test("all pet sprites are pixel art and load from a direct-file app", async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   const pets = await page.evaluate(() => PETS.map(({ id, art }) => ({ id, art })));
   const sprites = pets.map(({ id, art }) => ({
     id,
@@ -33,7 +34,7 @@ test("all pet sprites are pixel art and load from a direct-file app", async ({ p
 
 test("streak pet unlocks are equipped and persist", async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   const unlocked = await page.evaluate(() => {
     S.days = {};
     S.pets = {};
@@ -57,7 +58,7 @@ test("streak pet unlocks are equipped and persist", async ({ page }) => {
     visible: true,
   });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   expect(await page.evaluate(() => ({
     firefly: !!S.pets.firefly,
     chick: !!S.pets.chick,
@@ -69,7 +70,7 @@ test("streak pet unlocks are equipped and persist", async ({ page }) => {
 test("equipped pets sit beside the traveler in profile previews and update when changed", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.evaluate(() => {
     S.pets.royalpig = 1;
     S.pets.chick = 1;
@@ -78,7 +79,7 @@ test("equipped pets sit beside the traveler in profile previews and update when 
     paint();
   });
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.locator("#prof").evaluate((button) => button.click());
 
   async function checkPlacement(container, pet) {
@@ -119,7 +120,7 @@ test("equipped pets sit beside the traveler in profile previews and update when 
   await page.locator("#go-info").evaluate((button) => button.click());
   await checkPlacement("#v-info .stage", "chick");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.locator("#prof").evaluate((button) => button.click());
   await checkPlacement("#v-menu .stage", "chick");
   await expect(page.locator("#pal .head-pet")).toHaveCount(0);
@@ -128,12 +129,12 @@ test("equipped pets sit beside the traveler in profile previews and update when 
 
 test("the dashboard streak traveler has no pet when a pet is equipped", async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await page.evaluate(() => { S.p.pet = "royalpig"; save(); paint(); });
   await expect(page.locator("#av .head-pet, #av .profile-pet")).toHaveCount(0);
   await expect(page.locator("#profile-avatar-pet img")).toHaveAttribute("src", "assets/svg/pets/royalpig.svg?v=pixel-pets-1");
   await page.reload();
-  await page.getByRole("button", { name: "Continue locally" }).click();
+  await continueLocally(page);
   await expect(page.locator("#av .head-pet, #av .profile-pet")).toHaveCount(0);
   await expect(page.locator("#profile-avatar-pet img")).toHaveAttribute("src", "assets/svg/pets/royalpig.svg?v=pixel-pets-1");
 });
