@@ -80,14 +80,7 @@ function go(p) {
   $("pg-h").hidden = p !== "h";
   $("pg-t").hidden = p !== "t";
   $("pg-l").hidden = p !== "l";
-  document
-    .querySelectorAll(".nv")
-    .forEach((b) => {
-      const current = b.dataset.p === p;
-      b.classList.toggle("on", current);
-      if (current) b.setAttribute("aria-current", "page");
-      else b.removeAttribute("aria-current");
-    });
+  renderBottomNavigation();
   const el = $("pg-" + p);
   el.classList.remove("sl", "sr");
   void el.offsetWidth;
@@ -100,10 +93,11 @@ function go(p) {
 let sx = 0,
   sy = 0,
   sok = false;
+function renderBottomNavigation() {
+  DailyWalkReact.renderBottomNav({ currentPage: PG, onNavigate: go, icon: icoSvg });
+}
 function initHabits() {
-  document.querySelectorAll(".nv").forEach((b) => {
-    b.onclick = () => go(b.dataset.p);
-  });
+  renderBottomNavigation();
   addEventListener(
     "touchstart",
     (e) => {

@@ -76,6 +76,7 @@ Google sign-in enables automatic synchronization between devices.
     │   ├── auth              # Onboarding, sign-in, and profile sync
     │   ├── habits            # Dashboard, habits, water, and journal
     │   ├── leaderboard
+    │   ├── navigation
     │   ├── profile           # Profile and wardrobe
     │   ├── progress          # Levels and streak celebration
     │   ├── shared            # Shared React helpers
@@ -156,8 +157,13 @@ URL so browsers do not use a stale cached copy. React roots use the shared
 `createRoot` helper in `assets/react/shared/react-root.js`, which marks their
 containers with `data-react-root`. Portal targets use the same marker. Legacy
 icon hydration and text replacement skip marked subtrees; legacy code must not
-mutate their contents except for the guided tour's temporary highlight on
-`#ix .sheet`.
+mutate their contents except for the guided tour's temporary highlights on
+`#ix .sheet`, the water cups, and navigation buttons.
+
+The React bottom navigation renders its selected page and icons while
+`habits.js` retains page switching, swipe navigation, and screen effects.
+Navigation buttons stay mounted across page changes so the guided tour can
+retain its target and temporary highlight.
 
 The profile shell renders its banner, menu, info, wardrobe tabs, wardrobe
 panels, level list, and wardrobe level title through one root and portals into
@@ -184,6 +190,7 @@ weekly chart receives current tasks and per-day checks from the legacy state own
 
 | Feature                                         | Main implementation                                                                                                                         |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bottom navigation and swipes                    | [`bottom-nav.jsx`](assets/react/navigation/bottom-nav.jsx), [`habits.js`](assets/js/features/habits.js) |
 | Dashboard heading and clock                     | [`dashboard-heading.jsx`](assets/react/habits/dashboard-heading.jsx), [`habits.js`](assets/js/features/habits.js)                                  |
 | Profile status bar                              | [`profile-status.jsx`](assets/react/profile/profile-status.jsx), [`accounts.js`](assets/js/core/accounts.js)                                       |
 | Profile banner, menu, pets, and wardrobe        | [`profile-shell.jsx`](assets/react/profile/profile-shell.jsx), [`profile-banner.jsx`](assets/react/profile/profile-banner.jsx), [`profile-menu.jsx`](assets/react/profile/profile-menu.jsx), [`profile-pets.jsx`](assets/react/profile/profile-pets.jsx), [`wardrobe-tabs.jsx`](assets/react/profile/wardrobe-tabs.jsx), [`wardrobe-panels.jsx`](assets/react/profile/wardrobe-panels.jsx), [`profile.js`](assets/js/features/profile.js) |

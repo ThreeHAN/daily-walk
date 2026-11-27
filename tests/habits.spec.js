@@ -484,6 +484,63 @@ test("tab buttons keep their appearance while identifying the current page", asy
   }
 });
 
+test("React navigation preserves keyboard focus and the guided tour target across updates", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  const nav = page.locator("#nav");
+  await expect(nav).toHaveAttribute("data-react-root", "");
+  const world = page.locator('.nv[data-p="t"]');
+  await world.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#pg-t")).toBeVisible();
+  await expect(page.locator("#pg-t")).toHaveClass(/\bsr\b/);
+  await expect(world).toBeFocused();
+  await expect(world).toHaveClass(/\bon\b/);
+  await expect(page.locator("#fab")).toBeHidden();
+
+  await page.evaluate(() => {
+    go("h");
+    startTour();
+    window.tourNavTarget = document.querySelector('.nv[data-p="h"]');
+    go("t");
+    go("h");
+  });
+  const habits = page.locator('.nv[data-p="h"]');
+  await expect(habits).toHaveClass(/tour-interactive/);
+  await expect(habits).toHaveClass(/tour-highlight/);
+  await expect(habits).toHaveClass(/\bon\b/);
+  await expect(habits).toBeFocused();
+  expect(await page.evaluate(() => window.tourNavTarget === document.querySelector('.nv[data-p="h"]'))).toBe(true);
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#tour-next")).toBeEnabled();
+  await page.locator("#tour-skip").click();
+  expect(errors).toEqual([]);
+});
+
+test("swipes update React navigation and ignore gestures inside a modal", async ({ page }) => {
+  async function swipe(selector, from, to) {
+    await page.locator(selector).evaluate((target, { from, to }) => {
+      const start = new Touch({ identifier: 1, target, clientX: from, clientY: 100 });
+      const end = new Touch({ identifier: 1, target, clientX: to, clientY: 100 });
+      target.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, touches: [start] }));
+      target.dispatchEvent(new TouchEvent("touchend", { bubbles: true, changedTouches: [end] }));
+    }, { from, to });
+  }
+  await swipe("#pg-h", 200, 80);
+  await expect(page.locator("#pg-t")).toBeVisible();
+  await expect(page.locator('.nv[data-p="t"]')).toHaveAttribute("aria-current", "page");
+  await swipe("#hm", 200, 80);
+  await expect(page.locator("#pg-t")).toBeVisible();
+  await swipe("#pg-t", 80, 200);
+  await expect(page.locator("#pg-h")).toBeVisible();
+  await expect(page.locator("#pg-h")).toHaveClass(/\bsl\b/);
+  await expect(page.locator('.nv[data-p="h"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#fab")).toBeVisible();
+});
+
 test("a new habit is highlighted and can still be removed", async ({ page }) => {
   await page.locator("#fab").evaluate((button) => button.click());
   await page.locator("#hn").fill("Take a walk");
