@@ -73,37 +73,14 @@ Google sign-in enables automatic synchronization between devices.
     │       └── _town.scss
     ├── react
     │   ├── app.jsx
-    │   ├── buddy-details.jsx
-    │   ├── buddy-stats.jsx
-    │   ├── dashboard-heading.jsx
-    │   ├── google-auth.jsx
-    │   ├── onboarding.jsx
-    │   ├── profile-link.js
-    │   ├── profile-sync.js
-    │   ├── habit-editor.jsx
-    │   ├── habit-list.jsx
-    │   ├── icon-text.jsx
-    │   ├── journal.jsx
-    │   ├── leaderboard-list.jsx
-    │   ├── leaderboard-summary.jsx
-    │   ├── level-hero.jsx
-    │   ├── level-list.jsx
-    │   ├── level-title.jsx
-    │   ├── people-index.jsx
-    │   ├── profile-banner.jsx
-    │   ├── profile-list.jsx
-    │   ├── profile-pets.jsx
-    │   ├── profile-status.jsx
-    │   ├── progress-summary.jsx
-    │   ├── streak-week.jsx
-    │   ├── town-birds.jsx
-    │   ├── travel-landscape.jsx
-    │   ├── tutorial.jsx
-    │   ├── water-tracker.jsx
-    │   ├── wardrobe-panels.jsx
-    │   ├── wardrobe-tabs.jsx
-    │   ├── weekly-chart.jsx
-    │   └── world-town-list.jsx
+    │   ├── auth              # Onboarding, sign-in, and profile sync
+    │   ├── habits            # Dashboard, habits, water, and journal
+    │   ├── leaderboard
+    │   ├── profile           # Profile and wardrobe
+    │   ├── progress          # Levels and streak celebration
+    │   ├── shared            # Shared React helpers
+    │   ├── tutorial
+    │   └── world             # Town, people, and travel
     └── js
         ├── app.js
         ├── generated
@@ -137,8 +114,8 @@ Google sign-in enables automatic synchronization between devices.
   partials.
 - `assets/css/styles.css` is generated from Sass and remains the stylesheet
   loaded by Chrome and other browsers.
-- `assets/react/` contains onboarding, Google sign-in, the guided tour, town birds and travel landscape, dashboard heading, profile banner, profile pets, status and list, wardrobe tabs and panels, level hero and list, habit list and editor,
-  progress summary, water tracker, journal, weekly chart, streak week, leaderboard list and summary, people index, buddy details, buddy stats, and world town list React components.
+- `assets/react/` groups React components and their supporting modules by feature.
+  `app.jsx` exports their render bridges to the classic scripts.
   Their generated classic script,
   `assets/js/generated/react-ui.js`, is checked in so the site also works
   directly from `index.html`. The bundle includes the MIT license for React,
@@ -173,7 +150,7 @@ Google sign-in enables automatic synchronization between devices.
 The scripts in `index.html` are classic scripts loaded in dependency order.
 Keep that order when moving code, and update the version in a changed script's
 URL so browsers do not use a stale cached copy. React exclusively owns the
-contents of `#tour`, `#town-birds`, `#travel-landscape`, `#dashboard-heading`, `#ubar`, `#ulist`, `#profile-banner`, `#wtabs`, `#wbody`, `#hero`, `#lvlist`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, `#spw`, `#lblist`, `#leaderboard-summary`, `#ix`, `#bbody`, `#buddy-stats`, `#glist`, and
+contents of `#tour`, `#town-birds`, `#travel-landscape`, `#dashboard-heading`, `#ubar`, `#ulist`, `#profile-banner`, `#profile-info`, `#wtabs`, `#wbody`, `#hero`, `#lvlist`, `#list`, `#hm`, `#cups`, `#wn`, `#journal`, `#week`, `#spw`, `#lblist`, `#leaderboard-summary`, `#ix`, `#bbody`, `#buddy-stats`, `#glist`, and
 `#progress-summary`; legacy code must not mutate those subtrees except for the
 guided tour's temporary highlight on `#ix .sheet`. React also owns the contents
 of `#wardrobe-level` and `#lut` for their shared level-title badges and the
@@ -187,23 +164,23 @@ receives current tasks and per-day checks from the legacy state owner.
 
 | Feature                                         | Main implementation                                                                                                                         |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dashboard heading and clock                     | [`dashboard-heading.jsx`](assets/react/dashboard-heading.jsx), [`habits.js`](assets/js/features/habits.js)                                  |
-| Profile status bar                              | [`profile-status.jsx`](assets/react/profile-status.jsx), [`accounts.js`](assets/js/core/accounts.js)                                       |
-| Profile banner, pets, and wardrobe              | [`profile-banner.jsx`](assets/react/profile-banner.jsx), [`profile-pets.jsx`](assets/react/profile-pets.jsx), [`wardrobe-tabs.jsx`](assets/react/wardrobe-tabs.jsx), [`wardrobe-panels.jsx`](assets/react/wardrobe-panels.jsx), [`profile.js`](assets/js/features/profile.js) |
-| XP, levels, and rewards                         | [`level-hero.jsx`](assets/react/level-hero.jsx), [`level-list.jsx`](assets/react/level-list.jsx), [`level-title.jsx`](assets/react/level-title.jsx), [`profile.js`](assets/js/features/profile.js) |
-| New habit editor                                | [`habit-editor.jsx`](assets/react/habit-editor.jsx), [`habits.js`](assets/js/features/habits.js)                                            |
-| Habit checklist, progress, water, journal, and weekly activity | [`habit-list.jsx`](assets/react/habit-list.jsx), [`progress-summary.jsx`](assets/react/progress-summary.jsx), [`water-tracker.jsx`](assets/react/water-tracker.jsx), [`journal.jsx`](assets/react/journal.jsx), [`weekly-chart.jsx`](assets/react/weekly-chart.jsx), [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js) |
+| Dashboard heading and clock                     | [`dashboard-heading.jsx`](assets/react/habits/dashboard-heading.jsx), [`habits.js`](assets/js/features/habits.js)                                  |
+| Profile status bar                              | [`profile-status.jsx`](assets/react/profile/profile-status.jsx), [`accounts.js`](assets/js/core/accounts.js)                                       |
+| Profile banner, pets, and wardrobe              | [`profile-banner.jsx`](assets/react/profile/profile-banner.jsx), [`profile-pets.jsx`](assets/react/profile/profile-pets.jsx), [`wardrobe-tabs.jsx`](assets/react/profile/wardrobe-tabs.jsx), [`wardrobe-panels.jsx`](assets/react/profile/wardrobe-panels.jsx), [`profile.js`](assets/js/features/profile.js) |
+| XP, levels, and rewards                         | [`level-hero.jsx`](assets/react/progress/level-hero.jsx), [`level-list.jsx`](assets/react/progress/level-list.jsx), [`level-title.jsx`](assets/react/progress/level-title.jsx), [`profile.js`](assets/js/features/profile.js) |
+| New habit editor                                | [`habit-editor.jsx`](assets/react/habits/habit-editor.jsx), [`habits.js`](assets/js/features/habits.js)                                            |
+| Habit checklist, progress, water, journal, and weekly activity | [`habit-list.jsx`](assets/react/habits/habit-list.jsx), [`progress-summary.jsx`](assets/react/habits/progress-summary.jsx), [`water-tracker.jsx`](assets/react/habits/water-tracker.jsx), [`journal.jsx`](assets/react/habits/journal.jsx), [`weekly-chart.jsx`](assets/react/habits/weekly-chart.jsx), [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js) |
 | Pixel traveler and appearance                   | [`buddy-render.js`](assets/js/features/buddy-render.js), [`buddies.js`](assets/js/features/buddies.js), [`profile.js`](assets/js/features/profile.js) |
 | Town data, rewards, and progression            | [`town-data.js`](assets/js/features/town-data.js), [`town-progress.js`](assets/js/features/town-progress.js)                               |
-| Town buildings, scenery, and cast               | [`town-scene.js`](assets/js/features/town-scene.js), [`town-birds.jsx`](assets/react/town-birds.jsx)                                        |
-| Town walkers, pets, sleep, and interactions    | [`town.js`](assets/js/features/town.js), [`buddy-details.jsx`](assets/react/buddy-details.jsx), [`buddy-stats.jsx`](assets/react/buddy-stats.jsx) |
-| World map and travel                            | [`world-town-list.jsx`](assets/react/world-town-list.jsx), [`travel-landscape.jsx`](assets/react/travel-landscape.jsx), [`world-map.js`](assets/js/features/world-map.js) |
-| People met, pet definitions, and unlocks        | [`people-index.jsx`](assets/react/people-index.jsx), [`town.js`](assets/js/features/town.js), [`buddy-render.js`](assets/js/features/buddy-render.js), [`pets.js`](assets/js/features/pets.js), [`collection.js`](assets/js/features/collection.js) |
+| Town buildings, scenery, and cast               | [`town-scene.js`](assets/js/features/town-scene.js), [`town-birds.jsx`](assets/react/world/town-birds.jsx)                                        |
+| Town walkers, pets, sleep, and interactions    | [`town.js`](assets/js/features/town.js), [`buddy-details.jsx`](assets/react/world/buddy-details.jsx), [`buddy-stats.jsx`](assets/react/world/buddy-stats.jsx) |
+| World map and travel                            | [`world-town-list.jsx`](assets/react/world/world-town-list.jsx), [`travel-landscape.jsx`](assets/react/world/travel-landscape.jsx), [`world-map.js`](assets/js/features/world-map.js) |
+| People met, pet definitions, and unlocks        | [`people-index.jsx`](assets/react/world/people-index.jsx), [`town.js`](assets/js/features/town.js), [`buddy-render.js`](assets/js/features/buddy-render.js), [`pets.js`](assets/js/features/pets.js), [`collection.js`](assets/js/features/collection.js) |
 | Shared icon artwork and rendering               | [`icon-art.js`](assets/js/ui/icon-art.js), [`icons.js`](assets/js/ui/icons.js)                                                             |
-| Streak celebration                              | [`streak-week.jsx`](assets/react/streak-week.jsx), [`collection.js`](assets/js/features/collection.js)                                    |
-| Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js), [`profile-list.jsx`](assets/react/profile-list.jsx), [`leaderboard-list.jsx`](assets/react/leaderboard-list.jsx), [`leaderboard-summary.jsx`](assets/react/leaderboard-summary.jsx) |
-| Onboarding, Google sign-in, and profile sync    | [`onboarding.jsx`](assets/react/onboarding.jsx), [`google-auth.jsx`](assets/react/google-auth.jsx), [`profile-link.js`](assets/react/profile-link.js), [`profile-sync.js`](assets/react/profile-sync.js) |
-| Guided introduction                             | [`tutorial.jsx`](assets/react/tutorial.jsx), [`tutorial.js`](assets/js/features/tutorial.js)                                                |
+| Streak celebration                              | [`streak-week.jsx`](assets/react/progress/streak-week.jsx), [`collection.js`](assets/js/features/collection.js)                                    |
+| Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js), [`profile-info.jsx`](assets/react/profile/profile-info.jsx), [`profile-list.jsx`](assets/react/profile/profile-list.jsx), [`leaderboard-list.jsx`](assets/react/leaderboard/leaderboard-list.jsx), [`leaderboard-summary.jsx`](assets/react/leaderboard/leaderboard-summary.jsx) |
+| Onboarding, Google sign-in, and profile sync    | [`onboarding.jsx`](assets/react/auth/onboarding.jsx), [`google-auth.jsx`](assets/react/auth/google-auth.jsx), [`profile-link.js`](assets/react/auth/profile-link.js), [`profile-sync.js`](assets/react/auth/profile-sync.js) |
+| Guided introduction                             | [`tutorial.jsx`](assets/react/tutorial/tutorial.jsx), [`tutorial.js`](assets/js/features/tutorial.js)                                                |
 | Defaults, saved-state hydration, and migrations | [`state.js`](assets/js/core/state.js)                                                                                                       |
 
 - Habit checks and awards use the browser's local date. Checking a habit awards

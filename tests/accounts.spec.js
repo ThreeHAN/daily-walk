@@ -150,6 +150,39 @@ test("profile changes and separate habit progress survive switching and reload",
   await expect(page.locator('input[data-id="wake"]')).not.toBeChecked();
 });
 
+test("profile info updates names and stats without losing focus or profile data", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.evaluate(() => {
+    curStreak = 2;
+    S.days = { "2026-01-01": true, "2026-01-02": true, "2026-01-03": true };
+    S.checks = { "2026-01-01": { wake: true, cold: false }, "2026-01-02": { wake: true } };
+  });
+  await click(page, "#ubar");
+  await expect(page.locator("#s1")).toHaveText("2");
+  await expect(page.locator("#s2")).toHaveText("3");
+  await expect(page.locator("#s3")).toHaveText("2");
+  const name = page.locator("#pn");
+  const buddy = page.locator("#bn");
+  await name.fill("Walker ");
+  await expect(name).toHaveValue("Walker ");
+  await expect(name).toBeFocused();
+  expect(await page.evaluate(() => S.p.name)).toBe("Walker");
+  await buddy.fill("Pal ⭐");
+  await expect(buddy).toBeFocused();
+  await expect(name).toHaveValue("Walker");
+  await expect(page.locator("#pst")).toContainText("Pal");
+  await expect(page.locator("#pst .ic svg")).toHaveCount(1);
+  await expect(page.locator("#profile-info .stats .ic svg")).toHaveCount(3);
+  await click(page, "#uadd");
+  await expect(page.locator("#pn")).toHaveValue("Player 2");
+  await page.locator("#ulist .uitem").filter({ hasText: "Walker" })
+    .locator(".uinf").evaluate((element) => element.click());
+  await expect(name).toHaveValue("Walker");
+  await expect(buddy).toHaveValue("Pal ⭐");
+  expect(errors).toEqual([]);
+});
+
 test("profile list renders names safely, switches from the row, and deletes after confirmation", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

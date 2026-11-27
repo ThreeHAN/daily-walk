@@ -439,17 +439,26 @@ function fillInfo(anim) {
       if (v) tot++;
     });
   });
-  const f = (el, n) => (anim ? countTo(el, n) : (el.textContent = n));
-  f($("s1"), cur);
-  f($("s2"), best);
-  f($("s3"), tot);
-  $("pn").value = S.p.name;
-  $("bn").value = S.p.buddy;
-  $("pst").textContent =
-    (S.p.buddy || "Buddy") +
-    (cur
-      ? " is cheering for your " + cur + "-day streak!"
-      : " is ready when you are!");
+  DailyWalkReact.renderProfileInfo({
+    name: S.p.name,
+    buddy: S.p.buddy,
+    streak: cur,
+    best,
+    total: tot,
+    animate: !!anim,
+    icon: icoSvg,
+    iconTextParts,
+    onName: (value) => {
+      S.p.name = value.trim();
+      save();
+      render();
+    },
+    onBuddy: (value) => {
+      S.p.buddy = value.trim();
+      save();
+      fillInfo();
+    },
+  });
   renderUsers();
 }
 function view(v) {
@@ -497,14 +506,4 @@ $("pdone").onclick = () => {
 };
 $("pm").onclick = (e) => {
   if (e.target === $("pm")) $("pm").classList.remove("show");
-};
-$("pn").oninput = () => {
-  S.p.name = $("pn").value.trim();
-  save();
-  render();
-};
-$("bn").oninput = () => {
-  S.p.buddy = $("bn").value.trim();
-  save();
-  fillInfo();
 };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { IconText } from "./icon-text.jsx";
+import { IconText } from "../shared/icon-text.jsx";
 
 const root = createRoot(document.getElementById("lblist"));
 let revision = 0;
