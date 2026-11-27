@@ -413,6 +413,14 @@ function showDailyVerse() {
     clickAnim(TW.ws[0]);
   }
 }
+function renderDailyVerse() {
+  DailyWalkReact.renderDailyVerse({
+    verse: vOfDay(),
+    onShow: showDailyVerse,
+    icon: icoSvg,
+    iconTextParts,
+  });
+}
 function fmtDur(ms) {
   const m = Math.max(0, Math.floor(ms / 6e4)),
     d = Math.floor(m / 1440),
@@ -704,7 +712,7 @@ function initTown() {
   $("bm").onclick = (e) => {
     if (e.target === $("bm")) $("bm").classList.remove("show");
   };
-  $("vcard").onclick = showDailyVerse;
+  renderDailyVerse();
   $("sbtn").onclick = () => {
     fillStats();
     $("sm").classList.add("show");

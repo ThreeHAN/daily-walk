@@ -595,9 +595,7 @@ function townInfo() {
   countTo($("tc1"), BLD.filter((b) => b.h && x >= b.at).length);
   countTo($("tc2"), townCast().length);
   countTo($("tc3"), Math.min(x, MAXAT));
-  const v = vOfDay();
-  $("vtx").textContent = "“" + v.t + "”";
-  $("vref").textContent = "— " + v.r;
+  renderDailyVerse();
   $("gcard").hidden = true;
   const fin = nbDone(id);
   $("ncard").hidden = !fin;

@@ -1,5 +1,6 @@
 export { renderBuddyDetails } from "./world/buddy-details.jsx";
 export { renderBuddyStats } from "./world/buddy-stats.jsx";
+export { renderDailyVerse } from "./world/daily-verse.jsx";
 export { renderDashboardHeading } from "./habits/dashboard-heading.jsx";
 export { renderGoogleAuth } from "./auth/google-auth.jsx";
 export { renderBottomNav } from "./navigation/bottom-nav.jsx";

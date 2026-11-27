@@ -165,6 +165,10 @@ The React bottom navigation renders its selected page and icons while
 Navigation buttons stay mounted across page changes so the guided tour can
 retain its target and temporary highlight.
 
+The React daily verse card receives the selected verse and click action from
+town logic; opening a town refreshes the verse, and clicking it still prompts
+the current traveler to speak.
+
 The profile shell renders its banner, menu, info, wardrobe tabs, wardrobe
 panels, level list, and wardrobe level title through one root and portals into
 the existing screen containers. Profile pets, account list, and sign-in remain
@@ -201,6 +205,7 @@ weekly chart receives current tasks and per-day checks from the legacy state own
 | Town data, rewards, and progression            | [`town-data.js`](assets/js/features/town-data.js), [`town-progress.js`](assets/js/features/town-progress.js)                               |
 | Town buildings, scenery, and cast               | [`town-scene.js`](assets/js/features/town-scene.js), [`town-birds.jsx`](assets/react/world/town-birds.jsx)                                        |
 | Town walkers, pets, sleep, and interactions    | [`town.js`](assets/js/features/town.js), [`buddy-details.jsx`](assets/react/world/buddy-details.jsx), [`buddy-stats.jsx`](assets/react/world/buddy-stats.jsx) |
+| Daily verse card                                | [`daily-verse.jsx`](assets/react/world/daily-verse.jsx), [`town.js`](assets/js/features/town.js), [`town-scene.js`](assets/js/features/town-scene.js) |
 | World map and travel                            | [`world-town-list.jsx`](assets/react/world/world-town-list.jsx), [`travel-landscape.jsx`](assets/react/world/travel-landscape.jsx), [`world-map.js`](assets/js/features/world-map.js) |
 | People met, pet definitions, and unlocks        | [`people-index.jsx`](assets/react/world/people-index.jsx), [`town.js`](assets/js/features/town.js), [`buddy-render.js`](assets/js/features/buddy-render.js), [`pets.js`](assets/js/features/pets.js), [`collection.js`](assets/js/features/collection.js) |
 | Shared icon artwork and rendering               | [`icon-art.js`](assets/js/ui/icon-art.js), [`icons.js`](assets/js/ui/icons.js)                                                             |

@@ -39,6 +39,55 @@ test("town and planet unlocks follow completion progress", async ({ page }) => {
   await expect(page.locator("#ncard")).toBeVisible();
 });
 
+test("the React daily verse refreshes with the date and prompts the traveler", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.clock.setFixedTime(new Date(2026, 0, 1, 12));
+  await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
+  await continueLocally(page);
+  await expect(page.locator("#daily-verse")).toHaveAttribute("data-react-root", "");
+  await page.evaluate(() => {
+    document.getElementById("vcard").click();
+    S.vday = today();
+    go("t");
+    townStop();
+  });
+  const verse = await page.evaluate(() => vOfDay());
+  await expect(page.locator("#vtx")).toHaveText(`“${verse.t}”`);
+  await expect(page.locator("#vref")).toHaveText(`— ${verse.r}`);
+  await expect(page.locator("#vcard .vh svg")).toHaveCount(1);
+  await page.locator("#vcard").click();
+  const speech = await page.evaluate(() => ({
+    text: TW.ws[0].say.textContent,
+    showing: TW.ws[0].say._on,
+    talking: TW.ws[0].talking,
+    paused: TW.ws[0].pause,
+  }));
+  expect(speech.text).toContain(`“${verse.t}” ${verse.r}`);
+  expect(speech.showing).toBe(true);
+  expect(speech.talking).toBe(true);
+  expect(speech.paused).toBeGreaterThan(0);
+
+  await page.clock.setFixedTime(new Date(2026, 0, 2, 12));
+  await page.evaluate(() => {
+    S.vday = today();
+    go("h");
+    go("t");
+    townStop();
+  });
+  const nextVerse = await page.evaluate(() => vOfDay());
+  expect(nextVerse).not.toEqual(verse);
+  await expect(page.locator("#vtx")).toHaveText(`“${nextVerse.t}”`);
+  await expect(page.locator("#vref")).toHaveText(`— ${nextVerse.r}`);
+  await page.locator("#vcard").focus();
+  await page.keyboard.press("Enter");
+  expect(await page.evaluate(() => TW.ws[0].say.textContent)).toContain(`“${nextVerse.t}” ${nextVerse.r}`);
+  expect(errors).toEqual([]);
+});
+
 test("town walkers alternate their steps and respect reduced motion", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 0, 1, 12));
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
