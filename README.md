@@ -121,7 +121,10 @@ Google sign-in enables automatic synchronization between devices.
   directly from `index.html`. The bundle includes the MIT license for React,
   React DOM, and Scheduler.
 - `assets/js/app.js` is the final bootstrap and bridges existing state and
-  actions to the React habit list. The legacy app remains the state owner.
+  actions to the React habit list. It calls feature initializers once, after
+  classic scripts and the React bundle have loaded, before the first save and
+  render; the tutorial initializes after icon hydration. The legacy app remains
+  the state owner.
 - `assets/js/core/` contains application state, shared UI helpers, profile
   storage, account UI, and leaderboard logic.
 - `assets/js/features/` contains the habits, profile, buddy, collection,
@@ -162,7 +165,11 @@ the existing screen containers. Profile pets, account list, and sign-in remain
 independent roots. The shell controls which existing profile view is
 visible; avatar artwork and account controls remain owned by legacy code.
 `profileBridge` supplies current profile snapshots and actions to the profile
-UI on explicit refreshes. The existing state owner, save logic, and sync remain
+UI on explicit refreshes. `refreshProfile` prepares each view through the bridge
+and sends its data and navigation together to `renderProfile` in one synchronous
+shell update. Data preparation does not save or trigger visual effects; pet
+unlock recording and post-render effects remain in the legacy refresh/actions.
+The existing state owner, save logic, and sync remain
 authoritative. Profile logic supplies level-up rewards and controls the
 celebration's timing and dismissal. The wardrobe panels receive their choices and
 actions from the legacy state owner. The water tracker and habit list call the same

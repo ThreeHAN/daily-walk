@@ -106,6 +106,52 @@ test("profile menu buttons remain interactive through navigation and reopening",
   expect(errors).toEqual([]);
 });
 
+test("profile refresh batches view data and keeps preparation free of pet writes", async ({ page }) => {
+  const result = await page.evaluate(() => {
+    const updates = [];
+    const original = DailyWalkReact;
+    window.DailyWalkReact = {
+      ...original,
+      renderProfile(update) {
+        updates.push(Object.keys(update).sort());
+        original.renderProfile(update);
+      },
+    };
+    try {
+      for (const v of ["menu", "wd", "lv", "info"]) view(v);
+      S.pets = {};
+      S.p.pet = "none";
+      curStreak = 7;
+      wTab = "pets";
+      const stored = localStorage.getItem(uKey(CUR_UID));
+      profileBridge.getViewUpdate("wd");
+      const preparationUnchanged = Object.keys(S.pets).length === 0 &&
+        localStorage.getItem(uKey(CUR_UID)) === stored;
+      buildWd();
+      return {
+        updates,
+        preparationUnchanged,
+        unlocked: PETS.filter((pt) => pt.st && pt.st <= 7).every((pt) => !!S.pets[pt.id]),
+        equipped: S.p.pet,
+      };
+    } finally {
+      window.DailyWalkReact = original;
+    }
+  });
+  expect(result).toEqual({
+    updates: [
+      ["banner", "view"],
+      ["panels", "tabs", "view", "wardrobeLevel"],
+      ["levels", "view"],
+      ["info", "view"],
+      ["panels", "tabs", "wardrobeLevel"],
+    ],
+    preparationUnchanged: true,
+    unlocked: true,
+    equipped: "none",
+  });
+});
+
 test("wardrobe tabs retain selection and icons across repeated updates", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

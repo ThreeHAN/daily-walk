@@ -46,18 +46,6 @@ function openBuddyModal(w, slide) {
   renderBuddyModal();
   $("bm").classList.add("show");
 }
-$("bsl-b").onclick = () => {
-  bmSlide = "b";
-  renderBuddyModal();
-};
-$("bsl-p").onclick = () => {
-  bmSlide = "p";
-  renderBuddyModal();
-};
-$("bdone").onclick = () => $("bm").classList.remove("show");
-$("bm").onclick = (e) => {
-  if (e.target === $("bm")) $("bm").classList.remove("show");
-};
 
 function poke(w) {
   clickAnim(w);
@@ -418,13 +406,13 @@ function townOpen() {
   cancelAnimationFrame(TW.raf);
   TW.raf = requestAnimationFrame(tick);
 }
-$("vcard").onclick = () => {
+function showDailyVerse() {
   if (TW.ws[0]) {
     const v = vOfDay();
     sayW(TW.ws[0], "📖 “" + v.t + "” " + v.r, 7000);
     clickAnim(TW.ws[0]);
   }
-};
+}
 function fmtDur(ms) {
   const m = Math.max(0, Math.floor(ms / 6e4)),
     d = Math.floor(m / 1440),
@@ -473,17 +461,6 @@ function fillStats() {
     iconTextParts,
   });
 }
-$("sbtn").onclick = () => {
-  fillStats();
-  $("sm").classList.add("show");
-};
-$("sdone").onclick = () => $("sm").classList.remove("show");
-$("sm").onclick = (e) => {
-  if (e.target === $("sm")) $("sm").classList.remove("show");
-};
-setInterval(() => {
-  if ($("sm").classList.contains("show")) fillStats();
-}, 20000);
 const RAR = [
   ["circle", 50],
   ["triangle", 30],
@@ -710,8 +687,34 @@ function finishCut(kind) {
     burst(innerWidth / 2, innerHeight / 3, 44, CONF);
   }, 700);
 }
-$("gbtn").onclick = askGrad;
 function openGraduationFromProfile() {
   $("pm").classList.remove("show");
   askGrad();
+}
+function initTown() {
+  $("bsl-b").onclick = () => {
+    bmSlide = "b";
+    renderBuddyModal();
+  };
+  $("bsl-p").onclick = () => {
+    bmSlide = "p";
+    renderBuddyModal();
+  };
+  $("bdone").onclick = () => $("bm").classList.remove("show");
+  $("bm").onclick = (e) => {
+    if (e.target === $("bm")) $("bm").classList.remove("show");
+  };
+  $("vcard").onclick = showDailyVerse;
+  $("sbtn").onclick = () => {
+    fillStats();
+    $("sm").classList.add("show");
+  };
+  $("sdone").onclick = () => $("sm").classList.remove("show");
+  $("sm").onclick = (e) => {
+    if (e.target === $("sm")) $("sm").classList.remove("show");
+  };
+  setInterval(() => {
+    if ($("sm").classList.contains("show")) fillStats();
+  }, 20000);
+  $("gbtn").onclick = askGrad;
 }

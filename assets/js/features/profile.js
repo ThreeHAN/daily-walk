@@ -114,11 +114,6 @@ function levelUp(n) {
     burst(innerWidth / 2, innerHeight / 3, 44, CONF);
   }, 700);
 }
-$("lugo").onclick = () => {
-  $("lu").classList.remove("show");
-  hop();
-};
-$("hero").onclick = () => $("prof").click();
 let wTab = "gear";
 let colorEditor = null;
 const TABS = [
@@ -250,7 +245,7 @@ function wardrobeChoice(title, field, options) {
     },
   };
 }
-function renderWardrobePanel(tab, p) {
+function wardrobePanelProps(tab, p) {
   const props = { tab, icon: icoSvg, iconTextParts };
   if (tab === "person") {
     props.sections = [
@@ -358,10 +353,6 @@ function renderWardrobePanel(tab, p) {
       noneSelected: !p.pet || p.pet === "none",
       items: PETS.map((pt) => {
         const unlocked = isPetUnlocked(pt, props.best);
-        if (unlocked && !S.pets[pt.id]) {
-          S.pets[pt.id] = 1;
-          save();
-        }
         const selected = p.pet === pt.id;
         return {
           id: pt.id,
@@ -388,11 +379,10 @@ function renderWardrobePanel(tab, p) {
       }
     };
   }
-  DailyWalkReact.renderWardrobePanels(props);
+  return props;
 }
-function buildWd() {
-  $("wtabs").dataset.k = "tab";
-  DailyWalkReact.renderWardrobeTabs({
+function wardrobeViewProps() {
+  const tabs = {
     tabs: TABS,
     selected: wTab,
     popping: popTok && popTok.startsWith("tab:") ? popTok.slice(4) : null,
@@ -405,15 +395,16 @@ function buildWd() {
       rerun($("wbody"), "fx");
       buildWd();
     },
-  });
-  const p = S.p;
+  };
   const wardrobeLevel = lvOf(S.xp);
-  DailyWalkReact.renderWardrobeLevel(wardrobeLevel, ttl(wardrobeLevel));
-  renderWardrobePanel(wTab, p);
-  popTok = null;
+  return {
+    tabs,
+    wardrobeLevel: { level: wardrobeLevel, title: ttl(wardrobeLevel) },
+    panels: wardrobePanelProps(wTab, S.p),
+  };
 }
-function fillLv() {
-  DailyWalkReact.renderLevelList({
+function levelListProps() {
+  return {
     currentLevel: lvInfo().n,
     levels: Array.from({ length: 10 }, (_, index) => {
       const number = index + 1;
@@ -426,7 +417,7 @@ function fillLv() {
     }),
     icon: icoSvg,
     iconTextParts,
-  });
+  };
 }
 const profileBridge = {
   getSnapshot() {
@@ -445,6 +436,14 @@ const profileBridge = {
       total,
       level: lvInfo(),
     };
+  },
+  getViewUpdate(v, animate) {
+    if (v === "wd") return wardrobeViewProps();
+    if (v === "lv") return { levels: levelListProps() };
+    const snapshot = this.getSnapshot();
+    if (v === "info") return { info: profileInfoProps(snapshot, animate) };
+    if (v === "menu") return { banner: profileBannerProps(snapshot) };
+    throw new Error("Unknown profile view: " + v);
   },
   actions: {
     setName(value) {
@@ -469,70 +468,97 @@ const profileBridge = {
     openGraduation: () => openGraduationFromProfile(),
   },
 };
-function fillInfo(anim) {
-  const { name, buddy, streak, best, total } = profileBridge.getSnapshot();
-  DailyWalkReact.renderProfileInfo({
+function profileInfoProps({ name, buddy, streak, best, total }, animate) {
+  return {
     name,
     buddy,
     streak,
     best,
     total,
-    animate: !!anim,
+    animate: !!animate,
     icon: icoSvg,
     iconTextParts,
     onName: profileBridge.actions.setName,
     onBuddy: profileBridge.actions.setBuddy,
+  };
+}
+function profileBannerProps(snapshot) {
+  const I = snapshot.level;
+  return {
+    buddy: snapshot.buddy || "Buddy",
+    level: I.n,
+    title: ttl(I.n),
+    progress: I.max ? "Max level reached! 🎉" : I.into + " / " + I.need + " XP to level " + (I.n + 1),
+    percent: I.pct,
+    streak: snapshot.streak,
+    xp: snapshot.xp,
+    name: snapshot.name || "Friend",
+    icon: icoSvg,
+    iconTextParts,
+  };
+}
+function recordWardrobePetUnlocks() {
+  const best = Math.max(curStreak, streakBest());
+  PETS.forEach((pt) => {
+    if (isPetUnlocked(pt, best) && !S.pets[pt.id]) {
+      S.pets[pt.id] = 1;
+      save();
+    }
   });
-  renderUsers();
+}
+function refreshProfile(v, animate = false, navigate = false) {
+  if (v === "wd" && wTab === "pets") recordWardrobePetUnlocks();
+  const update = profileBridge.getViewUpdate(v, animate);
+  if (navigate) update.view = v;
+  DailyWalkReact.renderProfile(update);
+  if (v === "wd") {
+    $("wtabs").dataset.k = "tab";
+    popTok = null;
+  }
+  if (v === "info") renderUsers();
+}
+function buildWd() {
+  refreshProfile("wd");
+}
+function fillInfo(animate) {
+  refreshProfile("info", animate);
 }
 function view(v) {
-  DailyWalkReact.showProfileView(v);
+  refreshProfile(v, v === "info", true);
   rerun($("v-" + v), "fx");
-  if (v === "menu") {
-    const snapshot = profileBridge.getSnapshot();
-    const I = snapshot.level;
-    DailyWalkReact.renderProfileBanner({
-      buddy: snapshot.buddy || "Buddy",
-      level: I.n,
-      title: ttl(I.n),
-      progress: I.max ? "Max level reached! 🎉" : I.into + " / " + I.need + " XP to level " + (I.n + 1),
-      percent: I.pct,
-      streak: snapshot.streak,
-      xp: snapshot.xp,
-      name: snapshot.name || "Friend",
-      icon: icoSvg,
-      iconTextParts,
-    });
-  }
-  if (v === "wd") buildWd();
-  if (v === "lv") fillLv();
-  if (v === "info") fillInfo(true);
 }
-$("prof").onclick = () => {
-  view("menu");
-  $("pm").classList.add("show");
-};
-function initProfileMenu() {
+function initProfile() {
   const actions = profileBridge.actions;
-  DailyWalkReact.renderProfileMenu({
-    icon: icoSvg,
-    actions: {
-      "go-wd": actions.openWardrobe,
-      "go-lv": actions.openLevels,
-      "go-info": actions.openInfo,
-      "go-ix": actions.openIndex,
-      "go-tour": actions.openTour,
-      "go-grad": actions.openGraduation,
+  DailyWalkReact.renderProfile({
+    menu: {
+      icon: icoSvg,
+      actions: {
+        "go-wd": actions.openWardrobe,
+        "go-lv": actions.openLevels,
+        "go-info": actions.openInfo,
+        "go-ix": actions.openIndex,
+        "go-tour": actions.openTour,
+        "go-grad": actions.openGraduation,
+      },
     },
   });
+  $("lugo").onclick = () => {
+    $("lu").classList.remove("show");
+    hop();
+  };
+  $("hero").onclick = () => $("prof").click();
+  $("prof").onclick = () => {
+    view("menu");
+    $("pm").classList.add("show");
+  };
+  document.querySelectorAll("[data-back]").forEach((b) => {
+    b.onclick = () => view("menu");
+  });
+  $("pdone").onclick = () => {
+    $("pm").classList.remove("show");
+    hop();
+  };
+  $("pm").onclick = (e) => {
+    if (e.target === $("pm")) $("pm").classList.remove("show");
+  };
 }
-document.querySelectorAll("[data-back]").forEach((b) => {
-  b.onclick = () => view("menu");
-});
-$("pdone").onclick = () => {
-  $("pm").classList.remove("show");
-  hop();
-};
-$("pm").onclick = (e) => {
-  if (e.target === $("pm")) $("pm").classList.remove("show");
-};

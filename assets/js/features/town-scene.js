@@ -563,14 +563,16 @@ function drawScene(animNew) {
   $("bld").innerHTML = g;
   $("sleep-indicators").innerHTML = sleep;
 }
-$("bld").onclick = (e) => {
-  const b = e.target.closest(".bd");
-  if (b) {
-    const x = BLD[+b.dataset.i];
-    rerun(b, "wob");
-    toast(x.n + ": " + x.d);
-  }
-};
+function initTownScene() {
+  $("bld").onclick = (e) => {
+    const b = e.target.closest(".bd");
+    if (b) {
+      const x = BLD[+b.dataset.i];
+      rerun(b, "wob");
+      toast(x.n + ": " + x.d);
+    }
+  };
+}
 function townInfo() {
   const id = V(),
     c = NB[id],

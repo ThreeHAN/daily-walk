@@ -177,34 +177,44 @@ function stopGlobe() {
     GLB.raf = 0;
   }
 }
-const gsvEl = $("gsv");
-gsvEl.addEventListener("pointerdown", (e) => {
-  GLB.drag = true;
-  GLB.moved = false;
-  GLB.lx = e.clientX;
-  GLB.ly = e.clientY;
-  GLB.vLon = 0;
-  if (gsvEl.setPointerCapture)
-    try {
-      gsvEl.setPointerCapture(e.pointerId);
-    } catch (err) {}
-});
-gsvEl.addEventListener("pointermove", (e) => {
-  if (!GLB.drag) return;
-  const dx = e.clientX - GLB.lx,
-    dy = e.clientY - GLB.ly;
-  if (Math.hypot(dx, dy) > 4) GLB.moved = true;
-  GLB.lon = (GLB.lon + dx * 0.55) % 360;
-  GLB.vLon = dx * 0.35;
-  GLB.lx = e.clientX;
-  GLB.ly = e.clientY;
-  renderGlobeFrame();
-});
-["pointerup", "pointercancel"].forEach((ev) =>
-  gsvEl.addEventListener(ev, () => {
-    GLB.drag = false;
-  }),
-);
+function initWorldMap() {
+  const gsvEl = $("gsv");
+  gsvEl.addEventListener("pointerdown", (e) => {
+    GLB.drag = true;
+    GLB.moved = false;
+    GLB.lx = e.clientX;
+    GLB.ly = e.clientY;
+    GLB.vLon = 0;
+    if (gsvEl.setPointerCapture)
+      try {
+        gsvEl.setPointerCapture(e.pointerId);
+      } catch (err) {}
+  });
+  gsvEl.addEventListener("pointermove", (e) => {
+    if (!GLB.drag) return;
+    const dx = e.clientX - GLB.lx,
+      dy = e.clientY - GLB.ly;
+    if (Math.hypot(dx, dy) > 4) GLB.moved = true;
+    GLB.lon = (GLB.lon + dx * 0.55) % 360;
+    GLB.vLon = dx * 0.35;
+    GLB.lx = e.clientX;
+    GLB.ly = e.clientY;
+    renderGlobeFrame();
+  });
+  ["pointerup", "pointercancel"].forEach((ev) =>
+    gsvEl.addEventListener(ev, () => {
+      GLB.drag = false;
+    }),
+  );
+  $("gsvg").onclick = selectWorldTown;
+  $("wbtn").onclick = openWorld;
+  $("nbtn").onclick = openWorld;
+  $("glx").onclick = () => {
+    $("gl").classList.remove("show");
+    stopGlobe();
+  };
+  $("homeb").onclick = () => visit(S.nb.cur);
+}
 
 function unlockedKinds() {
   const out = new Set(["square", "circle", "triangle", "rectangle", "duck"]);
@@ -257,7 +267,7 @@ function drawWorld() {
     iconTextParts,
   });
 }
-$("gsvg").onclick = (e) => {
+function selectWorldTown(e) {
   if (GLB.moved) return;
   const g = e.target.closest("[data-id]");
   if (g) {
@@ -266,7 +276,7 @@ $("gsvg").onclick = (e) => {
     const c = $("wc-" + gsel);
     if (c) c.scrollIntoView({ behavior: "smooth", block: "center" });
   }
-};
+}
 function openWorld() {
   gsel = null;
   const g = GP[V()] || GP.meadow;
@@ -276,13 +286,6 @@ function openWorld() {
   $("gl").classList.add("show");
   startGlobe();
 }
-$("wbtn").onclick = openWorld;
-$("nbtn").onclick = openWorld;
-$("glx").onclick = () => {
-  $("gl").classList.remove("show");
-  stopGlobe();
-};
-$("homeb").onclick = () => visit(S.nb.cur);
 function visit(id) {
   S.nb.view = id;
   if (NB[id] && NB[id].pl) S.nb.vplanet = NB[id].pl;

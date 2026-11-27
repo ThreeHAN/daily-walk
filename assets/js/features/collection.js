@@ -21,15 +21,10 @@ function openIx() {
   fillIndex(true);
   $("ix").classList.add("show");
 }
-$("ixh").onclick = openIx;
-$("ixbtn").onclick = openIx;
 function openIndexFromProfile() {
   $("pm").classList.remove("show");
   openIx();
 }
-$("ix").onclick = (e) => {
-  if (e.target === $("ix")) $("ix").classList.remove("show");
-};
 const FIRE_TIERS = [
   {
     min: 30,
@@ -207,17 +202,24 @@ function showSplash(force) {
     }, 45);
   }
 }
-$("spgo").onclick = () => {
-  $("sp").classList.remove("show");
-  stopFireAnim();
-};
-$("sp").onclick = (e) => {
-  if (e.target === $("sp")) {
+function initCollection() {
+  $("ixh").onclick = openIx;
+  $("ixbtn").onclick = openIx;
+  $("ix").onclick = (e) => {
+    if (e.target === $("ix")) $("ix").classList.remove("show");
+  };
+  $("spgo").onclick = () => {
     $("sp").classList.remove("show");
     stopFireAnim();
-  }
-};
-$("sb").onclick = (e) => {
-  e.stopPropagation();
-  showSplash(true);
-};
+  };
+  $("sp").onclick = (e) => {
+    if (e.target === $("sp")) {
+      $("sp").classList.remove("show");
+      stopFireAnim();
+    }
+  };
+  $("sb").onclick = (e) => {
+    e.stopPropagation();
+    showSplash(true);
+  };
+}

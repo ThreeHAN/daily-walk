@@ -6,16 +6,32 @@ let persistenceFailed = false;
 let profileUserInteraction = false;
 let interactionFrame = 0;
 
-for (const type of ["click", "input", "change", "submit", "keydown"]) {
-  document.addEventListener(type, (event) => {
-    if (!event.isTrusted) return;
-    profileUserInteraction = true;
-    cancelAnimationFrame(interactionFrame);
-    interactionFrame = requestAnimationFrame(() => { profileUserInteraction = false; });
-  }, true);
-  window.addEventListener(type, (event) => {
-    if (event.isTrusted) profileUserInteraction = false;
+function initAccounts() {
+  for (const type of ["click", "input", "change", "submit", "keydown"]) {
+    document.addEventListener(type, (event) => {
+      if (!event.isTrusted) return;
+      profileUserInteraction = true;
+      cancelAnimationFrame(interactionFrame);
+      interactionFrame = requestAnimationFrame(() => { profileUserInteraction = false; });
+    }, true);
+    window.addEventListener(type, (event) => {
+      if (event.isTrusted) profileUserInteraction = false;
+    });
+  }
+  $("ubar").onclick = () => {
+    view("info");
+    $("pm").classList.add("show");
+  };
+  $("uadd").onclick = createNewUser;
+  $("uexp").onclick = exportSave;
+  $("lbshare").onclick = shareFriendCode;
+  $("lbreset").onclick = restoreHiddenAccounts;
+  $("lbaddf").onclick = addFriendCode;
+  addEventListener("storage", () => {
+    if (PG === "l") renderLeaderboard();
   });
+  $("uimp").onclick = () => $("ufile").click();
+  $("ufile").onchange = restoreSave;
 }
 
 function renderUserBar() {
@@ -212,12 +228,7 @@ function createNewUser() {
     }
   }, 150);
 }
-$("ubar").onclick = () => {
-  view("info");
-  $("pm").classList.add("show");
-};
-$("uadd").onclick = createNewUser;
-$("uexp").onclick = () => {
+function exportSave() {
   save();
   const blob = new Blob(
     [
@@ -242,7 +253,7 @@ $("uexp").onclick = () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   toast("Save file downloaded!");
-};
+}
 
 const K_FRIENDS = "dailywalk_universal:friends:v1";
 let lbSort = "xp";
@@ -406,7 +417,7 @@ function renderLeaderboard() {
     },
   });
 }
-$("lbshare").onclick = () => {
+function shareFriendCode() {
   const me = gatherUniversalAccounts().find((x) => x.isMe);
   if (!me) return;
   const payload = {
@@ -438,15 +449,15 @@ $("lbshare").onclick = () => {
   } else {
     prompt("Copy your Universal Friend Code:", code);
   }
-};
-$("lbreset").onclick = () => {
+}
+function restoreHiddenAccounts() {
   try {
     localStorage.removeItem("dailywalk_admin:hidden_ids:v1");
     renderLeaderboard();
     toast("All hidden accounts restored!");
   } catch (e) {}
-};
-$("lbaddf").onclick = () => {
+}
+function addFriendCode() {
   const raw = prompt(
     "Paste a friend's Universal Friend Code (starts with DW1:) to add them to your Leaderboard:",
   );
@@ -468,13 +479,8 @@ $("lbaddf").onclick = () => {
   } catch (e) {
     toast("❌ Invalid Friend Code — please paste the full DW1:... code");
   }
-};
-addEventListener("storage", () => {
-  if (PG === "l") renderLeaderboard();
-});
-
-$("uimp").onclick = () => $("ufile").click();
-$("ufile").onchange = (e) => {
+}
+function restoreSave(e) {
   const f = e.target.files && e.target.files[0];
   if (!f) return;
   const rd = new FileReader();
@@ -503,4 +509,4 @@ $("ufile").onchange = (e) => {
     $("ufile").value = "";
   };
   rd.readAsText(f);
-};
+}

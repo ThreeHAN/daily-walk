@@ -12,10 +12,7 @@ export { renderLevelHero } from "./progress/level-hero.jsx";
 export { renderLevelTitle } from "./progress/level-title.jsx";
 export { renderLevelUp } from "./progress/level-up.jsx";
 export { renderPeopleIndex } from "./world/people-index.jsx";
-export {
-  renderProfileBanner, renderProfileInfo, renderProfileMenu, renderWardrobeTabs,
-  renderWardrobePanels, renderWardrobeLevel, renderLevelList, showProfileView,
-} from "./profile/profile-shell.jsx";
+export { renderProfile } from "./profile/profile-shell.jsx";
 export { renderProfileList } from "./profile/profile-list.jsx";
 export { renderProfilePets } from "./profile/profile-pets.jsx";
 export { renderProfileStatus } from "./profile/profile-status.jsx";

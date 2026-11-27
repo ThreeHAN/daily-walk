@@ -41,32 +41,11 @@ function ProfileShell({ view, banner, menu, info, tabs, panels, levels, wardrobe
   );
 }
 
-function updateProfileShell(update) {
-  Object.assign(state, update);
+export function renderProfile(update) {
+  const next = { ...update };
+  if (next.banner) next.banner = { props: next.banner, revision: ++bannerRevision };
+  if (next.info) next.info = { props: next.info, revision: ++infoRevision };
+  if (next.tabs) next.tabs = { props: next.tabs, revision: ++tabsRevision };
+  Object.assign(state, next);
   flushSync(() => root.render(<ProfileShell {...state} />));
-}
-
-export function showProfileView(view) {
-  updateProfileShell({ view });
-}
-export function renderProfileBanner(props) {
-  updateProfileShell({ banner: { props, revision: ++bannerRevision } });
-}
-export function renderProfileMenu(props) {
-  updateProfileShell({ menu: props });
-}
-export function renderProfileInfo(props) {
-  updateProfileShell({ info: { props, revision: ++infoRevision } });
-}
-export function renderWardrobeTabs(props) {
-  updateProfileShell({ tabs: { props, revision: ++tabsRevision } });
-}
-export function renderWardrobePanels(props) {
-  updateProfileShell({ panels: props });
-}
-export function renderLevelList(props) {
-  updateProfileShell({ levels: props });
-}
-export function renderWardrobeLevel(level, title) {
-  updateProfileShell({ wardrobeLevel: { level, title } });
 }

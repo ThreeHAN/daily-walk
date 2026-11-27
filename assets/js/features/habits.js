@@ -71,9 +71,6 @@ function handleHabitCheck(task, checked, day) {
   if (checked) cheer(task, S.days[day]);
 }
 
-setInterval(() => {
-  if (PG === "t") dayShade();
-}, 60000);
 function go(p) {
   if (p === PG) return;
   const prevIdx = PG_ORD.indexOf(PG),
@@ -100,55 +97,65 @@ function go(p) {
   else townStop();
   if (p === "l") renderLeaderboard();
 }
-document.querySelectorAll(".nv").forEach((b) => {
-  b.onclick = () => go(b.dataset.p);
-});
 let sx = 0,
   sy = 0,
   sok = false;
-addEventListener(
-  "touchstart",
-  (e) => {
-    const t = e.touches[0];
-    sx = t.clientX;
-    sy = t.clientY;
-    sok = !e.target.closest(
-      ".modal,.splash,.lvup,.cs,.gl,.tv,.tabs,.lb-tabs,input,select",
-    );
-  },
-  { passive: true },
-);
-addEventListener(
-  "touchend",
-  (e) => {
-    if (!sok) return;
-    const t = e.changedTouches[0],
-      dx = t.clientX - sx,
-      dy = t.clientY - sy;
-    if (Math.abs(dx) > 70 && Math.abs(dy) < 55) {
-      const i = PG_ORD.indexOf(PG);
-      const ni =
-        dx < 0 ? Math.min(PG_ORD.length - 1, i + 1) : Math.max(0, i - 1);
-      go(PG_ORD[ni]);
+function initHabits() {
+  document.querySelectorAll(".nv").forEach((b) => {
+    b.onclick = () => go(b.dataset.p);
+  });
+  addEventListener(
+    "touchstart",
+    (e) => {
+      const t = e.touches[0];
+      sx = t.clientX;
+      sy = t.clientY;
+      sok = !e.target.closest(
+        ".modal,.splash,.lvup,.cs,.gl,.tv,.tabs,.lb-tabs,input,select",
+      );
+    },
+    { passive: true },
+  );
+  addEventListener(
+    "touchend",
+    (e) => {
+      if (!sok) return;
+      const t = e.changedTouches[0],
+        dx = t.clientX - sx,
+        dy = t.clientY - sy;
+      if (Math.abs(dx) > 70 && Math.abs(dy) < 55) {
+        const i = PG_ORD.indexOf(PG);
+        const ni =
+          dx < 0 ? Math.min(PG_ORD.length - 1, i + 1) : Math.max(0, i - 1);
+        go(PG_ORD[ni]);
+      }
+    },
+    { passive: true },
+  );
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) townStop();
+    else if (PG === "t") {
+      TW.on = true;
+      TW.last = 0;
+      cancelAnimationFrame(TW.raf);
+      TW.raf = requestAnimationFrame(tick);
     }
-  },
-  { passive: true },
-);
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) townStop();
-  else if (PG === "t") {
-    TW.on = true;
-    TW.last = 0;
-    cancelAnimationFrame(TW.raf);
-    TW.raf = requestAnimationFrame(tick);
-  }
-});
-addEventListener("resize", () => {
-  if (PG === "t") {
-    TW.W = $("scene").clientWidth;
-    TW.H = $("scene").clientHeight;
-  }
-});
+  });
+  addEventListener("resize", () => {
+    if (PG === "t") {
+      TW.W = $("scene").clientWidth;
+      TW.H = $("scene").clientHeight;
+    }
+  });
+  setInterval(() => {
+    if (PG === "t") dayShade();
+  }, 60000);
+  setInterval(refreshHabitClock, 20000);
+  $("fab").onclick = openHabit;
+  $("hm").onclick = (e) => {
+    if (e.target === $("hm")) $("hm").classList.remove("show");
+  };
+}
 function tickClock() {
   DailyWalkReact.renderDashboardHeading({
     now: new Date(),
@@ -237,7 +244,7 @@ function mealsNow() {
   ).length;
   if (want !== document.querySelectorAll(".nowb").length) render();
 }
-setInterval(() => {
+function refreshHabitClock() {
   tickClock();
   if (today() !== lastKey) {
     lastKey = today();
@@ -246,7 +253,7 @@ setInterval(() => {
     drawWater();
     drawJr();
   } else mealsNow();
-}, 20000);
+}
 function openHabit() {
   DailyWalkReact.renderHabitEditor({
     groups: G,
@@ -259,10 +266,6 @@ function openHabit() {
   });
   $("hm").classList.add("show");
 }
-$("fab").onclick = openHabit;
-$("hm").onclick = (e) => {
-  if (e.target === $("hm")) $("hm").classList.remove("show");
-};
 function addHabit({ name, description, group, icon }) {
   const id = "c" + Date.now();
   S.tasks.push({ id, g: group, ic: icon, t: name, s: description });

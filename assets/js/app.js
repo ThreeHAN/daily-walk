@@ -14,7 +14,7 @@ function say(txt) {
   if (b.classList.contains("show")) b.textContent = lbl(txt);
   else $("dot").classList.add("on");
 }
-$("av").onclick = () => {
+function toggleBuddyMessage() {
   hop();
   const b = $("bubble");
   if (b.classList.contains("show")) {
@@ -27,10 +27,7 @@ $("av").onclick = () => {
     b.classList.add("show");
     $("dot").classList.remove("on");
   }
-};
-$("bubble").onclick = () => {
-  $("bubble").classList.remove("show");
-};
+}
 async function cheer(t, all) {
   const end = all
     ? "\n\n🎉 You finished everything today. “Well done, good and faithful servant” (Matthew 25:21)."
@@ -157,7 +154,7 @@ function render(effects = {}) {
   checkNbWin();
   firstR = false;
 }
-$("reset").onclick = () => {
+function resetHabits() {
   const day = today();
   const ids = new Set([...S.tasks.map((task) => task.id), ...Object.keys(S.checks[day] || {})]);
   if (!updateHabitChecks(day, Array.from(ids, (id) => [id, false]))) {
@@ -167,7 +164,22 @@ $("reset").onclick = () => {
   S.days[day] = false;
   save();
   render();
-};
+}
+function initDashboard() {
+  $("av").onclick = toggleBuddyMessage;
+  $("bubble").onclick = () => {
+    $("bubble").classList.remove("show");
+  };
+  $("reset").onclick = resetHabits;
+}
+initAccounts();
+initProfile();
+initTownScene();
+initWorldMap();
+initTown();
+initHabits();
+initCollection();
+initDashboard();
 save();
 paint();
 DailyWalkReact.renderTownBirds();
@@ -264,7 +276,6 @@ function openCloudProfile(ownerId, cloudId, remote, { appearance, skipSplash = f
   finishStartup({ skipSplash });
 }
 
-initProfileMenu();
 DailyWalkReact.renderGoogleAuth({
   needsOnboarding: !stateLoadError && !startupHasLegacy && readStoredUsers().length === 0,
   appearanceDefaults: Object.fromEntries(Object.keys(APPEARANCE_OPTIONS).map((key) => [key, S.p[key]])),

@@ -80,6 +80,38 @@ async function signIn(page, button) {
   await page.goto(`${site}/?code=test-code`);
 }
 
+test("feature handlers are wired at bootstrap and work after startup", async ({ page }) => {
+  let release;
+  let bootstrapRequested;
+  const requested = new Promise((resolve) => { bootstrapRequested = resolve; });
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route(`${site}/**`, async (route) => {
+    const url = new URL(route.request().url());
+    await route.fulfill({ path: path.join(root, url.pathname === "/" ? "index.html" : url.pathname.slice(1)) });
+  });
+  await page.route(`${site}/assets/js/app.js*`, async (route) => {
+    bootstrapRequested();
+    await gate;
+    await route.fulfill({ path: path.join(root, "assets/js/app.js") });
+  });
+  const navigation = page.goto(site);
+  try {
+    await requested;
+    const handlers = await page.evaluate(() =>
+      ["prof", "ixh", "wbtn", "sbtn", "fab", "ubar", "reset"].map((id) => document.getElementById(id).onclick),
+    );
+    expect(handlers).toEqual(Array(7).fill(null));
+  } finally {
+    release();
+  }
+  await navigation;
+  await continueLocally(page);
+  await page.locator("#prof").click();
+  await expect(page.locator("#pm")).toHaveClass(/show/);
+  await page.locator("#go-info").click();
+  await expect(page.locator("#v-info")).toBeVisible();
+});
+
 test("first-time onboarding edits an avatar before choosing local mode and starts the tour", async ({ page }) => {
   await setup(page, new Map(), { skipOnboarding: true });
   const welcome = page.getByRole("dialog", { name: "Ready to begin your journey with Steadfast Steps?" });
