@@ -21,48 +21,6 @@ const RW = (x, y, w, h) =>
   '" height="' +
   h +
   '" fill="#bfe3ff"/>';
-$("tsvg").innerHTML = `
-  <defs>
-    <linearGradient id="sk" x1="0" y1="0" x2="0" y2="1">
-      <stop id="sk0" offset=".5" stop-color="#8fd0ff"/>
-      <stop id="sk1" offset=".5" stop-color="#e6f6ff"/>
-    </linearGradient>
-    <linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
-      <stop id="gg0" offset=".5" stop-color="#93d684"/>
-      <stop id="gg1" offset=".5" stop-color="#5fb56a"/>
-    </linearGradient>
-  </defs>
-  <rect width="360" height="300" fill="url(#sk)"/>
-  <g id="stars" opacity="0" fill="#fff">
-    <path d="M20 20h4v4h-4zM48 60h4v4h-4zM76 16h4v4h-4zM110 44h4v4h-4zM140 14h4v4h-4zM168 70h4v4h-4zM196 28h4v4h-4zM226 56h4v4h-4zM252 16h4v4h-4zM270 80h4v4h-4zM30 92h4v4h-4zM90 86h4v4h-4zM330 70h4v4h-4zM344 20h4v4h-4z"/>
-  </g>
-  <g id="moon" opacity="0">
-    <path d="M298 26h12v4h5v5h-5v12h-5v5h-9v-5h-5V31h7z" fill="#f4f1d6"/>
-  </g>
-  <g id="sunG">
-    <path d="M300 10h10v7h-10zM300 63h10v7h-10zM275 35h7v10h-7zM328 35h7v10h-7zM284 20h6v6h-6zM320 20h6v6h-6zM284 54h6v6h-6zM320 54h6v6h-6z" fill="#ffe27a"/>
-    <path d="M294 23h22v5h6v24h-6v5h-22v-5h-6V28h6z" fill="#ffe27a"/>
-  </g>
-  <g class="cl" fill="#fff" opacity=".9">
-    <path d="M34 38h12v-8h16v-6h20v6h14v8h9v8H34z"/>
-  </g>
-  <g class="cl b" fill="#fff" opacity=".85">
-    <path d="M188 61h10v-6h12v-6h18v6h14v6h8v8h-62z"/>
-  </g>
-  <path id="hillp" d="M0 126V110h20v-8h20v-8h30v8h24v8h24v10h26v-8h20v-8h30v-8h28v8h24v8h22v8h30v-8h25v-6h23v10h14v184H0z" fill="#a9dca0"/>
-  <rect y="128" width="360" height="172" fill="url(#gg)"/>
-  <path id="roadp" d="M0 232h40v-4h52v-4h176v4h52v4h40v42h-40v-4h-52v-4H92v4H40v4H0z" fill="#dccca6"/>
-  <g id="flw" fill="#fff">
-    <path d="M38 282h5v5h-5zM118 290h5v5h-5zM208 286h5v5h-5zM298 289h5v5h-5zM164 222h4v4h-4z"/>
-  </g>
-  <g id="decB"></g>
-  <g id="bld"></g>
-  <g id="town-birds" aria-hidden="true"></g>
-  <g id="bfs"></g>
-  <g id="decF"></g>
-  <rect id="nightr" width="360" height="300" fill="#0a1a40" opacity="0" style="pointer-events:none"/>
-  <g id="sleep-indicators"></g>
-`;
 const houseS = (i) => {
   const c = NBC.hc[i % 5];
   if (NBC.pl && NBC.pl !== "earth") {
@@ -495,13 +453,6 @@ function applyBiome(id) {
   const c = NB[id],
     eco = c.eco || id,
     isSpace = c.pl && c.pl !== "earth";
-  $("sk0").setAttribute("stop-color", c.sky[0]);
-  $("sk1").setAttribute("stop-color", c.sky[1]);
-  $("gg0").setAttribute("stop-color", c.gr[0]);
-  $("gg1").setAttribute("stop-color", c.gr[1]);
-  $("hillp").setAttribute("fill", c.hill);
-  $("roadp").setAttribute("fill", c.road);
-  $("flw").style.display = id === "meadow" ? "" : "none";
   const royalPig =
     id === "neptune_sky"
       ? {
@@ -518,16 +469,19 @@ function applyBiome(id) {
         }
       : {};
   const bg = royalPig.back ? royalPig : BG[eco] || {};
-  $("decB").innerHTML = bg.back ? bg.back() : "";
-  $("decF").innerHTML = bg.front ? bg.front() : "";
-  $("bfs").innerHTML =
-    isSpace || eco === "seaside" || eco === "snowy" ? "" : bfHTML();
   $("scene").dataset.nb = id;
+  return {
+    biome: { sky: c.sky, gr: c.gr, hill: c.hill, road: c.road, flowers: id === "meadow" },
+    back: bg.back ? bg.back() : "",
+    front: bg.front ? bg.front() : "",
+    butterflies: isSpace || eco === "seaside" || eco === "snowy" ? "" : bfHTML(),
+  };
 }
+let buildingRevision = 0;
 function drawScene(animNew) {
   const id = V();
   NBC = NB[id];
-  applyBiome(id);
+  const biome = applyBiome(id);
   const x = nbXp(id),
     built = BLD.filter((b) => x >= b.at);
   let g = "",
@@ -560,18 +514,24 @@ function drawScene(animNew) {
       ')"><g class="cons"><g transform="translate(-8 -16) scale(.67)">' +
       ICONS.cone +
       "</g></g></g>";
-  $("bld").innerHTML = g;
-  $("sleep-indicators").innerHTML = sleep;
+  DailyWalkReact.renderTownScene({
+    ...biome,
+    buildings: g,
+    sleep,
+    buildingRevision: ++buildingRevision,
+    onBuilding: clickTownBuilding,
+  });
+}
+function clickTownBuilding(e) {
+  const b = e.target.closest(".bd");
+  if (b) {
+    const x = BLD[+b.dataset.i];
+    rerun(b, "wob");
+    toast(x.n + ": " + x.d);
+  }
 }
 function initTownScene() {
-  $("bld").onclick = (e) => {
-    const b = e.target.closest(".bd");
-    if (b) {
-      const x = BLD[+b.dataset.i];
-      rerun(b, "wob");
-      toast(x.n + ": " + x.d);
-    }
-  };
+  drawScene(false);
 }
 function renderWorldActions(people = S.peopleMet.length) {
   DailyWalkReact.renderWorldActions({

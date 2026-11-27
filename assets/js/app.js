@@ -217,7 +217,6 @@ initCollection();
 initDashboard();
 save();
 paint();
-DailyWalkReact.renderTownBirds();
 function getSavedProfileForSync(id = CUR_UID) {
   if (stateLoadError) throw new Error("Saved profiles could not be loaded.");
   if (!USERS.some((user) => user.id === id)) throw new Error("The local profile is no longer available.");

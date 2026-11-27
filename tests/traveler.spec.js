@@ -400,6 +400,7 @@ test("pixel scenery keeps biome artwork, buildings, and the world map interactiv
       S.nb.xp[id] = MAXAT;
     }
   });
+
   const scenes = await page.evaluate(() => {
     const ids = ["meadow", "seaside", "snowy", "oasis", "autumn", "starlight", "crystal", "sky", "neptune_sky"];
     return ids.map((id) => {
@@ -450,4 +451,33 @@ test("pixel scenery keeps biome artwork, buildings, and the world map interactiv
   expect(await page.evaluate(() => GLB.lat)).toBe(before.lat);
   expect(await page.locator("#gland path").getAttribute("d")).not.toBe(before.land);
   expect(errors).toEqual([]);
+});
+
+test("React World SVG roots retain animated elements across updates", async ({ page }) => {
+  await page.locator('button[data-p="t"]').evaluate((button) => button.click());
+  await expect(page.locator("#tsvg")).toHaveAttribute("data-react-root", "");
+  const sceneStable = await page.evaluate(() => {
+    const bird = document.querySelector("#town-birds .fly");
+    const building = document.querySelector("#bld .bd");
+    dayShade();
+    const shadeStable = bird === document.querySelector("#town-birds .fly") &&
+      building === document.querySelector("#bld .bd");
+    drawScene(false);
+    return shadeStable && bird === document.querySelector("#town-birds .fly") &&
+      building !== document.querySelector("#bld .bd");
+  });
+  expect(sceneStable).toBe(true);
+
+  await page.locator("#wbtn").evaluate((button) => button.click());
+  await page.evaluate(() => stopGlobe());
+  await expect(page.locator("#gsvg")).toHaveAttribute("data-react-root", "");
+  const pinStable = await page.evaluate(() => {
+    const pin = document.querySelector('#gpins [data-id="meadow"]');
+    GLB.lon += 0.1;
+    renderGlobeFrame();
+    return !!pin && pin === document.querySelector('#gpins [data-id="meadow"]');
+  });
+  expect(pinStable).toBe(true);
+  await page.locator("#glx").click();
+  await expect(page.locator("#gl")).not.toHaveClass(/show/);
 });

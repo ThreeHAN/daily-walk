@@ -83,17 +83,10 @@ function gLandSvg() {
       }
     }
   }
-  return '<path d="' + d + '" fill="#64b96b"/>';
+  return d;
 }
 function renderGlobeFrame() {
   const plCfg = PLANETS.earth;
-  $("gs0").setAttribute("stop-color", plCfg.sea[0]);
-  $("gs1").setAttribute("stop-color", plCfg.sea[1]);
-  $("gs2").setAttribute("stop-color", plCfg.sea[2]);
-  $("ghalo").setAttribute("fill", plCfg.halo);
-  $("gringb").setAttribute("opacity", plCfg.ring ? "1" : "0");
-  $("gringf").setAttribute("opacity", plCfg.ring ? "1" : "0");
-  $("gland").innerHTML = gLandSvg();
   const vis = NBK
     .map((id) => {
       const g = GP[id],
@@ -101,8 +94,7 @@ function renderGlobeFrame() {
       return { id, p };
     })
     .sort((a, b) => a.p.z - b.p.z);
-  let isl = "",
-    pins = "";
+  const islands = [];
   vis.forEach(({ id, p }) => {
     if (p.z <= 0.02) return;
     const sc = 0.55 + 0.45 * p.z,
@@ -111,17 +103,17 @@ function renderGlobeFrame() {
       ry = (5 * sc * (0.65 + 0.35 * Math.abs(p.z))).toFixed(1);
     const c = NB[id],
       st = nbState(id);
-    isl +=
-      '<g class="isl' +
-      (st === "locked" ? " lk" : "") +
-      '" data-id="' +
-      id +
-      '" opacity="' +
-      fo +
-      '">' +
-      R(Math.round(p.x - rx), Math.round(p.y - ry), Math.round(rx * 2), Math.round(ry * 2), c.gr[1]) +
-      R(Math.round(p.x - rx * 0.75), Math.round(p.y - ry - 2 * sc), Math.round(rx * 1.5), Math.round(ry), c.gr[0]);
-    isl += "</g>";
+    const island = {
+      id,
+      locked: st === "locked",
+      available: st === "avail",
+      current: id === S.nb.cur,
+      opacity: fo,
+      colors: c.gr,
+      accent: c.ac,
+      lower: { x: Math.round(p.x - rx), y: Math.round(p.y - ry), width: Math.round(rx * 2), height: Math.round(ry * 2) },
+      upper: { x: Math.round(p.x - rx * 0.75), y: Math.round(p.y - ry - 2 * sc), width: Math.round(rx * 1.5), height: Math.round(ry) },
+    };
     if (p.z > 0.12) {
       const ic =
         id === S.nb.cur
@@ -133,28 +125,15 @@ function renderGlobeFrame() {
               : "sparkle";
       const ps = (0.42 + 0.12 * p.z).toFixed(2),
         po = Math.min(1, (p.z - 0.12) * 4).toFixed(2);
-      pins +=
-        '<g class="pin' +
-        (st === "avail" ? " av" : "") +
-        (id === S.nb.cur ? " me" : "") +
-        '" data-id="' +
-        id +
-        '" opacity="' +
-        po +
-        '" transform="translate(' +
-        p.x.toFixed(1) +
-        " " +
-        (p.y - +ry - 4 * sc).toFixed(1) +
-        ") scale(" +
-        ps +
-        ')"><g class="pinb">' + R(-10, -10, 20, 20, c.ac) + R(-7, -7, 14, 14, "#fff") +
-        '<g transform="translate(-6 -6) scale(.5)">' +
-        ICONS[ic] +
-        "</g></g></g>";
+      island.pin = {
+        opacity: po,
+        transform: "translate(" + p.x.toFixed(1) + " " + (p.y - +ry - 4 * sc).toFixed(1) + ") scale(" + ps + ")",
+        icon: ICONS[ic],
+      };
     }
+    islands.push(island);
   });
-  $("gisl").innerHTML = isl;
-  $("gpins").innerHTML = pins;
+  DailyWalkReact.renderGlobe({ planet: plCfg, land: gLandSvg(), islands });
 }
 function globeLoop() {
   if (!$("gl").classList.contains("show")) {
@@ -179,6 +158,7 @@ function stopGlobe() {
 }
 function initWorldMap() {
   const gsvEl = $("gsv");
+  renderGlobeFrame();
   gsvEl.addEventListener("pointerdown", (e) => {
     GLB.drag = true;
     GLB.moved = false;

@@ -1,14 +1,10 @@
-import { flushSync } from "react-dom";
-import { createRoot } from "../shared/react-root.js";
-
-const root = createRoot(document.getElementById("town-birds"));
 const birds = [
   { y: 45, delay: "-5s", stillX: "65px", body: "#3a6e9a", dark: "#264b70", wing: "#73a9c7" },
   { y: 70, delay: "-37s", stillX: "170px", body: "#ba443a", dark: "#7c282d", wing: "#e0755c", crest: true },
   { y: 86, delay: "-69s", stillX: "270px", body: "#d4a533", dark: "#5b4933", wing: "#f0d26c" },
 ];
 
-function TownBirds() {
+export function TownBirds() {
   return birds.map((bird) => (
     <g key={bird.y} transform={"translate(0 " + bird.y + ")"}>
       <g className="fly" style={{ animationDelay: bird.delay, "--still-x": bird.stillX }}>
@@ -25,8 +21,4 @@ function TownBirds() {
       </g>
     </g>
   ));
-}
-
-export function renderTownBirds() {
-  flushSync(() => root.render(<TownBirds />));
 }

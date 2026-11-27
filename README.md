@@ -156,9 +156,9 @@ Keep that order when moving code, and update the version in a changed script's
 URL so browsers do not use a stale cached copy. React roots use the shared
 `createRoot` helper in `assets/react/shared/react-root.js`, which marks their
 containers with `data-react-root`. Portal targets use the same marker. Legacy
-icon hydration and text replacement skip marked subtrees; legacy code must not
-mutate their contents except for the guided tour's temporary highlights on
-`#ix .sheet`, the water cups, and navigation buttons.
+icon hydration and text replacement skip marked subtrees. Legacy code only
+mutates React-owned elements for the guided tour's temporary highlights, the
+town building wobble effect, and the streak flame animation.
 
 The React bottom navigation renders its selected page and icons while
 `habits.js` retains page switching, swipe navigation, and screen effects.
@@ -182,6 +182,10 @@ Profile creation, backup export, and restore controls render in React while
 account logic remains responsible for storage and validation.
 Buddy details and stats dialogs render their shells and controls in React;
 town logic still owns their data, visibility, and refresh timing.
+The town scenery and globe render through React-owned SVG roots. Town logic
+supplies biome artwork, buildings, and day/night shading; globe logic supplies
+projected land and town positions while retaining its pointer and animation
+loops. Walkers and companions remain managed by the town animation loop.
 The streak and level-up overlays render in React. Collection and profile
 logic retain celebration timing, flame animation, and dismissal effects; the
 streak Continue button stays mounted for the guided tour.
@@ -221,10 +225,10 @@ weekly chart receives current tasks and per-day checks from the legacy state own
 | Pixel traveler and appearance                   | [`buddy-render.js`](assets/js/features/buddy-render.js), [`buddies.js`](assets/js/features/buddies.js), [`profile.js`](assets/js/features/profile.js) |
 | Town data, rewards, and progression            | [`town-data.js`](assets/js/features/town-data.js), [`town-progress.js`](assets/js/features/town-progress.js)                               |
 | World status and counters                      | [`town-status.jsx`](assets/react/world/town-status.jsx), [`town-scene.js`](assets/js/features/town-scene.js) |
-| Town buildings, scenery, and cast               | [`town-scene.js`](assets/js/features/town-scene.js), [`town-birds.jsx`](assets/react/world/town-birds.jsx)                                        |
+| Town buildings, scenery, and cast               | [`town-scene.jsx`](assets/react/world/town-scene.jsx), [`town-scene.js`](assets/js/features/town-scene.js), [`town-birds.jsx`](assets/react/world/town-birds.jsx) |
 | Town walkers, pets, sleep, and interactions    | [`town.js`](assets/js/features/town.js), [`buddy-details.jsx`](assets/react/world/buddy-details.jsx), [`buddy-stats.jsx`](assets/react/world/buddy-stats.jsx) |
 | Daily verse card                                | [`daily-verse.jsx`](assets/react/world/daily-verse.jsx), [`town.js`](assets/js/features/town.js), [`town-scene.js`](assets/js/features/town-scene.js) |
-| World map and travel                            | [`world-town-list.jsx`](assets/react/world/world-town-list.jsx), [`travel-landscape.jsx`](assets/react/world/travel-landscape.jsx), [`world-map.js`](assets/js/features/world-map.js) |
+| World map and travel                            | [`globe.jsx`](assets/react/world/globe.jsx), [`world-town-list.jsx`](assets/react/world/world-town-list.jsx), [`travel-landscape.jsx`](assets/react/world/travel-landscape.jsx), [`world-map.js`](assets/js/features/world-map.js) |
 | People met, pet definitions, and unlocks        | [`people-index.jsx`](assets/react/world/people-index.jsx), [`town.js`](assets/js/features/town.js), [`buddy-render.js`](assets/js/features/buddy-render.js), [`pets.js`](assets/js/features/pets.js), [`collection.js`](assets/js/features/collection.js) |
 | Shared icon artwork and rendering               | [`icon-art.js`](assets/js/ui/icon-art.js), [`icons.js`](assets/js/ui/icons.js)                                                             |
 | Streak celebration                              | [`streak-overlay.jsx`](assets/react/progress/streak-overlay.jsx), [`streak-week.jsx`](assets/react/progress/streak-week.jsx), [`collection.js`](assets/js/features/collection.js) |

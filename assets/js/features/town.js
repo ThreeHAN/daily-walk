@@ -256,10 +256,7 @@ function dayShade() {
   $("scene").classList.toggle("sleeping", sleeping);
   const isSpace = NB[V()] && NB[V()].pl !== "earth";
   if (isSpace) {
-    $("nightr").setAttribute("opacity", "0.12");
-    $("stars").setAttribute("opacity", "0.95");
-    $("sunG").setAttribute("opacity", "0.55");
-    $("moon").setAttribute("opacity", "0.85");
+    DailyWalkReact.renderTownScene({ shade: { night: "0.12", stars: "0.95", sun: "0.55", moon: "0.85" } });
     $("scene").classList.remove("night");
     return;
   }
@@ -268,10 +265,12 @@ function dayShade() {
   else if (h >= 5 && h < 7) n = (7 - h) / 2;
   else if (h >= 18 && h < 20) n = (h - 18) / 2;
   else n = 1;
-  $("nightr").setAttribute("opacity", (n * 0.45).toFixed(2));
-  $("stars").setAttribute("opacity", Math.min(1, n * 1.5).toFixed(2));
-  $("sunG").setAttribute("opacity", (1 - n).toFixed(2));
-  $("moon").setAttribute("opacity", n.toFixed(2));
+  DailyWalkReact.renderTownScene({ shade: {
+    night: (n * 0.45).toFixed(2),
+    stars: Math.min(1, n * 1.5).toFixed(2),
+    sun: (1 - n).toFixed(2),
+    moon: n.toFixed(2),
+  } });
   $("scene").classList.toggle("night", n > 0.4);
 }
 function tick(ts) {
