@@ -102,15 +102,13 @@ function floatXP(x, y, t) {
   setTimeout(() => e.remove(), 1000);
 }
 function levelUp(n) {
-  $("lun").textContent = n;
-  DailyWalkReact.renderLevelTitle("levelUp", n, ttl(n));
-  const un = LOCKS.filter((x) => x[3] === n).map((x) => x[2]);
-  $("luu").textContent =
-    n >= 10
-      ? "Max level! Keep helping towns and exploring the world."
-      : un.length
-        ? "Unlocked: " + un.join(", ")
-        : "Keep going, more rewards are ahead!";
+  DailyWalkReact.renderLevelUp({
+    level: n,
+    title: ttl(n),
+    unlocks: LOCKS.filter((x) => x[3] === n).map((x) => x[2]),
+    icon: icoSvg,
+    iconTextParts,
+  });
   setTimeout(() => {
     $("lu").classList.add("show");
     burst(innerWidth / 2, innerHeight / 3, 44, CONF);

@@ -11,6 +11,7 @@ export { renderJournal } from "./habits/journal.jsx";
 export { renderLevelHero } from "./progress/level-hero.jsx";
 export { renderLevelList } from "./progress/level-list.jsx";
 export { renderLevelTitle } from "./progress/level-title.jsx";
+export { renderLevelUp } from "./progress/level-up.jsx";
 export { renderPeopleIndex } from "./world/people-index.jsx";
 export { renderProfileBanner } from "./profile/profile-banner.jsx";
 export { renderProfileInfo } from "./profile/profile-info.jsx";
