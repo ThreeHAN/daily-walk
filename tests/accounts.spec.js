@@ -38,8 +38,13 @@ test("leaderboard cards sort, import friends, and persist hidden accounts", asyn
   await expect(cards.nth(0).locator(".lb-val")).toContainText("500");
   await expect(page.locator("#lbcnt")).toHaveText("3 Accounts");
   await expect(page.locator("#lbmyrk")).toHaveText("#3");
+  await expect(page.locator('.lb-tab[data-lbt="xp"]')).toHaveAttribute("aria-pressed", "true");
 
   await click(page, '.lb-tab[data-lbt="streak"]');
+  await expect(page.locator('.lb-tab[data-lbt="streak"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('.lb-tab[data-lbt="xp"]')).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("#lbmyxp")).toContainText("2d");
+  await expect(page.locator("#lbmyxp .ic svg")).toHaveCount(1);
   await expect(cards.nth(0).locator(".lb-inf b")).toHaveText("Bea");
   await expect(cards.nth(0).locator(".lb-val")).toContainText("8");
   await expect(cards.nth(0).locator(".lb-val .ic svg")).toHaveCount(1);
@@ -47,6 +52,7 @@ test("leaderboard cards sort, import friends, and persist hidden accounts", asyn
   await expect(cards.nth(0).locator(".lb-inf b")).toContainText("Amy");
   await click(page, '.lb-tab[data-lbt="tasks"]');
   await expect(cards.nth(0).locator(".lb-inf b")).toHaveText("Bea");
+  await expect(page.locator("#leaderboard-summary .lb-tab .ic svg")).toHaveCount(4);
 
   const friendCode = "DW1:" + Buffer.from(JSON.stringify({
     id: "friend-c", name: "Cara", buddy: "Pal", xp: 30, lv: 1, streak: 1, towns: 0, tasks: 3,

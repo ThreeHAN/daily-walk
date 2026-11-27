@@ -351,9 +351,6 @@ function gatherUniversalAccounts() {
 function renderLeaderboard() {
   const listEl = $("lblist");
   if (!listEl) return;
-  document
-    .querySelectorAll(".lb-tab")
-    .forEach((b) => b.classList.toggle("on", b.dataset.lbt === lbSort));
   const all = gatherUniversalAccounts();
   all.sort((a, b) => {
     if (lbSort === "streak") return b.streak - a.streak || b.xp - a.xp;
@@ -367,20 +364,27 @@ function renderLeaderboard() {
     hiddenIds = JSON.parse(localStorage.getItem(K_HIDDEN) || "[]");
   } catch (e) {}
   const filteredAll = all.filter((u) => !hiddenIds.includes(u.id));
-  $("lbcnt").textContent =
-    filteredAll.length + (filteredAll.length === 1 ? " Account" : " Accounts");
   const myIdx = filteredAll.findIndex((x) => x.isMe);
   const me = filteredAll[myIdx] || filteredAll[0] || all[0];
-  $("lbmyrk").textContent = myIdx >= 0 ? "#" + (myIdx + 1) : "-";
-  $("lbmynm").textContent = me.name + " · " + me.buddy;
-  $("lbmyxp").textContent =
-    lbSort === "streak"
+  DailyWalkReact.renderLeaderboardSummary({
+    count: filteredAll.length,
+    rank: myIdx >= 0 ? "#" + (myIdx + 1) : "-",
+    name: me.name + " · " + me.buddy,
+    value: lbSort === "streak"
       ? "🔥 " + me.streak + "d"
       : lbSort === "town"
         ? "🌍 " + me.towns + "/48"
         : lbSort === "tasks"
           ? "✅ " + me.tasks
-          : "⭐ " + me.xp.toLocaleString() + " XP";
+          : "⭐ " + me.xp.toLocaleString() + " XP",
+    sort: lbSort,
+    icon: icoSvg,
+    iconTextParts,
+    onSort: (sort) => {
+      lbSort = sort;
+      renderLeaderboard();
+    },
+  });
   DailyWalkReact.renderLeaderboardList({
     accounts: filteredAll.map((u) => ({
       ...u,
@@ -402,12 +406,6 @@ function renderLeaderboard() {
     },
   });
 }
-document.querySelectorAll(".lb-tab").forEach((b) => {
-  b.onclick = () => {
-    lbSort = b.dataset.lbt;
-    renderLeaderboard();
-  };
-});
 $("lbshare").onclick = () => {
   const me = gatherUniversalAccounts().find((x) => x.isMe);
   if (!me) return;

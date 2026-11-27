@@ -121,47 +121,6 @@ $("lugo").onclick = () => {
   hop();
 };
 $("hero").onclick = () => $("prof").click();
-function chips(el, list, cur, pick, cat) {
-  el.innerHTML = "";
-  const lv = lvOf(S.xp);
-  list.forEach((o) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    const need = cat ? lockLv(cat, o[0]) : 0,
-      lk = need > lv;
-    b.className =
-      "chip" +
-      (o[0] === cur ? " on" : "") +
-      (lk ? " locked" : "") +
-      (el.dataset.k + ":" + o[0] === popTok ? " pop" : "");
-    b.setAttribute("aria-pressed", String(o[0] === cur));
-    if (o[2]) {
-      const i = document.createElement("i");
-      i.style.background = o[2];
-      b.appendChild(i);
-    }
-    b.append(o[1]);
-    if (lk) {
-      const sm = document.createElement("small");
-      sm.textContent = "🔒 Lv " + need;
-      b.appendChild(sm);
-    }
-    b.onclick = () => {
-      if (lk) {
-        toast("🔒 Reach level " + need + " to unlock " + o[1]);
-        rerun(b, "shake");
-        return;
-      }
-      popTok = el.dataset.k + ":" + o[0];
-      pick(o[0]);
-      const selected = [...document.querySelectorAll("#wbody .chips")].find(
-        (group) => group.dataset.k === el.dataset.k,
-      );
-      selected?.querySelector(".chip.on")?.focus({ preventScroll: true });
-    };
-    el.appendChild(b);
-  });
-}
 let wTab = "gear";
 let colorEditor = null;
 const TABS = [
@@ -181,48 +140,31 @@ const APPEARANCE_OPTIONS = {
   hairColor: cn(HAIR_COLOR),
   eyeColor: cn(EYE_COLOR),
 };
-function sec(host, title, list, cur, pick, cat) {
-  const l = document.createElement("div");
-  l.className = "fl";
-  l.textContent = title;
-  const c = document.createElement("div");
-  c.className = "chips";
-  c.dataset.k = title;
-  l.appendChild(c);
-  host.appendChild(l);
-  chips(c, list, cur, pick, cat);
-}
 const TOP_STYLES = Object.entries(ITEM_NAMES.topStyle);
-function optionCards(host, list, cur, pick, cat) {
-  const grid = el("div", "pgrid");
-  list.forEach(([value, name]) => {
-    const equipped = value === cur;
+function optionCards(list, cur, pick, cat) {
+  return list.map(([value, name]) => {
+    const selected = value === cur;
     const need = cat ? lockLv(cat, value) : 0;
     const locked = need > lvOf(S.xp);
-    const button = el("button", "pcard" + (equipped ? " on" : "") + (locked ? " lk" : ""));
-    button.type = "button";
-    button.disabled = locked && !equipped;
-    button.setAttribute("aria-pressed", String(equipped));
-    button.append(
-      el("b", "", name),
-      el("small", "", equipped ? "Equipped ✓" : locked ? "Unlocks at level " + need : "Equip"),
-    );
-    button.onclick = () => pick(value);
-    grid.appendChild(button);
+    return {
+      id: value, name, selected, locked,
+      description: selected ? "Equipped ✓" : locked ? "Unlocks at level " + need : "Equip",
+      onSelect: () => pick(value),
+    };
   });
-  host.appendChild(grid);
-  return grid;
 }
-function topSections(host, p) {
-  optionCards(host, TOP_STYLES, p.topStyle, (v) => {
+function topSections(p) {
+  const cards = optionCards(TOP_STYLES, p.topStyle, (v) => {
     colorEditor = "top";
     setP("topStyle", v);
   }, "topStyle");
+  const blocks = [{ type: "grid", cards }];
   if (colorEditor === "top")
-    sec(host, "Color", cn(COL), p.topColor, (v) => setP("topColor", v));
+    blocks.push({ type: "choice", section: wardrobeChoice("Color", "topColor", cn(COL)) });
+  return blocks;
 }
-function townGearCards(host, items, p, grid = el("div", "pgrid")) {
-  items.forEach((gear) => {
+function townGearCards(items, p) {
+  return items.map((gear) => {
     const earned = gearEarned(gear);
     const unlocked = earned || (gear.slot === "hat" && lockLv("hat", gear.value) <= lvOf(S.xp));
     const equipped = gear.slot === "ex"
@@ -231,49 +173,48 @@ function townGearCards(host, items, p, grid = el("div", "pgrid")) {
         (gear.slot !== "pantsStyle" || p.pants !== "none") &&
         (gear.slot !== "shoeStyle" || p.shoes !== "none");
     const sources = NBK.filter((id) => townRewards(id).includes(gear));
-    const b = el("button", "pcard" + (equipped ? " on" : "") + (unlocked ? "" : " lk"));
-    b.type = "button";
-    b.disabled = !unlocked && !equipped;
-    b.setAttribute("aria-pressed", String(equipped));
-    b.append(
-      el("b", "", gear.name),
-      el("small", "", equipped
+    return {
+      id: gear.slot + ":" + gear.value,
+      name: gear.name,
+      selected: equipped,
+      locked: !unlocked,
+      description: equipped
         ? "Equipped ✓ · Tap to remove"
-        : unlocked ? "Equip" : "Help " + sources.map((id) => NB[id].n).join(" or ")),
-    );
-    b.onclick = () => {
-      if (gear.slot === "ex") {
-        colorEditor = null;
-        p.ex[gear.value] = !p.ex[gear.value];
-        save();
-        paint();
-        buildWd();
-        if (PG === "t") townInit();
-      } else {
-        colorEditor = !equipped && gear.slot === "pantsStyle" ? "pants" :
-          !equipped && gear.slot === "shoeStyle" ? "shoes" : null;
-        if (!equipped && gear.slot === "pantsStyle" && p.pants === "none") p.pants = "black";
-        if (!equipped && gear.slot === "shoeStyle" && p.shoes === "none") p.shoes = "black";
-        const fallback = gear.slot === "pantsStyle" || gear.slot === "shoeStyle" ? "classic" : "none";
-        setP(gear.slot, equipped ? fallback : gear.value);
-      }
+        : unlocked ? "Equip" : "Help " + sources.map((id) => NB[id].n).join(" or "),
+      onSelect: () => {
+        if (gear.slot === "ex") {
+          colorEditor = null;
+          p.ex[gear.value] = !p.ex[gear.value];
+          save();
+          paint();
+          buildWd();
+          if (PG === "t") townInit();
+        } else {
+          colorEditor = !equipped && gear.slot === "pantsStyle" ? "pants" :
+            !equipped && gear.slot === "shoeStyle" ? "shoes" : null;
+          if (!equipped && gear.slot === "pantsStyle" && p.pants === "none") p.pants = "black";
+          if (!equipped && gear.slot === "shoeStyle" && p.shoes === "none") p.shoes = "black";
+          const fallback = gear.slot === "pantsStyle" || gear.slot === "shoeStyle" ? "classic" : "none";
+          setP(gear.slot, equipped ? fallback : gear.value);
+        }
+      },
     };
-    grid.appendChild(b);
   });
-  host.appendChild(grid);
 }
-function pantsSections(host, p) {
-  const grid = optionCards(host, [["classic", ITEM_NAMES.pantsStyle.classic]], p.pantsStyle, () => {
+function pantsSections(p) {
+  const cards = optionCards([["classic", ITEM_NAMES.pantsStyle.classic]], p.pantsStyle, () => {
     colorEditor = "pants";
     if (p.pants === "none") p.pants = "black";
     setP("pantsStyle", "classic");
   });
-  townGearCards(host, TOWN_CLOTHING.filter((gear) => gear.slot === "pantsStyle"), p, grid);
+  cards.push(...townGearCards(TOWN_CLOTHING.filter((gear) => gear.slot === "pantsStyle"), p));
+  const blocks = [{ type: "grid", cards }];
   if (colorEditor === "pants")
-    sec(host, "Pants color", cn(PANTS), p.pants, (v) => setP("pants", v));
+    blocks.push({ type: "choice", section: wardrobeChoice("Pants color", "pants", cn(PANTS)) });
+  return blocks;
 }
-function shoeSections(host, p) {
-  const grid = optionCards(host, [["classic", ITEM_NAMES.shoeStyle.classic], ["none", "No shoes"]],
+function shoeSections(p) {
+  const cards = optionCards([["classic", ITEM_NAMES.shoeStyle.classic], ["none", "No shoes"]],
     p.shoes === "none" ? "none" : p.shoeStyle, (v) => {
       colorEditor = v === "none" ? null : "shoes";
       if (v === "none") setP("shoes", "none");
@@ -282,9 +223,11 @@ function shoeSections(host, p) {
         setP("shoeStyle", "classic");
       }
     });
-  townGearCards(host, TOWN_CLOTHING.filter((gear) => gear.slot === "shoeStyle"), p, grid);
+  cards.push(...townGearCards(TOWN_CLOTHING.filter((gear) => gear.slot === "shoeStyle"), p));
+  const blocks = [{ type: "grid", cards }];
   if (colorEditor === "shoes" && p.shoes !== "none")
-    sec(host, "Shoe color", cn(SHOES), p.shoes, (v) => setP("shoes", v));
+    blocks.push({ type: "choice", section: wardrobeChoice("Shoe color", "shoes", cn(SHOES)) });
+  return blocks;
 }
 function setP(k, v) {
   S.p[k] = v;
@@ -292,6 +235,162 @@ function setP(k, v) {
   paint();
   buildWd();
   if (PG === "t") townInit();
+}
+function wardrobeChoice(title, field, options) {
+  return {
+    title,
+    options,
+    value: S.p[field],
+    popping: popTok && popTok.startsWith(title + ":") ? popTok.slice(title.length + 1) : null,
+    onSelect: (value) => {
+      popTok = title + ":" + value;
+      setP(field, value);
+      const selected = [...document.querySelectorAll("#wbody .chips")].find(
+        (group) => group.dataset.k === title,
+      );
+      selected?.querySelector(".chip.on")?.focus({ preventScroll: true });
+    },
+  };
+}
+function renderWardrobePanel(tab, p) {
+  const props = { tab, icon: icoSvg, iconTextParts };
+  if (tab === "person") {
+    props.sections = [
+      wardrobeChoice("Gender", "gender", APPEARANCE_OPTIONS.gender),
+      wardrobeChoice("Skin color", "skin", APPEARANCE_OPTIONS.skin),
+      wardrobeChoice("Hair type", "hair", APPEARANCE_OPTIONS.hair),
+      wardrobeChoice("Hair color", "hairColor", APPEARANCE_OPTIONS.hairColor),
+      wardrobeChoice("Eye color", "eyeColor", APPEARANCE_OPTIONS.eyeColor),
+    ];
+  } else if (tab === "face") {
+    props.sections = [
+      wardrobeChoice("Eyes", "eyes", [
+        ["normal", "Normal"], ["round", "Round"], ["happy", "Happy"], ["wink", "Wink"],
+      ]),
+      wardrobeChoice("Mouth", "mouth", [
+        ["none", "None"], ["smile", "Smile"], ["open", "Open"],
+      ]),
+    ];
+    props.glasses = [
+      ["none", "No glasses"],
+      ["square", ITEM_NAMES.glasses.square],
+      ["round", ITEM_NAMES.glasses.round],
+      ["shades", ITEM_NAMES.glasses.shades],
+    ].map(([id, name]) => {
+      const selected = id === p.glasses;
+      const need = lockLv("glasses", id);
+      const locked = need > lvOf(S.xp);
+      return {
+        id, name, selected, locked,
+        description: selected ? "Equipped ✓" : locked ? "Unlocks at level " + need : "Equip",
+        onSelect: () => setP("glasses", id),
+      };
+    });
+  } else if (tab === "warrior" || tab === "extras") {
+    props.sections = tab === "warrior" && colorEditor === "top"
+      ? [wardrobeChoice("Color", "topColor", cn(COL))]
+      : [];
+    const items = tab === "warrior"
+      ? WARRIOR_GEAR
+      : Object.entries(ITEM_NAMES.ex).map(([id, name]) => ["ex", id, name, lockLv("ex", id)]);
+    props.gear = items.map(([slot, id, name, level]) => {
+      const selected = slot === "ex" ? !!p.ex[id] : p[slot] === id;
+      const locked = level > lvOf(S.xp);
+      return {
+        id, name, selected, locked,
+        description: selected ? "Equipped ✓ · Tap to remove" : locked ? "Unlocks at level " + level : "Equip",
+        onSelect: () => {
+          if (slot === "ex") {
+            if (tab === "warrior") colorEditor = null;
+            S.p.ex[id] = !S.p.ex[id];
+            save();
+            paint();
+            buildWd();
+            if (PG === "t") townInit();
+          } else {
+            colorEditor = !selected && slot === "topStyle" ? "top" : null;
+            setP(slot, selected ? (slot === "topStyle" ? "tee" : "none") : id);
+          }
+        },
+      };
+    });
+  } else if (tab === "gear" || tab === "tops" || tab === "bottoms") {
+    if (tab === "tops") props.blocks = topSections(p);
+    else if (tab === "bottoms") {
+      props.blocks = [
+        { type: "heading", title: "Pants" }, ...pantsSections(p),
+        { type: "heading", title: "Shoes" }, ...shoeSections(p),
+      ];
+    } else {
+      const rewards = Object.values(TOWN_GEAR);
+      props.blocks = [
+        { type: "note", text: "Help towns to earn gear. Tap an equipped reward to remove it." },
+        ...[
+          ["Hats", ["hat"]],
+          ["Tops", ["topStyle"]],
+          ["Pants", ["pantsStyle"]],
+          ["Shoes", ["shoeStyle"]],
+          ["Accessories", ["glasses", "ex"]],
+        ].map(([title, slots]) => {
+          let blocks = [];
+          if (title === "Hats") {
+            const cards = optionCards(HATS.filter(([value]) =>
+              !rewards.some((gear) => gear.slot === "hat" && gear.value === value)).map(([value, name]) =>
+              [value, value === "none" ? "No hat" : name]), p.hat, (v) => {
+              colorEditor = null;
+              setP("hat", v === p.hat ? "none" : v);
+            }, "hat");
+            blocks = [{ type: "grid", cards }];
+          } else if (title === "Tops") blocks = topSections(p);
+          else if (title === "Pants") blocks = pantsSections(p);
+          else if (title === "Shoes") blocks = shoeSections(p);
+          const items = rewards.filter((gear) => slots.includes(gear.slot));
+          if (items.length) {
+            const cards = townGearCards(items, p);
+            if (title === "Hats") blocks[0].cards.push(...cards);
+            else blocks.push({ type: "grid", cards });
+          }
+          return { type: "group", title, blocks };
+        }),
+      ];
+    }
+  } else if (tab === "pets") {
+    props.best = Math.max(curStreak, streakBest());
+    props.pets = {
+      noneSelected: !p.pet || p.pet === "none",
+      items: PETS.map((pt) => {
+        const unlocked = isPetUnlocked(pt, props.best);
+        if (unlocked && !S.pets[pt.id]) {
+          S.pets[pt.id] = 1;
+          save();
+        }
+        const selected = p.pet === pt.id;
+        return {
+          id: pt.id,
+          name: pt.n,
+          selected,
+          unlocked,
+          art: petSvg(pt.id, 34, 32),
+          description: selected ? "Equipped ✓" : unlocked ? pt.d :
+            pt.nb ? "🔒 Travel to " + NB[pt.nb].n : "🔒 " + pt.st + "-day streak",
+        };
+      }),
+    };
+    props.onPet = (pet, button) => {
+      if (!pet) {
+        setP("pet", "none");
+      } else if (!pet.unlocked) {
+        const pt = petById(pet.id);
+        toast(pt.nb
+          ? "🌍 Travel to " + NB[pt.nb].n + " on the world map to unlock " + pt.n + "!"
+          : "🔥 Reach a " + pt.st + "-day streak to unlock " + pt.n + "!");
+        rerun(button, "shake");
+      } else {
+        setP("pet", pet.selected ? "none" : pet.id);
+      }
+    };
+  }
+  DailyWalkReact.renderWardrobePanels(props);
 }
 function buildWd() {
   $("wtabs").dataset.k = "tab";
@@ -309,216 +408,10 @@ function buildWd() {
       buildWd();
     },
   });
-  const h = $("wbody");
-  h.innerHTML = "";
   const p = S.p;
   const wardrobeLevel = lvOf(S.xp);
   DailyWalkReact.renderLevelTitle("wardrobe", wardrobeLevel, ttl(wardrobeLevel));
-  if (wTab === "person") {
-    h.appendChild(
-      el(
-        "div",
-        "fl",
-        "Hats and glasses can cover hair or eyes.",
-      ),
-    );
-    sec(h, "Gender", APPEARANCE_OPTIONS.gender, p.gender, (v) => setP("gender", v));
-    sec(h, "Skin color", APPEARANCE_OPTIONS.skin, p.skin, (v) => setP("skin", v));
-    sec(h, "Hair type", APPEARANCE_OPTIONS.hair, p.hair, (v) => setP("hair", v));
-    sec(h, "Hair color", APPEARANCE_OPTIONS.hairColor, p.hairColor, (v) => setP("hairColor", v));
-    sec(h, "Eye color", APPEARANCE_OPTIONS.eyeColor, p.eyeColor, (v) => setP("eyeColor", v));
-  }
-  if (wTab === "warrior") {
-    h.appendChild(el("div", "fl", "Earn XP from habits to unlock warrior gear. Tap an equipped item to take it off."));
-    const grid = el("div", "pgrid");
-    WARRIOR_GEAR.forEach(([slot, value, name, level]) => {
-      const unlocked = lvOf(S.xp) >= level;
-      const equipped = slot === "ex" ? !!p.ex[value] : p[slot] === value;
-      const b = el("button", "pcard" + (equipped ? " on" : "") + (unlocked ? "" : " lk"));
-      b.type = "button";
-      b.disabled = !unlocked && !equipped;
-      b.setAttribute("aria-pressed", String(equipped));
-      b.append(el("b", "", name), el("small", "", equipped ? "Equipped ✓ · Tap to remove" : unlocked ? "Equip" : "Unlocks at level " + level));
-      b.onclick = () => {
-        if (slot === "ex") {
-          colorEditor = null;
-          p.ex[value] = !p.ex[value];
-          save();
-          paint();
-          buildWd();
-          if (PG === "t") townInit();
-        } else {
-          colorEditor = !equipped && slot === "topStyle" ? "top" : null;
-          setP(slot, equipped ? (slot === "topStyle" ? "tee" : "none") : value);
-        }
-      };
-      grid.appendChild(b);
-    });
-    h.appendChild(grid);
-    if (colorEditor === "top")
-      sec(h, "Color", cn(COL), p.topColor, (v) => setP("topColor", v));
-  }
-  if (wTab === "gear") {
-    h.appendChild(el("div", "fl", "Help towns to earn gear. Tap an equipped reward to remove it."));
-    const groups = [
-      ["Hats", ["hat"]],
-      ["Tops", ["topStyle"]],
-      ["Pants", ["pantsStyle"]],
-      ["Shoes", ["shoeStyle"]],
-      ["Accessories", ["glasses", "ex"]],
-    ];
-    const rewards = Object.values(TOWN_GEAR);
-    groups.forEach(([title, slots]) => {
-      const group = el("section", "wardrobe-gear-group");
-      group.appendChild(el("h4", "", title));
-      let grid;
-      if (title === "Hats") grid = optionCards(group, HATS.filter(([value]) =>
-        !rewards.some((gear) => gear.slot === "hat" && gear.value === value)).map(([value, name]) =>
-        [value, value === "none" ? "No hat" : name]), p.hat, (v) => {
-        colorEditor = null;
-        setP("hat", v === p.hat ? "none" : v);
-      }, "hat");
-      if (title === "Tops") topSections(group, p);
-      if (title === "Pants") pantsSections(group, p);
-      if (title === "Shoes") shoeSections(group, p);
-      const items = rewards.filter((gear) => slots.includes(gear.slot));
-      if (items.length) townGearCards(group, items, p, grid);
-      h.appendChild(group);
-    });
-  }
-  if (wTab === "tops") {
-    topSections(h, p);
-  }
-  if (wTab === "bottoms") {
-    h.appendChild(el("h4", "", "Pants"));
-    pantsSections(h, p);
-    h.appendChild(el("h4", "", "Shoes"));
-    shoeSections(h, p);
-  }
-  if (wTab === "face") {
-    sec(
-      h,
-      "Eyes",
-      [
-        ["normal", "Normal"],
-        ["round", "Round"],
-        ["happy", "Happy"],
-        ["wink", "Wink"],
-      ],
-      p.eyes,
-      (v) => setP("eyes", v),
-    );
-    h.appendChild(el("h4", "", "Glasses"));
-    optionCards(
-      h,
-      [
-        ["none", "No glasses"],
-        ["square", ITEM_NAMES.glasses.square],
-        ["round", ITEM_NAMES.glasses.round],
-        ["shades", ITEM_NAMES.glasses.shades],
-      ],
-      p.glasses,
-      (v) => setP("glasses", v),
-      "glasses",
-    );
-    sec(
-      h,
-      "Mouth",
-      [
-        ["none", "None"],
-        ["smile", "Smile"],
-        ["open", "Open"],
-      ],
-      p.mouth,
-      (v) => setP("mouth", v),
-    );
-  }
-  if (wTab === "extras") {
-    h.appendChild(el("div", "fl", "Tap to turn on or off"));
-    const grid = el("div", "pgrid");
-    const lv = lvOf(S.xp);
-    [
-      ...Object.entries(ITEM_NAMES.ex),
-    ].forEach((o) => {
-      const need = lockLv("ex", o[0]);
-      const equipped = !!p.ex[o[0]];
-      const lk = need > lv;
-      const b = el("button", "pcard" + (equipped ? " on" : "") + (lk ? " lk" : ""));
-      b.type = "button";
-      b.disabled = lk && !equipped;
-      b.setAttribute("aria-pressed", String(equipped));
-      b.append(el("b", "", o[1]), el("small", "", equipped
-        ? "Equipped ✓ · Tap to remove" : lk ? "Unlocks at level " + need : "Equip"));
-      b.onclick = () => {
-        S.p.ex = S.p.ex || {};
-        S.p.ex[o[0]] = !S.p.ex[o[0]];
-        save();
-        paint();
-        buildWd();
-        if (PG === "t") townInit();
-      };
-      grid.appendChild(b);
-    });
-    h.appendChild(grid);
-  }
-  if (wTab === "pets") {
-    const best = Math.max(curStreak, streakBest());
-    const l = document.createElement("div");
-    l.className = "fl";
-    l.textContent =
-      "Best streak: 🔥 " +
-      best +
-      " days · Your active pet sits beside your traveler and follows them in town!";
-    h.appendChild(l);
-    const grid = document.createElement("div");
-    grid.className = "pgrid";
-    const noneBtn = document.createElement("button");
-    noneBtn.type = "button";
-    noneBtn.className = "pcard" + (!p.pet || p.pet === "none" ? " on" : "");
-    noneBtn.innerHTML =
-      '<div style="height:34px;display:grid;place-items:center;font-size:20px;color:var(--mute)">∅</div><b>No Pet</b><small>Rest on your own</small>';
-    noneBtn.onclick = () => setP("pet", "none");
-    grid.appendChild(noneBtn);
-    PETS.forEach((pt) => {
-      const unl = isPetUnlocked(pt, best);
-      if (unl && !S.pets[pt.id]) {
-        S.pets[pt.id] = 1;
-        save();
-      }
-      const on = p.pet === pt.id;
-      const reqTxt = pt.nb
-        ? "🔒 Travel to " + NB[pt.nb].n
-        : "🔒 " + pt.st + "-day streak";
-      const c = document.createElement("button");
-      c.type = "button";
-      c.className = "pcard" + (on ? " on" : "") + (unl ? "" : " lk");
-      c.innerHTML =
-        petSvg(pt.id, 34, 32) +
-        "<b>" +
-        pt.n +
-        "</b><small>" +
-        (on ? "Equipped ✓" : unl ? pt.d : reqTxt) +
-        "</small>";
-      c.onclick = () => {
-        if (!unl) {
-          toast(
-            pt.nb
-              ? "🌍 Travel to " +
-                  NB[pt.nb].n +
-                  " on the world map to unlock " +
-                  pt.n +
-                  "!"
-              : "🔥 Reach a " + pt.st + "-day streak to unlock " + pt.n + "!",
-          );
-          rerun(c, "shake");
-          return;
-        }
-        setP("pet", on ? "none" : pt.id);
-      };
-      grid.appendChild(c);
-    });
-    h.appendChild(grid);
-  }
+  renderWardrobePanel(wTab, p);
   popTok = null;
 }
 function fillLv() {

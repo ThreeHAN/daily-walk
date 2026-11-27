@@ -67,6 +67,35 @@ test("streak pet unlocks are equipped and persist", async ({ page }) => {
   }))).toEqual({ firefly: true, chick: true, equipped: "chick", visible: true });
 });
 
+test("wardrobe keeps locked pets interactive and refreshes unlocked choices", async ({ page }) => {
+  await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
+  await continueLocally(page);
+  await page.evaluate(() => {
+    S.days = {};
+    S.pets = {};
+    S.nb.xp = { [S.nb.cur]: 0 };
+    S.p.pet = "none";
+    curStreak = 0;
+  });
+  await page.locator("#prof").evaluate((button) => button.click());
+  await page.locator("#go-wd").evaluate((button) => button.click());
+  await page.locator("#wtabs button").filter({ hasText: "Pets" }).evaluate((button) => button.click());
+  const chick = page.locator("#wbody .pcard").filter({ hasText: "Little Chick" });
+  await expect(chick).toHaveClass(/lk/);
+  await expect(chick).toBeEnabled();
+  await chick.evaluate((button) => button.click());
+  await expect(page.locator("#toast")).toContainText("3-day streak");
+  expect(await page.evaluate(() => S.p.pet)).toBe("none");
+  await page.evaluate(() => { S.pets.chick = 1; buildWd(); });
+  await expect(chick).not.toHaveClass(/lk/);
+  await chick.evaluate((button) => button.click());
+  expect(await page.evaluate(() => S.p.pet)).toBe("chick");
+  await expect(chick).toContainText("Equipped");
+  await expect(page.locator("#wbody .ic svg").first()).toBeAttached();
+  await chick.evaluate((button) => button.click());
+  expect(await page.evaluate(() => S.p.pet)).toBe("none");
+});
+
 test("equipped pets sit beside the traveler in profile previews and update when changed", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);

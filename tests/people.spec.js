@@ -87,6 +87,26 @@ test("wardrobe tabs retain selection and icons across repeated updates", async (
   expect(errors).toEqual([]);
 });
 
+test("React wardrobe panels preserve focus and refresh after switching tabs", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await click(page, "#prof");
+  await openAppearance(page);
+  const male = page.locator('#wbody [data-k="Gender"]').getByRole("button", { name: "Male", exact: true });
+  await male.evaluate((button) => button.click());
+  await expect(male).toBeFocused();
+  await click(page, "#wtabs button:nth-child(3)");
+  await expect(page.locator("#wbody .wardrobe-gear-group")).toHaveCount(5);
+  await page.locator("#wtabs button").filter({ hasText: "Face" }).evaluate((button) => button.click());
+  const eyes = page.locator('#wbody [data-k="Eyes"]').getByRole("button", { name: "Wink", exact: true });
+  await eyes.evaluate((button) => button.click());
+  await expect(eyes).toBeFocused();
+  await expect(eyes).toHaveAttribute("aria-pressed", "true");
+  await page.locator("#wtabs button").filter({ hasText: "Appearance" }).evaluate((button) => button.click());
+  await expect(male).toHaveAttribute("aria-pressed", "true");
+  expect(errors).toEqual([]);
+});
+
 test("profile banner refreshes names and level progress on reopen", async ({ page }) => {
   await page.evaluate(() => {
     S.xp = 40;
