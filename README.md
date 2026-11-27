@@ -120,8 +120,8 @@ Google sign-in enables automatic synchronization between devices.
   `assets/js/generated/react-ui.js`, is checked in so the site also works
   directly from `index.html`. The bundle includes the MIT license for React,
   React DOM, and Scheduler.
-- `assets/js/app.js` is the final bootstrap and bridges existing state and
-  actions to the React habit list. It calls feature initializers once, after
+- `assets/js/app.js` is the final bootstrap and bridges dashboard state and
+  actions to React. It calls feature initializers once, after
   classic scripts and the React bundle have loaded, before the first save and
   render; the tutorial initializes after icon hydration. The legacy app remains
   the state owner.
@@ -173,9 +173,12 @@ The existing state owner, save logic, and sync remain
 authoritative. Profile logic supplies level-up rewards and controls the
 celebration's timing and dismissal. The wardrobe panels receive their choices and
 actions from the legacy state owner. The water tracker and habit list call the same
-habit-check action. The journal keeps an editable React draft and reloads the
-saved entry when the profile, backup, or local date changes. The weekly chart
-receives current tasks and per-day checks from the legacy state owner.
+habit-check action. `dashboardBridge` prepares a shared habit snapshot and React
+props and exposes dashboard actions; the legacy owner still saves state and
+triggers effects. React owns the complete water card, preserving the cup container
+used by the tutorial across updates. The journal keeps an editable React draft
+and reloads the saved entry when the profile, backup, or local date changes. The
+weekly chart receives current tasks and per-day checks from the legacy state owner.
 
 ## Feature map and behavior
 

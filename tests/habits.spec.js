@@ -112,6 +112,58 @@ test("progress summary reflects completion changes and consecutive-day streaks",
   await expect(page.locator("#streak")).toContainText("2-day streak");
 });
 
+test("dashboard bridge prepares a consistent snapshot without changing saved state", async ({ page }) => {
+  const result = await page.evaluate(() => {
+    S.tasks = [{ id: "one", g: "morning", t: "One" }, { id: "two", g: "morning", t: "Two" }];
+    S.checks[today()] = { one: true };
+    S.days = { [today()]: false };
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    S.days[dkey(yesterday)] = true;
+    const before = JSON.stringify(S);
+    const oldStreak = curStreak;
+    const snapshot = dashboardBridge.getSnapshot();
+    const list = dashboardBridge.habitListProps(snapshot, {});
+    const progress = dashboardBridge.progressProps(snapshot);
+    const water = dashboardBridge.waterProps();
+    return {
+      stateUnchanged: JSON.stringify(S) === before,
+      streakUnchanged: curStreak === oldStreak,
+      day: snapshot.day,
+      expectedDay: today(),
+      checks: list.checks,
+      completed: progress.completed,
+      total: progress.total,
+      percent: progress.percent,
+      streak: progress.streak,
+      cups: water.cups,
+      expectedCups: S.water.n,
+    };
+  });
+  expect(result).toEqual({
+    stateUnchanged: true, streakUnchanged: true,
+    day: result.expectedDay, expectedDay: result.expectedDay,
+    checks: { one: true }, completed: 1, total: 2, percent: 50, streak: 1,
+    cups: result.expectedCups, expectedCups: result.expectedCups,
+  });
+});
+
+test("the React water card preserves its tutorial target and icon while updating", async ({ page }) => {
+  const card = page.locator("#water-card");
+  await expect(card).toHaveAttribute("data-react-root", "");
+  await expect(card.locator(".xh b .ic svg")).toHaveCount(1);
+  await page.evaluate(() => {
+    window.waterTarget = document.getElementById("cups");
+    window.waterTarget.classList.add("tour-highlight");
+  });
+  await page.locator('#cups button[aria-label="Cup 3"]').evaluate((button) => button.click());
+  await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
+  await expect(page.locator("#cups")).toHaveClass(/tour-highlight/);
+  expect(await page.evaluate(() => window.waterTarget === document.getElementById("cups"))).toBe(true);
+  await page.evaluate(() => { hydrate(); iconize(document.body); });
+  await expect(card.locator(".xh b .ic svg")).toHaveCount(1);
+});
+
 test("the water goal opens the group and checks the habit without clicking its checkbox", async ({ page }) => {
   const initial = await habitState(page);
   await page.evaluate(() => {

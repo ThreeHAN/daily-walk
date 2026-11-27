@@ -63,58 +63,82 @@ async function cheer(t, all) {
 const prevW = {};
 let firstR = true;
 
-function renderHabitGroups(d, c, effects) {
-  return DailyWalkReact.renderHabitList({
-    groups: G,
-    tasks: S.tasks,
-    checks: c,
-    closedGroups: shut,
-    effects,
-    firstRender: firstR,
-    previousWidths: prevW,
-    icon: icoSvg,
-    iconTextParts,
-    defaultIcons: DEFIC,
-    groupIcons: GIC,
-    onCheck: (task, checked) => handleHabitCheck(task, checked, d),
-    onToggle: (id) => {
+const dashboardBridge = {
+  getSnapshot() {
+    const day = today();
+    const checks = S.checks[day] || {};
+    const total = S.tasks.length;
+    const completed = S.tasks.filter((task) => checks[task.id]).length;
+    let streak = 0;
+    const date = new Date();
+    if (!S.days[day]) date.setDate(date.getDate() - 1);
+    while (S.days[dkey(date)]) {
+      streak++;
+      date.setDate(date.getDate() - 1);
+    }
+    return { day, tasks: S.tasks, checks, completed, total, streak };
+  },
+  habitListProps(snapshot, effects) {
+    return {
+      groups: G,
+      tasks: snapshot.tasks,
+      checks: snapshot.checks,
+      closedGroups: shut,
+      effects,
+      firstRender: firstR,
+      previousWidths: prevW,
+      icon: icoSvg,
+      iconTextParts,
+      defaultIcons: DEFIC,
+      groupIcons: GIC,
+      onCheck: (task, checked) => this.actions.checkHabit(task, checked, snapshot.day),
+      onToggle: this.actions.toggleGroup,
+      onRemove: this.actions.removeHabit,
+    };
+  },
+  progressProps(snapshot) {
+    return {
+      completed: snapshot.completed,
+      total: snapshot.total,
+      percent: snapshot.total ? (snapshot.completed / snapshot.total) * 100 : 0,
+      streak: snapshot.streak,
+      icon: icoSvg,
+      iconTextParts,
+    };
+  },
+  waterProps() {
+    return {
+      cups: S.water.n,
+      lastCup,
+      onSelect: this.actions.selectWater,
+      icon: icoSvg,
+      iconTextParts,
+    };
+  },
+  actions: {
+    checkHabit: handleHabitCheck,
+    toggleGroup(id) {
       shut[id] = !shut[id];
       render({ openedGroupId: !shut[id] ? id : null });
     },
-    onRemove: (task) => {
+    removeHabit(task) {
       S.tasks = S.tasks.filter((item) => item.id !== task.id);
       save();
       render();
       toast("Habit removed");
     },
-  });
-}
-
-function renderHabitProgress(c) {
-  const n = S.tasks.filter((t) => c[t.id]).length,
-    tot = S.tasks.length;
-  let st = 0,
-    dt = new Date();
-  if (!S.days[today()]) dt.setDate(dt.getDate() - 1);
-  while (S.days[dkey(dt)]) {
-    st++;
-    dt.setDate(dt.getDate() - 1);
-  }
-  DailyWalkReact.renderProgressSummary({
-    completed: n,
-    total: tot,
-    percent: tot ? (n / tot) * 100 : 0,
-    streak: st,
-    icon: icoSvg,
-    iconTextParts,
-  });
-  const sbT = "🔥" + st;
+    selectWater,
+  },
+};
+function renderHabitProgress(snapshot) {
+  DailyWalkReact.renderProgressSummary(dashboardBridge.progressProps(snapshot));
+  const sbT = "🔥" + snapshot.streak;
   if ($("sb").textContent !== sbT) {
     $("sb").textContent = sbT;
     rerun($("sb"), "pulse");
   }
-  curStreak = st;
-  syncPetUnlocks(st);
+  curStreak = snapshot.streak;
+  syncPetUnlocks(snapshot.streak);
 }
 
 function showHabitCompletionEffects(effects, fullEl) {
@@ -143,11 +167,10 @@ function showHabitCompletionEffects(effects, fullEl) {
 }
 
 function render(effects = {}) {
-  const d = today();
-  const c = S.checks[d] || {};
+  const snapshot = dashboardBridge.getSnapshot();
   tickClock();
-  const fullEl = renderHabitGroups(d, c, effects);
-  renderHabitProgress(c);
+  const fullEl = DailyWalkReact.renderHabitList(dashboardBridge.habitListProps(snapshot, effects));
+  renderHabitProgress(snapshot);
   showHabitCompletionEffects(effects, fullEl);
   drawHero();
   drawWeek();

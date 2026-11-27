@@ -171,18 +171,15 @@ function drawWater() {
     S.water = { d: today(), n: 0 };
     save();
   }
-  DailyWalkReact.renderWater({
-    cups: S.water.n,
-    lastCup,
-    onSelect: (index) => {
-      S.water.n = S.water.n === index + 1 ? index : index + 1;
-      S.waterHistory[S.water.d] = S.water.n;
-      lastCup = index;
-      save();
-      drawWater();
-      if (S.water.n === 8) waterGoal();
-    },
-  });
+  DailyWalkReact.renderWater(dashboardBridge.waterProps());
+}
+function selectWater(index) {
+  S.water.n = S.water.n === index + 1 ? index : index + 1;
+  S.waterHistory[S.water.d] = S.water.n;
+  lastCup = index;
+  save();
+  drawWater();
+  if (S.water.n === 8) waterGoal();
 }
 function waterGoal() {
   if (shut.nutrition) {
