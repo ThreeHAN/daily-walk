@@ -652,8 +652,17 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
       {(startupError || error) && <p className="auth-error" role="alert">{startupError || error}</p>}
     </StartupDialog>}
     <div className="acct-box">
-      <div className="acct-h"><b>Google account</b></div>
-      <p className="auth-note">Profile changes sync when you make them. Offline changes retry after reconnecting.</p>
+      <div className="acct-h google-account-heading">
+        <span className="google-account-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path fill="#ea4335" d="M7 2h10v3H7zM4 5h4v3H4z" />
+            <path fill="#fbbc05" d="M3 8h4v6H3z" />
+            <path fill="#34a853" d="M4 14h4v3H4zM7 17h10v3H7z" />
+            <path fill="#4285f4" d="M15 14h4v3h-4zM17 10h4v5h-4zM11 10h8v3h-8z" />
+          </svg>
+        </span>
+        <b>Google account</b>
+      </div>
       {!supported ? (
         <p className="auth-note">Sign-in requires the hosted site or local development server.</p>
       ) : (

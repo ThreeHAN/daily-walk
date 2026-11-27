@@ -43,6 +43,7 @@ test("Google sign-in is above Done on the main profile menu", async ({ page }) =
   await continueLocally(page);
   await openAccounts(page);
   await expect(page.locator("#v-menu #google-auth")).toBeVisible();
+  await expect(page.locator("#google-auth .google-account-icon[aria-hidden='true'] svg")).toBeVisible();
   await expect(page.locator("#google-auth + #pdone")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible();
   await page.locator("#go-info").evaluate((button) => button.click());

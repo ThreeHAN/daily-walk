@@ -4562,6 +4562,25 @@ main {
   font-weight: 600;
 }
 
+.google-account-heading {
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.google-account-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  background: #e8f0fe;
+}
+
+.google-account-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
 .auth-note {
   margin: 8px 0;
   font-size: 13px;
