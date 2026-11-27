@@ -484,6 +484,27 @@ test("tab buttons keep their appearance while identifying the current page", asy
   }
 });
 
+test("React dashboard controls preserve focus and actions across updates", async ({ page }) => {
+  await expect(page.locator("#dashboard-controls")).toHaveAttribute("data-react-root", "");
+  const profile = page.locator("#prof");
+  await profile.focus();
+  await page.evaluate(() => {
+    window.dashboardProfileButton = document.getElementById("prof");
+    paint();
+  });
+  await expect(profile).toBeFocused();
+  expect(await page.evaluate(() => window.dashboardProfileButton === document.getElementById("prof"))).toBe(true);
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#pm")).toHaveClass(/show/);
+  await page.locator("#pdone").click();
+  await page.locator("#fab").click();
+  await expect(page.locator("#hm")).toHaveClass(/show/);
+  await page.evaluate(() => document.getElementById("hm").classList.remove("show"));
+  await clickHabit(page, "wake");
+  await page.locator("#reset").evaluate((button) => button.click());
+  await expect(page.locator('input[data-id="wake"]')).not.toBeChecked();
+});
+
 test("React navigation preserves keyboard focus and the guided tour target across updates", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

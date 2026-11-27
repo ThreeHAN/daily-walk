@@ -573,28 +573,36 @@ function initTownScene() {
     }
   };
 }
+function renderWorldActions(people = S.peopleMet.length) {
+  DailyWalkReact.renderWorldActions({
+    helped: NBK.filter((key) => nbDone(key)).length,
+    total: NBK.length,
+    people,
+    onWorld: openWorld,
+    onHome: () => visit(S.nb.cur),
+    onIndex: openIx,
+    onStats: openBuddyStats,
+    icon: icoSvg,
+  });
+}
 function townInfo() {
   const id = V(),
     c = NB[id],
     x = nbXp(id),
-    built = BLD.filter((b) => x >= b.at),
-    n = built.length,
     nx = BLD.find((b) => x < b.at);
-  $("tnm").textContent = "Town help";
-  $("tnb").textContent = c.n;
-  $("tlv").textContent =
-    Math.min(100, Math.floor((x / MAXAT) * 100)) + "% helped";
-  if (nx) {
-    $("tbar").style.width = Math.min(100, (x / MAXAT) * 100) + "%";
-    $("tnx").textContent =
-      Math.min(x, MAXAT) + " / " + MAXAT + " help XP · Next: " + nx.n;
-  } else {
-    $("tbar").style.width = "100%";
-    $("tnx").textContent = "Town helped! Gear earned: " + townRewardNames(id);
-  }
-  countTo($("tc1"), BLD.filter((b) => b.h && x >= b.at).length);
-  countTo($("tc2"), townCast().length);
-  countTo($("tc3"), Math.min(x, MAXAT));
+  DailyWalkReact.renderTownStatus({
+    region: WORLD_REGIONS[c.pl || "earth"] + " · " + c.d,
+    town: c.n,
+    percent: Math.min(100, (x / MAXAT) * 100),
+    progress: nx
+      ? Math.min(x, MAXAT) + " / " + MAXAT + " help XP · Next: " + nx.n
+      : "Town helped! Gear earned: " + townRewardNames(id),
+    houses: BLD.filter((b) => b.h && x >= b.at).length,
+    people: townCast().length,
+    xp: Math.min(x, MAXAT),
+    icon: icoSvg,
+    iconTextParts,
+  });
   renderDailyVerse();
   $("gcard").hidden = true;
   const fin = nbDone(id);
@@ -604,10 +612,5 @@ function townInfo() {
       "Your traveler earned " +
       townRewardNames(id) +
       ". Choose your next town on the world map.";
-  $("homeb").hidden = true;
-  $("wsub").textContent =
-    NBK.filter((k) => nbDone(k)).length + " / " + NBK.length + " towns helped";
-  $("tsub").textContent = WORLD_REGIONS[c.pl || "earth"] + " · " + c.d;
-  $("ixsub").textContent =
-    S.peopleMet.length + (S.peopleMet.length === 1 ? " person met" : " people met");
+  renderWorldActions();
 }

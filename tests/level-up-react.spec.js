@@ -8,6 +8,14 @@ test("level-up content updates for unlocks, empty rewards, and max level", async
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Continue locally" }).click();
   await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await expect(page.locator("#lu")).toHaveAttribute("data-react-root", "");
+  const portrait = page.locator("#lu .pv");
+  const originalPortrait = await portrait.innerHTML();
+  await page.evaluate(() => {
+    S.p.skin = Object.keys(SKIN).find((skin) => skin !== S.p.skin);
+    paint();
+  });
+  await expect.poll(() => portrait.innerHTML()).not.toBe(originalPortrait);
   await page.evaluate(() => levelUp(2));
   await expect(page.locator("#lu")).toHaveClass(/show/);
   await expect(page.locator("#lun")).toHaveText("2");

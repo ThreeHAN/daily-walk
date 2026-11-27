@@ -246,6 +246,24 @@ test("streak celebration updates its seven days when reopened", async ({ page })
   await click(page, "#spgo");
 });
 
+test("streak overlay keeps its tutorial button and restarts the counter", async ({ page }) => {
+  await page.evaluate(() => {
+    window.streakButton = document.getElementById("spgo");
+    curStreak = 40;
+    showSplash(true);
+    curStreak = 2;
+    showSplash(true);
+  });
+  await expect(page.locator("#sp")).toHaveAttribute("data-react-root", "");
+  await expect(page.locator("#spn")).toHaveText("2");
+  await page.waitForTimeout(900);
+  await expect(page.locator("#spn")).toHaveText("2");
+  expect(await page.evaluate(() => window.streakButton === document.getElementById("spgo"))).toBe(true);
+  await page.locator("#sp").evaluate((element) => element.click());
+  await expect(page.locator("#sp")).not.toHaveClass(/show/);
+  expect(await page.evaluate(() => FIRE_ANIM.raf)).toBe(0);
+});
+
 test("levels and rewards reflect XP thresholds when reopened and after reload", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

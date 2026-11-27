@@ -76,7 +76,7 @@ function go(p) {
   const prevIdx = PG_ORD.indexOf(PG),
     nextIdx = PG_ORD.indexOf(p);
   PG = p;
-  $("fab").hidden = p !== "h";
+  renderDashboardControls();
   $("pg-h").hidden = p !== "h";
   $("pg-t").hidden = p !== "t";
   $("pg-l").hidden = p !== "l";
@@ -145,7 +145,6 @@ function initHabits() {
     if (PG === "t") dayShade();
   }, 60000);
   setInterval(refreshHabitClock, 20000);
-  $("fab").onclick = openHabit;
   $("hm").onclick = (e) => {
     if (e.target === $("hm")) $("hm").classList.remove("show");
   };

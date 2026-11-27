@@ -39,6 +39,108 @@ test("town and planet unlocks follow completion progress", async ({ page }) => {
   await expect(page.locator("#ncard")).toBeVisible();
 });
 
+test("React World status preserves progress and restarts animated counters safely", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.clock.install({ time: new Date(2026, 0, 1, 12) });
+  await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
+  await continueLocally(page);
+  const expected = await page.evaluate(() => {
+    S.nb.cur = "meadow";
+    S.nb.xp.meadow = 55;
+    S.vday = today();
+    go("t");
+    townStop();
+    return {
+      name: NB.meadow.n,
+      region: WORLD_REGIONS[NB.meadow.pl || "earth"] + " · " + NB.meadow.d,
+      next: BLD.find((building) => 55 < building.at).n,
+      percent: 55 / MAXAT * 100,
+      people: townCast().length,
+    };
+  });
+  await expect(page.locator("#world-status")).toHaveAttribute("data-react-root", "");
+  await expect(page.locator("#town-stats")).toHaveAttribute("data-react-root", "");
+  await expect(page.locator("#tnb")).toHaveText(expected.name);
+  await expect(page.locator("#tsub")).toHaveText(expected.region);
+  await expect(page.locator("#tnx")).toContainText(`Next: ${expected.next}`);
+  await expect(page.locator("#tlv")).toHaveText(`${Math.floor(expected.percent)}% helped`);
+  expect(await page.locator("#tbar").evaluate((element) => parseFloat(element.style.width)))
+    .toBeCloseTo(expected.percent, 4);
+  await expect(page.locator("#town-stats svg")).toHaveCount(3);
+
+  await page.clock.runFor(120);
+  const intermediate = Number(await page.locator("#tc3").textContent());
+  expect(intermediate).toBeGreaterThan(0);
+  expect(intermediate).toBeLessThan(55);
+  await page.evaluate(() => {
+    S.nb.xp.meadow = 0;
+    townInfo();
+  });
+  await page.clock.runFor(800);
+  await expect(page.locator("#tc3")).toHaveText("0");
+  await expect(page.locator("#tc2")).toHaveText(String(expected.people));
+
+  await page.evaluate(() => {
+    S.nb.xp.meadow = MAXAT + 100;
+    townInfo();
+  });
+  await expect(page.locator("#tlv")).toHaveText("100% helped");
+  await expect(page.locator("#tbar")).toHaveAttribute("style", "width: 100%;");
+  await expect(page.locator("#tnx")).toContainText("Town helped! Gear earned:");
+  await page.clock.runFor(800);
+  await expect(page.locator("#tc3")).toHaveText("3000");
+  expect(errors).toEqual([]);
+});
+
+test("React World action cards keep their actions and refresh people counts", async ({ page }) => {
+  await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
+  await continueLocally(page);
+  await page.evaluate(() => go("t"));
+  await expect(page.locator("#world-actions")).toHaveAttribute("data-react-root", "");
+  await expect(page.locator("#world-actions .card2 svg")).toHaveCount(4);
+  await page.locator("#ixbtn").focus();
+  await page.evaluate(() => {
+    window.worldIndexButton = document.getElementById("ixbtn");
+    S.peopleMet = [];
+    fillIndex();
+  });
+  await expect(page.locator("#ixsub")).toHaveText("0 people met");
+  await expect(page.locator("#ixbtn")).toBeFocused();
+  expect(await page.evaluate(() => window.worldIndexButton === document.getElementById("ixbtn"))).toBe(true);
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#ix")).toHaveClass(/show/);
+  await page.locator("#ix .sheet button").first().click();
+  await page.locator("#sbtn").click();
+  await expect(page.locator("#sm")).toHaveClass(/show/);
+  await page.locator("#sdone").click();
+  await page.locator("#wbtn").click();
+  await expect(page.locator("#gl")).toHaveClass(/show/);
+});
+
+test("React buddy modal shells open and dismiss through controls and backdrop", async ({ page }) => {
+  await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
+  await continueLocally(page);
+  await page.evaluate(() => { go("t"); townStop(); });
+  await expect(page.locator("#bm")).toHaveAttribute("data-react-root", "");
+  await expect(page.locator("#sm")).toHaveAttribute("data-react-root", "");
+  await page.locator("#sbtn").click();
+  await expect(page.getByRole("dialog", { name: "Buddy stats" })).toBeVisible();
+  await page.locator("#sdone").click();
+  await page.evaluate(() => openBuddyModal(TW.ws[0], "b"));
+  await expect(page.getByRole("dialog", { name: "Buddy details" })).toBeVisible();
+  await page.locator("#bdone").click();
+  await expect(page.locator("#bm")).not.toHaveClass(/show/);
+  await page.evaluate(() => {
+    openBuddyModal(TW.ws[0], "b");
+    document.getElementById("bm").click();
+  });
+  await expect(page.locator("#bm")).not.toHaveClass(/show/);
+});
+
 test("the React daily verse refreshes with the date and prompts the traveler", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

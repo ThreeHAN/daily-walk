@@ -449,10 +449,11 @@ function paint() {
   const l = personLayers(S.p);
   const profileLook = personLayers({ ...S.p, pet: "none" });
   $("pal").innerHTML = profileLook;
-  $("profile-buddy").innerHTML = profileLook;
-  document.querySelectorAll(".pv").forEach((e) => {
+  renderDashboardControls(profileLook);
+  document.querySelectorAll(".pv:not(#lu .pv)").forEach((e) => {
     e.innerHTML = e.closest("#pm") ? profileLook : l;
   });
+  DailyWalkReact.renderLevelUp({ portrait: l });
   DailyWalkReact.renderProfilePets(petById(S.p.pet));
 }
 function streakBest() {

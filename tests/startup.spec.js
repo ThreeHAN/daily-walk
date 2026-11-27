@@ -98,9 +98,9 @@ test("feature handlers are wired at bootstrap and work after startup", async ({ 
   try {
     await requested;
     const handlers = await page.evaluate(() =>
-      ["prof", "ixh", "wbtn", "sbtn", "fab", "ubar", "reset"].map((id) => document.getElementById(id).onclick),
+      ["ubar"].map((id) => document.getElementById(id).onclick),
     );
-    expect(handlers).toEqual(Array(7).fill(null));
+    expect(handlers).toEqual([null]);
   } finally {
     release();
   }

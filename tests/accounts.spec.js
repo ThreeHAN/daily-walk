@@ -12,6 +12,21 @@ async function click(page, selector) {
   await page.locator(selector).evaluate((element) => element.click());
 }
 
+test("React leaderboard actions copy a friend code with keyboard activation", async ({ page }) => {
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async (value) => { window.copiedFriendCode = value; } },
+    });
+  });
+  await click(page, '.nv[data-p="l"]');
+  await expect(page.locator("#leaderboard-actions")).toHaveAttribute("data-react-root", "");
+  await page.locator("#lbshare").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#toast")).toContainText("Friend Code copied");
+  expect(await page.evaluate(() => window.copiedFriendCode)).toMatch(/^DW1:/);
+});
+
 test("leaderboard cards sort, import friends, and persist hidden accounts", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -115,6 +130,17 @@ test("profile status updates after a save and the bar still opens profile settin
   await click(page, "#ubar");
   await expect(page.locator("#pm")).toHaveClass(/show/);
   await expect(page.locator("#v-info")).toBeVisible();
+});
+
+test("React profile restore control opens the file picker and reports invalid backups", async ({ page }) => {
+  await click(page, "#ubar");
+  await expect(page.locator("#account-actions")).toHaveAttribute("data-react-root", "");
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.locator("#uimp").click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: "invalid.json", mimeType: "application/json", buffer: Buffer.from("{}") });
+  await expect(page.locator("#toast")).toContainText("Could not read that backup file");
+  await expect(page.locator("#ufile")).toHaveValue("");
 });
 
 test("profile changes and separate habit progress survive switching and reload", async ({

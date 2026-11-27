@@ -2,7 +2,6 @@ import { flushSync } from "react-dom";
 import { createRoot } from "../shared/react-root.js";
 
 const roots = [
-  "profile-avatar-pet",
   "profile-banner-pet",
   "profile-wardrobe-pet",
   "profile-info-pet",

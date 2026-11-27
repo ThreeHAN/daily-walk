@@ -2,7 +2,7 @@ import { flushSync } from "react-dom";
 import { createRoot } from "../shared/react-root.js";
 import { IconText } from "../shared/icon-text.jsx";
 
-const root = createRoot(document.getElementById("bbody"));
+let root;
 
 function BuddyDetails({ walker, pet, showPet, portrait, townName, level, streak, profileName, duration, icon, iconTextParts }) {
   const isTraveler = walker.k === "me";
@@ -62,5 +62,6 @@ function BuddyDetails({ walker, pet, showPet, portrait, townName, level, streak,
 }
 
 export function renderBuddyDetails(props) {
+  root ||= createRoot(document.getElementById("bbody"));
   flushSync(() => root.render(<BuddyDetails {...props} />));
 }

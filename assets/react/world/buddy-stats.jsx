@@ -2,7 +2,7 @@ import { flushSync } from "react-dom";
 import { createRoot } from "../shared/react-root.js";
 import { IconText } from "../shared/icon-text.jsx";
 
-const root = createRoot(document.getElementById("buddy-stats"));
+let root;
 
 function BuddyStats({ buddies, level, icon, iconTextParts }) {
   const mostClicks = Math.max(...buddies.map((buddy) => buddy.stats.clicks || 0));
@@ -48,5 +48,6 @@ function BuddyStats({ buddies, level, icon, iconTextParts }) {
 }
 
 export function renderBuddyStats(props) {
+  root ||= createRoot(document.getElementById("buddy-stats"));
   flushSync(() => root.render(<BuddyStats {...props} />));
 }

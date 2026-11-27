@@ -168,10 +168,27 @@ retain its target and temporary highlight.
 The React daily verse card receives the selected verse and click action from
 town logic; opening a town refreshes the verse, and clicking it still prompts
 the current traveler to speak.
+The World status and its animated counters share a React root, with the counters
+rendered into their existing location via a portal. Town logic supplies the
+current town, progress, and counts when the World page opens.
+The World action cards render in React and receive their actions and updated
+town and people counts from the existing feature logic.
+Leaderboard friend-code and restore controls render in React and use the
+existing account actions.
+Dashboard profile, index, reset, and add-habit controls render in React. The
+profile button receives the same traveler artwork and pet from the legacy
+appearance renderer.
+Profile creation, backup export, and restore controls render in React while
+account logic remains responsible for storage and validation.
+Buddy details and stats dialogs render their shells and controls in React;
+town logic still owns their data, visibility, and refresh timing.
+The streak and level-up overlays render in React. Collection and profile
+logic retain celebration timing, flame animation, and dismissal effects; the
+streak Continue button stays mounted for the guided tour.
 
 The profile shell renders its banner, menu, info, wardrobe tabs, wardrobe
 panels, level list, and wardrobe level title through one root and portals into
-the existing screen containers. Profile pets, account list, and sign-in remain
+the existing screen containers. Profile modal pets, account list, and sign-in remain
 independent roots. The shell controls which existing profile view is
 visible; avatar artwork and account controls remain owned by legacy code.
 `profileBridge` supplies current profile snapshots and actions to the profile
@@ -203,13 +220,14 @@ weekly chart receives current tasks and per-day checks from the legacy state own
 | Habit checklist, progress, water, journal, and weekly activity | [`habit-list.jsx`](assets/react/habits/habit-list.jsx), [`progress-summary.jsx`](assets/react/habits/progress-summary.jsx), [`water-tracker.jsx`](assets/react/habits/water-tracker.jsx), [`journal.jsx`](assets/react/habits/journal.jsx), [`weekly-chart.jsx`](assets/react/habits/weekly-chart.jsx), [`app.js`](assets/js/app.js), [`habits.js`](assets/js/features/habits.js) |
 | Pixel traveler and appearance                   | [`buddy-render.js`](assets/js/features/buddy-render.js), [`buddies.js`](assets/js/features/buddies.js), [`profile.js`](assets/js/features/profile.js) |
 | Town data, rewards, and progression            | [`town-data.js`](assets/js/features/town-data.js), [`town-progress.js`](assets/js/features/town-progress.js)                               |
+| World status and counters                      | [`town-status.jsx`](assets/react/world/town-status.jsx), [`town-scene.js`](assets/js/features/town-scene.js) |
 | Town buildings, scenery, and cast               | [`town-scene.js`](assets/js/features/town-scene.js), [`town-birds.jsx`](assets/react/world/town-birds.jsx)                                        |
 | Town walkers, pets, sleep, and interactions    | [`town.js`](assets/js/features/town.js), [`buddy-details.jsx`](assets/react/world/buddy-details.jsx), [`buddy-stats.jsx`](assets/react/world/buddy-stats.jsx) |
 | Daily verse card                                | [`daily-verse.jsx`](assets/react/world/daily-verse.jsx), [`town.js`](assets/js/features/town.js), [`town-scene.js`](assets/js/features/town-scene.js) |
 | World map and travel                            | [`world-town-list.jsx`](assets/react/world/world-town-list.jsx), [`travel-landscape.jsx`](assets/react/world/travel-landscape.jsx), [`world-map.js`](assets/js/features/world-map.js) |
 | People met, pet definitions, and unlocks        | [`people-index.jsx`](assets/react/world/people-index.jsx), [`town.js`](assets/js/features/town.js), [`buddy-render.js`](assets/js/features/buddy-render.js), [`pets.js`](assets/js/features/pets.js), [`collection.js`](assets/js/features/collection.js) |
 | Shared icon artwork and rendering               | [`icon-art.js`](assets/js/ui/icon-art.js), [`icons.js`](assets/js/ui/icons.js)                                                             |
-| Streak celebration                              | [`streak-week.jsx`](assets/react/progress/streak-week.jsx), [`collection.js`](assets/js/features/collection.js)                                    |
+| Streak celebration                              | [`streak-overlay.jsx`](assets/react/progress/streak-overlay.jsx), [`streak-week.jsx`](assets/react/progress/streak-week.jsx), [`collection.js`](assets/js/features/collection.js) |
 | Profiles, backup/restore, and leaderboard       | [`accounts.js`](assets/js/core/accounts.js), [`storage.js`](assets/js/core/storage.js), [`profile-info.jsx`](assets/react/profile/profile-info.jsx), [`profile-list.jsx`](assets/react/profile/profile-list.jsx), [`leaderboard-list.jsx`](assets/react/leaderboard/leaderboard-list.jsx), [`leaderboard-summary.jsx`](assets/react/leaderboard/leaderboard-summary.jsx) |
 | Onboarding, Google sign-in, and profile sync    | [`onboarding.jsx`](assets/react/auth/onboarding.jsx), [`google-auth.jsx`](assets/react/auth/google-auth.jsx), [`profile-link.js`](assets/react/auth/profile-link.js), [`profile-sync.js`](assets/react/auth/profile-sync.js) |
 | Guided introduction                             | [`tutorial.jsx`](assets/react/tutorial/tutorial.jsx), [`tutorial.js`](assets/js/features/tutorial.js)                                                |

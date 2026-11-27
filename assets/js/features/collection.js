@@ -2,7 +2,7 @@ function fillIndex(reset = false) {
   const people = S.peopleMet.filter(
     (person) => person && person.name && person.look && NB[person.town],
   );
-  $("ixsub").textContent = people.length + (people.length === 1 ? " person met" : " people met");
+  renderWorldActions(people.length);
   DailyWalkReact.renderPeopleIndex({
     people: people.map((person, index) => ({
       index,
@@ -173,8 +173,6 @@ function showSplash(force) {
   const tier =
     FIRE_TIERS.find((t) => n >= t.min) || FIRE_TIERS[FIRE_TIERS.length - 1];
   sp.className = "splash " + tier.cls;
-  $("ftier").textContent = tier.name;
-  $("spm").textContent = tier.msg;
   const days = [];
   for (let k = 6; k >= 0; k--) {
     const dt = new Date();
@@ -187,36 +185,22 @@ function showSplash(force) {
       label: dt.toLocaleDateString(undefined, { weekday: "narrow" }),
     });
   }
-  DailyWalkReact.renderStreakWeek({ days });
-  const num = $("spn");
-  num.textContent = "0";
+  DailyWalkReact.renderStreakOverlay({ tier, days, count: n, onDone: closeSplash });
   sp.classList.add("show");
   startFireAnim(tier);
-  let v = 0;
-  const step = Math.max(1, Math.ceil(n / 18));
-  if (n > 0) {
-    const iv = setInterval(() => {
-      v = Math.min(n, v + step);
-      num.textContent = v;
-      if (v >= n) clearInterval(iv);
-    }, 45);
-  }
+}
+function closeSplash() {
+  $("sp").classList.remove("show");
+  stopFireAnim();
 }
 function initCollection() {
-  $("ixh").onclick = openIx;
-  $("ixbtn").onclick = openIx;
+  renderWorldActions();
+  DailyWalkReact.renderStreakOverlay({ tier: FIRE_TIERS[FIRE_TIERS.length - 1], days: [], count: 0, onDone: closeSplash });
   $("ix").onclick = (e) => {
     if (e.target === $("ix")) $("ix").classList.remove("show");
   };
-  $("spgo").onclick = () => {
-    $("sp").classList.remove("show");
-    stopFireAnim();
-  };
   $("sp").onclick = (e) => {
-    if (e.target === $("sp")) {
-      $("sp").classList.remove("show");
-      stopFireAnim();
-    }
+    if (e.target === $("sp")) closeSplash();
   };
   $("sb").onclick = (e) => {
     e.stopPropagation();

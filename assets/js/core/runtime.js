@@ -56,15 +56,4 @@ function react() {
     }
   }
 }
-function countTo(el, n) {
-  let v = 0;
-  const st = Math.max(1, Math.ceil(n / 15));
-  el.textContent = "0";
-  if (!n) return;
-  const iv = setInterval(() => {
-    v = Math.min(n, v + st);
-    el.textContent = v;
-    if (v >= n) clearInterval(iv);
-  }, 40);
-}
 const lbl = (t) => (S.p.buddy || "Buddy") + ":\n" + t;

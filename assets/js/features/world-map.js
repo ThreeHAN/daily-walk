@@ -207,13 +207,11 @@ function initWorldMap() {
     }),
   );
   $("gsvg").onclick = selectWorldTown;
-  $("wbtn").onclick = openWorld;
   $("nbtn").onclick = openWorld;
   $("glx").onclick = () => {
     $("gl").classList.remove("show");
     stopGlobe();
   };
-  $("homeb").onclick = () => visit(S.nb.cur);
 }
 
 function unlockedKinds() {

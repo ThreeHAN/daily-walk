@@ -22,16 +22,19 @@ function initAccounts() {
     view("info");
     $("pm").classList.add("show");
   };
-  $("uadd").onclick = createNewUser;
-  $("uexp").onclick = exportSave;
-  $("lbshare").onclick = shareFriendCode;
-  $("lbreset").onclick = restoreHiddenAccounts;
-  $("lbaddf").onclick = addFriendCode;
+  DailyWalkReact.renderAccountActions({
+    onCreate: createNewUser,
+    onExport: exportSave,
+    onRestore: restoreSave,
+  });
+  DailyWalkReact.renderLeaderboardActions({
+    onShare: shareFriendCode,
+    onAdd: addFriendCode,
+    onRestore: restoreHiddenAccounts,
+  });
   addEventListener("storage", () => {
     if (PG === "l") renderLeaderboard();
   });
-  $("uimp").onclick = () => $("ufile").click();
-  $("ufile").onchange = restoreSave;
 }
 
 function renderUserBar() {

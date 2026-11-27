@@ -527,8 +527,24 @@ function view(v) {
   refreshProfile(v, v === "info", true);
   rerun($("v-" + v), "fx");
 }
+function openProfile() {
+  view("menu");
+  $("pm").classList.add("show");
+}
 function initProfile() {
   const actions = profileBridge.actions;
+  DailyWalkReact.renderLevelUp({
+    level: 2,
+    title: ttl(2),
+    unlocks: [],
+    portrait: "",
+    icon: icoSvg,
+    iconTextParts,
+    onDone: () => {
+      $("lu").classList.remove("show");
+      hop();
+    },
+  });
   DailyWalkReact.renderProfile({
     menu: {
       icon: icoSvg,
@@ -542,15 +558,7 @@ function initProfile() {
       },
     },
   });
-  $("lugo").onclick = () => {
-    $("lu").classList.remove("show");
-    hop();
-  };
   $("hero").onclick = () => $("prof").click();
-  $("prof").onclick = () => {
-    view("menu");
-    $("pm").classList.add("show");
-  };
   document.querySelectorAll("[data-back]").forEach((b) => {
     b.onclick = () => view("menu");
   });

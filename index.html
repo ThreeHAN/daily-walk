@@ -26,23 +26,7 @@
     <main id="pg-h">
       <div class="top">
         <div id="dashboard-heading"></div>
-        <div class="pbs">
-          <button id="ixh" class="pbtn" type="button" aria-label="People index">
-            <i class="ic" data-i="book"></i></button
-          ><button
-            id="prof"
-            class="pbtn profile-avatar"
-            type="button"
-            aria-label="Profile"
-          >
-            <svg
-              id="profile-buddy"
-              viewBox="0 -8 56 70"
-              aria-hidden="true"
-            ></svg>
-            <span class="profile-pet" id="profile-avatar-pet" aria-hidden="true"></span>
-          </button>
-        </div>
+        <div class="pbs" id="dashboard-controls"></div>
       </div>
       <div
         class="ubar"
@@ -57,23 +41,10 @@
       <div class="xc" id="water-card"></div>
       <div class="xc" id="journal"></div>
       <div class="xc" id="week"></div>
-      <button class="reset" id="reset">Uncheck everything</button>
+      <div id="reset-control"></div>
     </main>
     <main id="pg-t" hidden>
-      <div class="top">
-        <div>
-          <h1>Traveler's World</h1>
-          <p class="sub" id="tsub">Help towns along your journey</p>
-        </div>
-        <span class="tlv" id="tlv">Town Lv 1</span>
-      </div>
-      <div class="hero tc">
-        <div class="hl">
-          <span class="lvb" id="tnm">Camp</span><b id="tnb">Community</b
-          ><span class="xpn" id="tnx"></span>
-        </div>
-        <div class="xbar"><i id="tbar"></i></div>
-      </div>
+      <div id="world-status"></div>
       <div class="scene" id="scene">
         <svg id="tsvg" viewBox="0 0 360 300" aria-hidden="true">
           <defs>
@@ -381,42 +352,8 @@
         </svg>
         <div id="walkers"></div>
       </div>
-      <div class="tstats">
-        <div><b id="tc1">0</b><span>🏠 Houses</span></div>
-        <div><b id="tc2">0</b><span>👥 People in town</span></div>
-        <div><b id="tc3">0</b><span>⭐ Town XP</span></div>
-      </div>
-      <button class="card2" id="wbtn" type="button">
-        <span class="ci g3"><i class="ic" data-i="globe"></i></span>
-        <div>
-          <b>World map</b><span id="wsub">Explore every neighborhood</span>
-        </div>
-        <em class="arr">›</em>
-      </button>
-      <button class="card2" id="homeb" type="button" hidden>
-        <span class="ci g2"><i class="ic" data-i="house"></i></span>
-        <div>
-          <b id="hbn">Return home</b
-          ><span>You are visiting another neighborhood</span>
-        </div>
-        <em class="arr">›</em>
-      </button>
-      <button class="card2" id="ixbtn" type="button">
-        <span class="ci g2"><i class="ic" data-i="book"></i></span>
-        <div>
-          <b>People index</b
-          ><span id="ixsub">People you have met</span>
-        </div>
-        <em class="arr">›</em>
-      </button>
-      <button class="card2" id="sbtn" type="button">
-        <span class="ci g1">📊</span>
-        <div>
-          <b>Buddy stats</b
-          ><span>Time in town, taps &amp; tasks for every buddy</span>
-        </div>
-        <em class="arr">›</em>
-      </button>
+      <div class="tstats" id="town-stats"></div>
+      <div id="world-actions"></div>
       <div id="daily-verse"></div>
       <div class="gcard ncard" id="ncard" hidden>
         <div><b>Town helped!</b><span id="nct"></span></div>
@@ -433,20 +370,7 @@
     <main id="pg-l" hidden>
       <div id="leaderboard-summary"></div>
       <div id="lblist"></div>
-      <div class="lb-bar">
-        <button type="button" class="prim" id="lbshare">
-          📤 Copy My Friend Code
-        </button>
-        <button type="button" id="lbaddf">➕ Add Friend Code</button>
-      </div>
-      <button
-        type="button"
-        class="ubtn sec"
-        id="lbreset"
-        style="width: 100%; margin-top: 8px"
-      >
-        🔄 Restore All Hidden Accounts
-      </button>
+      <div id="leaderboard-actions"></div>
     </main>
     <div class="modal" id="pm">
       <div class="sheet" role="dialog" aria-label="Profile">
@@ -525,109 +449,16 @@
               water, and journal saved separately.
             </div>
             <div id="ulist"></div>
-            <div class="acct-act">
-              <button type="button" class="prim" id="uadd">
-                + New User Profile (Fresh Start)
-              </button>
-              <button type="button" id="uexp">⬇️ Export Save File</button>
-              <button type="button" id="uimp">⬆️ Restore Save File</button>
-              <input
-                type="file"
-                id="ufile"
-                accept=".json,application/json"
-                hidden
-              />
-            </div>
+            <div class="acct-act" id="account-actions"></div>
           </div>
         </div>
       </div>
     </div>
-    <div class="splash" id="sp">
-      <div class="spc">
-        <div class="fstage">
-          <div class="faura"></div>
-          <div class="fring"></div>
-          <canvas
-            id="fcan"
-            width="230"
-            height="210"
-            aria-hidden="true"
-          ></canvas>
-          <svg
-            class="flame"
-            id="fsvg"
-            viewBox="0 0 80 96"
-            width="146"
-            height="175"
-            aria-hidden="true"
-          >
-            <path
-              id="fp1"
-              d="M36 4h8v12h8v12h8v12h8v40h-8v8h-8v6H28v-6h-8v-8h-8V48h8V32h8v12h8V20h-4V12h4z"
-              fill="#ff6a1a"
-            />
-            <path
-              id="fp2"
-              d="M36 26h8v12h8v12h6v30h-6v8H28v-8h-6V56h6V44h8z"
-              fill="#ff9e22"
-            />
-            <path
-              id="fp3"
-              d="M36 44h8v12h8v24h-6v8H34v-8h-6V64h8z"
-              fill="#ffd23f"
-            />
-            <path
-              id="fp4"
-              d="M37 62h6v8h4v12h-4v5h-6v-5h-4V72h4z"
-              fill="#fff7c2"
-            />
-          </svg>
-        </div>
-        <div class="ftier" id="ftier">Spark Ignited</div>
-        <div class="num" id="spn">0</div>
-        <div class="lbl">day streak</div>
-        <div class="week" id="spw"></div>
-        <p id="spm"></p>
-        <button class="done" id="spgo" type="button">Continue</button>
-      </div>
-    </div>
-
-    <div class="lvup" id="lu">
-      <div class="luc">
-        <svg
-          class="pv"
-          width="110"
-          height="124"
-          viewBox="0 0 56 64"
-          aria-hidden="true"
-        ></svg>
-        <div class="lut1">LEVEL UP!</div>
-        <div class="lun" id="lun">2</div>
-        <div class="lut2" id="lut"></div>
-        <p id="luu"></p>
-        <button class="done" id="lugo" type="button">Awesome!</button>
-      </div>
-    </div>
+    <div class="splash" id="sp"></div>
+    <div class="lvup" id="lu"></div>
     <div class="cs" id="cs"><div class="csb" id="csb"></div></div>
-    <div class="modal" id="sm">
-      <div class="sheet" role="dialog" aria-label="Buddy stats">
-        <div class="grab"></div>
-        <h3 class="vt">📊 Buddy stats</h3>
-        <div id="buddy-stats"></div>
-        <button class="done" id="sdone" type="button">Done</button>
-      </div>
-    </div>
-    <div class="modal" id="bm">
-      <div class="sheet" role="dialog" aria-label="Buddy details">
-        <div class="grab"></div>
-        <div class="bslides" id="bslides">
-          <button type="button" class="bsl on" id="bsl-b">👤 Buddy Info</button
-          ><button type="button" class="bsl" id="bsl-p">🐾 Pet Info</button>
-        </div>
-        <div id="bbody"></div>
-        <button class="done" id="bdone" type="button">Done</button>
-      </div>
-    </div>
+    <div class="modal" id="sm"></div>
+    <div class="modal" id="bm"></div>
     <nav id="nav"></nav>
     <div class="gl" id="gl">
       <div class="glb">
@@ -690,9 +521,7 @@
         <div id="tvd"></div>
       </div>
     </div>
-    <button class="fab" id="fab" type="button" aria-label="Add a new habit">
-      <i class="ic" data-i="plus"></i><span>New habit</span>
-    </button>
+    <div id="add-habit-control"></div>
     <div class="modal" id="hm"></div>
     <div class="modal" id="ix"></div>
     <div class="tour" id="tour" hidden></div>
@@ -701,22 +530,22 @@
     <script src="assets/js/core/state.js?v=startup-choice-1"></script>
     <script src="assets/js/ui/icon-art.js?v=habit-icons-2"></script>
     <script src="assets/js/ui/icons.js?v=react-profile-shell-1"></script>
-    <script src="assets/js/core/runtime.js"></script>
+    <script src="assets/js/core/runtime.js?v=react-town-status-1"></script>
     <script src="assets/js/features/buddies.js?v=organization-1"></script>
     <script src="assets/js/features/buddy-art.js?v=organization-1"></script>
-    <script src="assets/js/features/buddy-render.js?v=streak-no-pet-1"></script>
+    <script src="assets/js/features/buddy-render.js?v=react-celebrations-1"></script>
     <script src="assets/js/features/pets.js?v=pixel-pets-1"></script>
-    <script src="assets/js/features/profile.js?v=feature-init-1"></script>
+    <script src="assets/js/features/profile.js?v=react-celebrations-1"></script>
     <script src="assets/js/features/town-data.js?v=organization-1"></script>
-    <script src="assets/js/features/town-scene.js?v=react-daily-verse-1"></script>
-    <script src="assets/js/features/world-map.js?v=feature-init-1"></script>
-    <script src="assets/js/features/town.js?v=react-daily-verse-1"></script>
+    <script src="assets/js/features/town-scene.js?v=react-world-actions-1"></script>
+    <script src="assets/js/features/world-map.js?v=react-world-actions-1"></script>
+    <script src="assets/js/features/town.js?v=react-buddy-shells-1"></script>
     <script src="assets/js/features/town-progress.js"></script>
-    <script src="assets/js/features/habits.js?v=react-navigation-1"></script>
-    <script src="assets/js/features/collection.js?v=feature-init-1"></script>
+    <script src="assets/js/features/habits.js?v=react-dashboard-controls-1"></script>
+    <script src="assets/js/features/collection.js?v=react-celebrations-1"></script>
     <script src="assets/js/features/tutorial.js?v=react-profile-menu-1"></script>
-    <script src="assets/js/core/accounts.js?v=feature-init-1"></script>
-    <script src="assets/js/generated/react-ui.js?v=react-daily-verse-1"></script>
-    <script src="assets/js/app.js?v=dashboard-bridge-1"></script>
+    <script src="assets/js/core/accounts.js?v=react-account-actions-1"></script>
+    <script src="assets/js/generated/react-ui.js?v=react-celebrations-1"></script>
+    <script src="assets/js/app.js?v=react-dashboard-controls-1"></script>
   </body>
 </html>

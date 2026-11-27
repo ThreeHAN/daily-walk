@@ -188,12 +188,24 @@ function resetHabits() {
   save();
   render();
 }
+function renderDashboardControls(portrait = personLayers({ ...S.p, pet: "none" })) {
+  DailyWalkReact.renderDashboardControls({
+    portrait,
+    pet: petById(S.p.pet),
+    currentPage: PG,
+    onIndex: openIx,
+    onProfile: openProfile,
+    onReset: resetHabits,
+    onAdd: openHabit,
+    icon: icoSvg,
+  });
+}
 function initDashboard() {
   $("av").onclick = toggleBuddyMessage;
   $("bubble").onclick = () => {
     $("bubble").classList.remove("show");
   };
-  $("reset").onclick = resetHabits;
+  renderDashboardControls();
 }
 initAccounts();
 initProfile();

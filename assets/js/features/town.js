@@ -18,10 +18,7 @@ function renderBuddyModal() {
   if (!bmData) return;
   const w = bmData,
     pt = petById(w.companion || w.p.pet);
-  const tabs = $("bslides");
-  tabs.hidden = !pt;
-  $("bsl-b").classList.toggle("on", bmSlide === "b");
-  $("bsl-p").classList.toggle("on", bmSlide === "p");
+  renderBuddyShell(!!pt);
   const showPet = bmSlide === "p" && !!pt;
   const portrait = showPet
     ? petSvg(pt.id, 66, 60)
@@ -699,25 +696,32 @@ function openGraduationFromProfile() {
   $("pm").classList.remove("show");
   askGrad();
 }
+function openBuddyStats() {
+  fillStats();
+  $("sm").classList.add("show");
+}
+function renderBuddyShell(hasPet = false) {
+  DailyWalkReact.renderBuddyShell({
+    hasPet,
+    slide: bmSlide,
+    onBuddy: () => { bmSlide = "b"; renderBuddyModal(); },
+    onPet: () => { bmSlide = "p"; renderBuddyModal(); },
+    onDone: () => $("bm").classList.remove("show"),
+    icon: icoSvg,
+    iconTextParts,
+  });
+}
 function initTown() {
-  $("bsl-b").onclick = () => {
-    bmSlide = "b";
-    renderBuddyModal();
-  };
-  $("bsl-p").onclick = () => {
-    bmSlide = "p";
-    renderBuddyModal();
-  };
-  $("bdone").onclick = () => $("bm").classList.remove("show");
+  renderBuddyShell();
+  DailyWalkReact.renderBuddyStatsShell({
+    onDone: () => $("sm").classList.remove("show"),
+    icon: icoSvg,
+    iconTextParts,
+  });
   $("bm").onclick = (e) => {
     if (e.target === $("bm")) $("bm").classList.remove("show");
   };
   renderDailyVerse();
-  $("sbtn").onclick = () => {
-    fillStats();
-    $("sm").classList.add("show");
-  };
-  $("sdone").onclick = () => $("sm").classList.remove("show");
   $("sm").onclick = (e) => {
     if (e.target === $("sm")) $("sm").classList.remove("show");
   };
