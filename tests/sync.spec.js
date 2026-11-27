@@ -110,6 +110,16 @@ async function changeName(page, name, userInitiated = false) {
     { value: name, fromUser: userInitiated });
 }
 
+async function waitForSyncedProfile(page, cloud, id) {
+  await expect.poll(async () => page.evaluate((revision) => {
+    const key = DailyWalkReact.linkKey("sync-user", CUR_UID);
+    const link = JSON.parse(localStorage.getItem(key));
+    const pending = localStorage.getItem("dailywalk_admin_max:profile-sync-pending:v1:sync-user");
+    return pending === null && link.baseRevision === revision
+      && link.baseFingerprint === DailyWalkReact.profileFingerprint(S);
+  }, cloud.get(id).profile.client_modified_at)).toBe(true);
+}
+
 test("two browsers sync in both directions and back up overlapping edits", async ({ browser }) => {
   const cloud = new Map();
   const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
@@ -238,12 +248,14 @@ test("two browsers preserve separate habit unchecks and recompute the day", asyn
 
 test("the later habit edit wins even when it returns to the shared value", async ({ page }) => {
   const cloud = new Map();
+  await page.clock.setFixedTime(new Date());
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
   await page.locator("#pdone").evaluate((button) => button.click());
   await page.locator('input[data-id="wake"]').check();
   const day = await page.evaluate(() => today());
   await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(true);
+  await waitForSyncedProfile(page, cloud, id);
   await page.context().setOffline(true);
   const remote = cloud.get(id);
   const snapshot = remote.profile.progress._dailyWalkSyncSnapshot;
@@ -268,12 +280,14 @@ test("the later habit edit wins even when it returns to the shared value", async
 
 test("a later cloud habit edit updates the device", async ({ page }) => {
   const cloud = new Map();
+  await page.clock.setFixedTime(new Date());
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
   await page.locator("#pdone").evaluate((button) => button.click());
   await page.locator('input[data-id="wake"]').check();
   const day = await page.evaluate(() => today());
   await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(true);
+  await waitForSyncedProfile(page, cloud, id);
   await page.context().setOffline(true);
   const remote = cloud.get(id);
   const snapshot = remote.profile.progress._dailyWalkSyncSnapshot;
@@ -296,12 +310,14 @@ test("a later cloud habit edit updates the device", async ({ page }) => {
 
 test("equal habit timestamps with different values prefer the local edit", async ({ page }) => {
   const cloud = new Map();
+  await page.clock.setFixedTime(new Date());
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
   await page.locator("#pdone").evaluate((button) => button.click());
   await page.locator('input[data-id="wake"]').check();
   const day = await page.evaluate(() => today());
   await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(true);
+  await waitForSyncedProfile(page, cloud, id);
   await page.context().setOffline(true);
   const remote = cloud.get(id);
   const snapshot = remote.profile.progress._dailyWalkSyncSnapshot;
@@ -324,12 +340,14 @@ test("equal habit timestamps with different values prefer the local edit", async
 
 test("an inconsistent habit timestamp prefers local and backs up the cloud", async ({ page }) => {
   const cloud = new Map();
+  await page.clock.setFixedTime(new Date());
   await setup(page, cloud);
   const id = Array.from(cloud.keys())[0];
   await page.locator("#pdone").evaluate((button) => button.click());
   await page.locator('input[data-id="wake"]').check();
   const day = await page.evaluate(() => today());
   await expect.poll(() => cloud.get(id).profile.progress._dailyWalkSyncSnapshot?.checks[day]?.wake).toBe(true);
+  await waitForSyncedProfile(page, cloud, id);
   await page.context().setOffline(true);
   const remote = cloud.get(id);
   const snapshot = remote.profile.progress._dailyWalkSyncSnapshot;
