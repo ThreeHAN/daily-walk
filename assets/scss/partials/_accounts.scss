@@ -83,37 +83,143 @@
   color: #a33225;
   font-size: 13px;
 }
-.startup-dialog {
-  width: min(440px, calc(100% - 32px));
-  max-height: calc(100% - 32px);
-  overflow: auto;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  background: var(--card);
-  color: var(--ink);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-}
-.startup-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.6);
-}
-.startup-dialog h2 {
+.startup-page h2 {
   margin: 0 0 10px;
   font: 700 22px Georgia, serif;
 }
-.startup-dialog p {
+.startup-page p {
   line-height: 1.5;
 }
-.startup-dialog label {
+.startup-page label {
   display: block;
   margin: 12px 0;
 }
-.startup-dialog select {
+.startup-page select {
   max-width: 100%;
 }
-.startup-dialog .ubtn {
+.startup-page .ubtn {
   margin: 4px 8px 4px 0;
   padding: 10px 14px;
+}
+body:has(> .startup-page) {
+  overflow: hidden;
+}
+body:has(> .startup-page) > :not(.startup-page, script) {
+  visibility: hidden;
+}
+.startup-page {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  width: 100%;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  overflow: auto;
+  padding: max(24px, env(safe-area-inset-top, 0px))
+    max(16px, env(safe-area-inset-right, 0px))
+    max(24px, env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-left, 0px));
+  border: 0;
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: none;
+}
+.startup-page-content {
+  width: min(100%, 560px);
+  margin: auto;
+}
+.startup-page--welcome .startup-page-content,
+.startup-page--choice .startup-page-content {
+  text-align: center;
+}
+.startup-page .ubtn,
+.startup-page select {
+  min-height: 44px;
+}
+.startup-page .onboarding-fields select,
+.startup-page .onboarding-name input {
+  padding: 6px 8px;
+  font-size: 16px;
+}
+.startup-page .onboarding-name input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+}
+.onboarding-habit-list .gn {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.onboarding-habit-list .gh .ubtn {
+  flex: none;
+  margin: 0;
+}
+.habit-delete-confirm {
+  position: fixed;
+  inset: 0;
+  width: min(400px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  margin: auto;
+  padding: 20px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  overflow: auto;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.habit-delete-confirm::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+.onboarding-habit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.onboarding-habit .t {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.onboarding-habit .ubtn {
+  flex: none;
+  margin-right: 0;
+}
+.onboarding-habit-navigation {
+  margin-top: 16px;
+}
+.onboarding-habit-form fieldset {
+  min-width: 0;
+  margin: 16px 0;
+  padding: 0;
+  border: 0;
+}
+.onboarding-habit-form .itiles {
+  grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+}
+.onboarding-habit-form .it {
+  min-height: 44px;
+}
+.onboarding-habit-form input,
+.onboarding-habit-form select {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 16px;
 }
 .onboarding-avatar {
   display: grid;

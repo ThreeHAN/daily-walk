@@ -9,15 +9,6 @@ const TOUR_STEPS = [
     afterTarget: "#list",
   },
   {
-    icon: "plus",
-    title: "Add your own habits",
-    before: "Tap the highlighted New habit button to open the habit editor.",
-    after: "Use New habit to add a name, category, icon and optional reason. To remove a custom habit, tap its trash button twice.",
-    page: "h",
-    target: "#fab",
-    afterTarget: "#hm .sheet",
-  },
-  {
     icon: "star",
     title: "XP, levels and streaks",
     before: "Tap the highlighted Profile button to see your progress.",
@@ -33,7 +24,7 @@ const TOUR_STEPS = [
     after: "Tap cups to track water; reaching your goal checks the water habit. Save a journal entry for XP once a day. Water resets daily; past entries stay in your journal.",
     page: "h",
     target: '.nv[data-p="h"]',
-    afterTarget: "#cups",
+    afterTarget: "#water-journal",
   },
   {
     icon: "town",
@@ -107,7 +98,8 @@ let tourIndex = 0;
 let tourPending = false;
 let tourTarget = null;
 let tourStepReady = false;
-let tourCardTop = false;
+let tourFrame = 0;
+let tourPositionKey = "";
 
 function closeTourPanels() {
   $("pm").classList.remove("show");
@@ -120,17 +112,42 @@ function closeTourPanels() {
 }
 
 function clearTourTarget() {
-  if (tourTarget) tourTarget.classList.remove("tour-highlight", "tour-interactive");
+  if (tourTarget) tourTarget.classList.remove("tour-highlight", "tour-interactive", "tour-scrollable");
   tourTarget = null;
 }
 
+function tourVisibleBottom() {
+  if (!tourTarget.closest("main")) return innerHeight;
+  const nav = $("nav");
+  const bounds = nav.getBoundingClientRect();
+  return bounds.height && getComputedStyle(nav).visibility === "visible"
+    ? Math.max(0, Math.min(innerHeight, bounds.top)) : innerHeight;
+}
+
+function tourTargetNeedsScroll() {
+  const bounds = tourTarget.getBoundingClientRect();
+  let availableHeight = tourVisibleBottom();
+  if (tourTarget.closest("main")) {
+    const card = document.querySelector("#tour .tour-card");
+    if (card && bounds.height + card.offsetHeight + 24 > availableHeight) return true;
+  }
+  for (let element = tourTarget; element && element !== document.body; element = element.parentElement) {
+    const overflow = getComputedStyle(element).overflowY;
+    if (overflow === "auto" || overflow === "scroll") {
+      if (element === tourTarget && element.scrollHeight > element.clientHeight + 1) return true;
+      availableHeight = Math.min(availableHeight, element.clientHeight);
+    }
+  }
+  return bounds.height > availableHeight + 1;
+}
+
 function renderTourCard() {
+  tourPositionKey = "";
   DailyWalkReact.renderTutorial({
     step: TOUR_STEPS[tourIndex],
     index: tourIndex,
     total: TOUR_STEPS.length,
     ready: tourStepReady,
-    cardTop: tourCardTop,
     icon: icoSvg,
     onBack: previousTourStep,
     onNext: nextTourStep,
@@ -139,19 +156,53 @@ function renderTourCard() {
 }
 
 function positionTour() {
-  if (!tourTarget) return;
-  const bounds = tourTarget.getBoundingClientRect();
-  const top = bounds.top + bounds.height / 2 >= innerHeight / 2;
-  if (top !== tourCardTop) {
-    tourCardTop = top;
-    renderTourCard();
+  const spotlight = $("tour-spotlight");
+  const card = document.querySelector("#tour .tour-card");
+  if (!tourTarget || !spotlight || !card) return;
+  if (tourStepReady) {
+    const scrollable = tourTargetNeedsScroll();
+    tourTarget.classList.toggle("tour-scrollable", scrollable);
+    document.body.classList.toggle("tour-review", scrollable);
   }
+  const bounds = tourTarget.getBoundingClientRect();
+  const visibleBottom = tourVisibleBottom();
+  const key = [bounds.left, bounds.top, bounds.right, bounds.bottom, innerWidth, innerHeight,
+    visibleBottom, card.scrollHeight].join(",");
+  if (key === tourPositionKey) return;
+  tourPositionKey = key;
+  const left = Math.max(0, bounds.left);
+  const top = Math.max(0, bounds.top);
+  const right = Math.min(innerWidth, bounds.right);
+  const bottom = Math.min(visibleBottom, bounds.bottom);
+  spotlight.hidden = right <= left || bottom <= top;
+  if (!spotlight.hidden) {
+    Object.assign(spotlight.style, {
+      left: left + "px", top: top + "px",
+      width: (right - left) + "px", height: (bottom - top) + "px",
+    });
+  }
+  card.style.maxHeight = "";
+  const height = card.getBoundingClientRect().height;
+  const above = Math.max(0, top - 24);
+  const below = Math.max(0, visibleBottom - bottom - 24);
+  const placeBelow = below >= height || (above < height && below > above);
+  const available = placeBelow ? below : above;
+  if (available < height && !tourStepReady) {
+    card.style.maxHeight = Math.max(1, available) + "px";
+  }
+  const actualHeight = card.getBoundingClientRect().height;
+  card.style.top = (placeBelow ? visibleBottom - actualHeight - 12 : 12) + "px";
+}
+
+function trackTourPosition() {
+  positionTour();
+  tourFrame = requestAnimationFrame(trackTourPosition);
 }
 
 function renderTourStep() {
   const step = TOUR_STEPS[tourIndex];
   tourStepReady = false;
-  tourCardTop = false;
+  document.body.classList.remove("tour-review");
   clearTourTarget();
   closeTourPanels();
   if (PG !== step.page) go(step.page);
@@ -177,7 +228,7 @@ function completeTourAction() {
   renderTourCard();
   if (tourTarget) {
     tourTarget.classList.add("tour-highlight");
-    tourTarget.scrollIntoView({ behavior: "instant", block: "center" });
+    tourTarget.scrollIntoView({ behavior: "instant", block: step.afterTarget === "#water-journal" ? "start" : "center" });
     positionTour();
   }
   $("tour-next").focus({ preventScroll: true });
@@ -190,13 +241,17 @@ function startTour() {
   $("tour").hidden = false;
   document.body.classList.add("tour-open");
   renderTourStep();
+  cancelAnimationFrame(tourFrame);
+  tourFrame = requestAnimationFrame(trackTourPosition);
 }
 
 function finishTour() {
+  cancelAnimationFrame(tourFrame);
+  tourFrame = 0;
   clearTourTarget();
   closeTourPanels();
   $("tour").hidden = true;
-  document.body.classList.remove("tour-open");
+  document.body.classList.remove("tour-open", "tour-review");
   S.tutorialDone = true;
   save();
 }
@@ -253,5 +308,6 @@ function initTutorial() {
     if (event.target === $("sp")) setTimeout(maybeStartTour, 150);
   });
   addEventListener("resize", positionTour);
+  document.addEventListener("scroll", positionTour, true);
   maybeStartTour();
 }

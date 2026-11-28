@@ -104,7 +104,7 @@ function initHabits() {
       const t = e.touches[0];
       sx = t.clientX;
       sy = t.clientY;
-      sok = !e.target.closest(
+      sok = $("tour").hidden && !e.target.closest(
         ".modal,.profile-screen,.splash,.lvup,.cs,.gl,.tv,.tabs,.lb-tabs,input,select",
       );
     },
@@ -179,7 +179,8 @@ function waterGoal() {
     shut.nutrition = false;
     render();
   }
-  const task = S.tasks.find((item) => item.id === "water");
+  const task = S.tasks.find((item) => item.id === "water" &&
+    (!item.editedDuringSetup || item.t === DEFAULTS.find((preset) => preset.id === "water").t));
   const day = today();
   if (task && !(S.checks[day] || {})[task.id])
     handleHabitCheck(task, true, day);
@@ -246,7 +247,7 @@ function refreshHabitClock() {
 }
 function openHabit() {
   DailyWalkReact.renderHabitEditor({
-    groups: G,
+    groups: habitGroupsForState(S),
     groupIcons: GIC,
     icons: HICONS,
     icon: icoSvg,

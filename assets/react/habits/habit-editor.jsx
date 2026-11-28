@@ -9,7 +9,7 @@ let revision = 0;
 function HabitEditor({ groups, groupIcons, icons, icon, iconTextParts, onAdd, rerun }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [group, setGroup] = useState("more");
+  const [group, setGroup] = useState(groups.some((item) => item.id === "more") ? "more" : groups[0].id);
   const [selectedIcon, setSelectedIcon] = useState("star");
   const nameInput = useRef(null);
   const selectedGroup = groups.find((item) => item.id === group);
@@ -51,7 +51,7 @@ function HabitEditor({ groups, groupIcons, icons, icon, iconTextParts, onAdd, re
           {groups.map((item) => (
             <button type="button" className={"gt" + (item.id === group ? " on" : "")}
               style={{ "--gc": item.c }} key={item.id} onClick={() => setGroup(item.id)}>
-              <span style={{ display: "contents" }} dangerouslySetInnerHTML={{ __html: icon(groupIcons[item.id]) }} />
+              <span style={{ display: "contents" }} dangerouslySetInnerHTML={{ __html: icon(groupIcons[item.id] || item.e) }} />
               <span><IconText text={item.n} icon={icon} iconTextParts={iconTextParts} /></span>
             </button>
           ))}

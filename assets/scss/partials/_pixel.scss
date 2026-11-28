@@ -27,9 +27,12 @@ body :is(p, small, .how) :is(b, strong),
   font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif !important;
 }
 
-body .startup-dialog,
-body .startup-dialog * {
+body .startup-page,
+body .startup-page * {
   font-family: "Tiny5", monospace !important;
+}
+body .startup-page .onboarding-habit small {
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif !important;
 }
 
 h1 {

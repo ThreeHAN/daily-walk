@@ -222,7 +222,7 @@
 }
 .gtiles {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 6px;
 }
@@ -243,6 +243,10 @@
 .gt svg {
   width: 28px;
   height: 28px;
+}
+.gt > span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .gt.on {
   border-color: var(--gc);
@@ -333,21 +337,6 @@
 .del svg {
   width: 16px;
   height: 16px;
-}
-.del.arm {
-  width: auto;
-  padding: 0 10px;
-  background: #e5624a;
-  color: #fff;
-  opacity: 1;
-  font-size: 12px;
-  font-weight: 700;
-}
-.del.arm svg {
-  display: none;
-}
-.del.arm::after {
-  content: "Remove?";
 }
 .hl b#tnb {
   flex: 1;

@@ -4,29 +4,30 @@ import { createPortal } from "react-dom";
 import { createClient } from "@supabase/supabase-js";
 import { linkProfile, newProfileId, storedProfileLink } from "./profile-link.js";
 import { connectCloudProfile, listCloudProfiles, readCloud, syncProfile } from "./profile-sync.js";
-import { AvatarSetup } from "./onboarding.jsx";
+import { AvatarSetup, HabitSetup } from "./onboarding.jsx";
 
 const projectUrl = "https://dnnpakvhiipflpvmkymf.supabase.co";
 const publishableKey = "sb_publishable_lSHa1JshQ3lKb4k7MFtEcw_Kigs8Yy8";
 const onboardingKey = "dailywalk_admin_max:onboarding:v1";
 
-function StartupDialog({ children }) {
+function StartupPage({ children, step }) {
   const ref = useRef(null);
   useEffect(() => {
-    ref.current.showModal();
+    ref.current.focus();
   }, []);
   return createPortal(
-    <dialog ref={ref} className="startup-dialog" aria-labelledby="startup-title"
-      onCancel={(event) => event.preventDefault()}>
-      {children}
-    </dialog>,
+    <main ref={ref} tabIndex={-1} className={"startup-page startup-page--" + step}
+      aria-labelledby="startup-title">
+      <div className="startup-page-content">{children}</div>
+    </main>,
     document.body,
   );
 }
 
 function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, replaceLocalProfile, backupCloudProfile,
   hasCurrentLink, finishStartup, openCloudProfile, setSyncStatus: setBarSyncStatus,
-  needsOnboarding, appearanceDefaults, appearanceOptions, renderAvatar }) {
+  needsOnboarding, appearanceDefaults, appearanceOptions, renderAvatar,
+  habitDefaults, habitGroups, habitIcons, defaultHabitIcons, habitGroupIcons, icon, iconTextParts }) {
   const [client, setClient] = useState(null);
   const [session, setSession] = useState(null);
   const [busy, setBusy] = useState(true);
@@ -55,19 +56,31 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
   const onboardingRef = useRef(null);
   const onboardingCheckedRef = useRef(false);
   const [appearance, setAppearance] = useState(appearanceDefaults);
+  const [name, setName] = useState("");
+  const [habits, setHabits] = useState(habitDefaults);
+  const [customHabitGroups, setCustomHabitGroups] = useState([]);
+  const [removedDefaultHabitGroups, setRemovedDefaultHabitGroups] = useState([]);
   const supported = window.location.protocol === "https:" || window.location.protocol === "http:";
 
-  function updateOnboarding(step, nextAppearance = appearance) {
+  function updateOnboarding(step, nextAppearance = appearance, nextHabits = habits,
+    nextGroups = customHabitGroups, nextRemovedGroups = removedDefaultHabitGroups, nextName = name) {
     try {
-      const draft = { step, appearance: nextAppearance };
+      const draft = { step, name: nextName, appearance: nextAppearance, habits: nextHabits,
+        customHabitGroups: nextGroups, removedDefaultHabitGroups: nextRemovedGroups };
       sessionStorage.setItem(onboardingKey, JSON.stringify(draft));
       onboardingRef.current = draft;
       setAppearance(nextAppearance);
+      setName(nextName);
+      setHabits(nextHabits);
+      setCustomHabitGroups(nextGroups);
+      setRemovedDefaultHabitGroups(nextRemovedGroups);
       setStartupError("");
       setStartup(step);
+      return true;
     } catch (err) {
       console.error("Could not save onboarding progress", err);
       setStartupError("Could not save your setup. Check browser storage and try again.");
+      return false;
     }
   }
 
@@ -130,7 +143,7 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
       try {
         const raw = sessionStorage.getItem(onboardingKey);
         const draft = raw === null ? null : JSON.parse(raw);
-        if (draft && (!["welcome", "avatar", "choice"].includes(draft.step) ||
+        if (draft && (!["welcome", "avatar", "habits", "choice"].includes(draft.step) ||
             !draft.appearance || typeof draft.appearance !== "object" || Array.isArray(draft.appearance) ||
             Object.keys(draft.appearance).length !== Object.keys(appearanceDefaults).length ||
             Object.keys(appearanceDefaults).some((key) =>
@@ -138,11 +151,55 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
               !appearanceOptions[key].some(([value]) => value === draft.appearance[key])))) {
           throw new Error("Invalid onboarding progress.");
         }
+        const draftHabits = draft?.habits === undefined ? habitDefaults : draft.habits;
+        const draftName = draft?.name === undefined ? "" : draft.name;
+        if (typeof draftName !== "string" || draftName.length > 20) {
+          throw new Error("Invalid onboarding name.");
+        }
+        const draftGroups = draft?.customHabitGroups === undefined ? [] : draft.customHabitGroups;
+        const draftRemovedGroups = draft?.removedDefaultHabitGroups === undefined ? [] : draft.removedDefaultHabitGroups;
+        if (!Array.isArray(draftGroups) || draftGroups.some((group) => !group ||
+            typeof group.id !== "string" || !/^g\d+$/.test(group.id) ||
+            typeof group.n !== "string" || !group.n.trim() || group.n.length > 40 ||
+            group.e !== "star" || group.c !== "#b8863b") ||
+            new Set(draftGroups.map((group) => group.id)).size !== draftGroups.length) {
+          throw new Error("Invalid onboarding groups.");
+        }
+        if (!Array.isArray(draftRemovedGroups) ||
+            draftRemovedGroups.some((id) => !habitGroups.some((group) => group.id === id)) ||
+            new Set(draftRemovedGroups).size !== draftRemovedGroups.length ||
+            draftRemovedGroups.length === habitGroups.length && !draftGroups.length) {
+          throw new Error("Invalid removed onboarding groups.");
+        }
+        const availableGroups = [...habitGroups.filter((group) => !draftRemovedGroups.includes(group.id)), ...draftGroups];
+        const defaultIds = new Set(habitDefaults.map((task) => task.id));
+        if (!Array.isArray(draftHabits) ||
+            new Set(draftHabits.map((task) => task?.id)).size !== draftHabits.length ||
+            draftHabits.some((task) => !task || typeof task !== "object" || Array.isArray(task) ||
+              typeof task.id !== "string" || (!defaultIds.has(task.id) && !/^c\d+$/.test(task.id)) ||
+              typeof task.t !== "string" || !task.t.trim() || task.t.length > 40 ||
+              (task.s !== undefined && (typeof task.s !== "string" || task.s.length > 50)) ||
+              !availableGroups.some((group) => group.id === task.g) ||
+              (task.ic !== undefined && typeof task.ic !== "string") ||
+              (task.tip !== undefined && typeof task.tip !== "string") ||
+              (task.editedDuringSetup !== undefined && typeof task.editedDuringSetup !== "boolean") ||
+              (task.m !== undefined && (!Array.isArray(task.m) || task.m.length !== 2 ||
+                task.m.some((time) => typeof time !== "number" || !Number.isFinite(time)))))) {
+          throw new Error("Invalid onboarding habits.");
+        }
         onboardingCheckedRef.current = true;
         if (draft || !session) {
-          const currentDraft = draft || { step: "welcome", appearance: appearanceDefaults };
+          const currentDraft = draft
+            ? { ...draft, step: !draftName.trim() && ["habits", "choice"].includes(draft.step) ? "avatar" : draft.step,
+              name: draftName, habits: draftHabits, customHabitGroups: draftGroups, removedDefaultHabitGroups: draftRemovedGroups }
+            : { step: "welcome", name: draftName, appearance: appearanceDefaults, habits: draftHabits,
+              customHabitGroups: draftGroups, removedDefaultHabitGroups: draftRemovedGroups };
           onboardingRef.current = currentDraft;
           setAppearance(currentDraft.appearance);
+          setName(currentDraft.name);
+          setHabits(currentDraft.habits);
+          setCustomHabitGroups(currentDraft.customHabitGroups);
+          setRemovedDefaultHabitGroups(currentDraft.removedDefaultHabitGroups);
           setStartup(currentDraft.step);
           return;
         }
@@ -192,7 +249,8 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
     prepare();
     return () => { active = false; };
   }, [busy, client, session?.user?.id, session?.access_token, startup, startupAttempt,
-    hasCurrentLink, finishStartup, openCloudProfile, needsOnboarding, appearanceDefaults, appearanceOptions]);
+    hasCurrentLink, finishStartup, openCloudProfile, needsOnboarding, appearanceDefaults, appearanceOptions,
+    habitDefaults, habitGroups]);
 
   useEffect(() => {
     queuedSyncRef.current = false;
@@ -442,6 +500,10 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
       }
       finishStartup({
         appearance: onboardingRef.current?.appearance,
+        name: onboardingRef.current?.name,
+        habits: onboardingRef.current?.habits,
+        customHabitGroups: onboardingRef.current?.customHabitGroups,
+        removedDefaultHabitGroups: onboardingRef.current?.removedDefaultHabitGroups,
         skipSplash: !!onboardingRef.current,
       });
       finishOnboarding();
@@ -476,6 +538,10 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
     try {
       openCloudProfile(session.user.id, null, null, {
         appearance: onboardingRef.current?.appearance,
+        name: onboardingRef.current?.name,
+        habits: onboardingRef.current?.habits,
+        customHabitGroups: onboardingRef.current?.customHabitGroups,
+        removedDefaultHabitGroups: onboardingRef.current?.removedDefaultHabitGroups,
         skipSplash: !!onboardingRef.current,
       });
       finishOnboarding();
@@ -604,15 +670,25 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
   }
 
   return (<>
-    {startup !== "ready" && <StartupDialog>
+    {startup !== "ready" && <StartupPage key={startup} step={startup}>
       <h2 id="startup-title">{startup === "welcome" ? "Ready to begin your journey with Steadfast Steps?"
-        : startup === "avatar" ? "Edit your avatar" : "Welcome to Daily Walk"}</h2>
+        : startup === "avatar" ? "Edit your avatar" : startup === "habits" ? "Your habits" : "Welcome to Daily Walk"}</h2>
       {startup === "welcome" && <button type="button" className="ubtn"
         onClick={() => updateOnboarding("avatar")}>Ready</button>}
-      {startup === "avatar" && <AvatarSetup appearance={appearance} options={appearanceOptions}
+      {startup === "avatar" && <AvatarSetup name={name} appearance={appearance} options={appearanceOptions}
         renderAvatar={renderAvatar}
+        onNameChange={(value) => updateOnboarding("avatar", appearance, habits, customHabitGroups, removedDefaultHabitGroups, value)}
         onChange={(key, value) => updateOnboarding("avatar", { ...appearance, [key]: value })}
-        onBack={() => updateOnboarding("welcome")} onNext={() => updateOnboarding("choice")} />}
+        onBack={() => updateOnboarding("welcome")}
+        onNext={(value) => updateOnboarding("habits", appearance, habits, customHabitGroups, removedDefaultHabitGroups, value)} />}
+      {startup === "habits" && <HabitSetup habits={habits}
+        groups={[...habitGroups.filter((group) => !removedDefaultHabitGroups.includes(group.id)), ...customHabitGroups]}
+        customGroups={customHabitGroups} removedGroups={removedDefaultHabitGroups} storageError={startupError}
+        icons={habitIcons} defaultIcons={defaultHabitIcons} groupIcons={habitGroupIcons}
+        icon={icon} iconTextParts={iconTextParts}
+        onChange={(next, groups = customHabitGroups, removed = removedDefaultHabitGroups) =>
+          updateOnboarding("habits", appearance, next, groups, removed)}
+        onBack={() => updateOnboarding("avatar")} onNext={() => updateOnboarding("choice")} />}
       {startup === "choice" && <>
         <p>Sign in to use your cloud profile, or continue with a profile on this device.</p>
         {supported && <button type="button" className="ubtn" disabled={busy || !client} onClick={signIn}>Sign in with Google</button>}
@@ -650,7 +726,7 @@ function GoogleAuth({ getLocalProfile, getSyncLocalProfile, getSyncTargets, repl
         setStartupAttempt((attempt) => attempt + 1);
       }}>Retry</button>}
       {(startupError || error) && <p className="auth-error" role="alert">{startupError || error}</p>}
-    </StartupDialog>}
+    </StartupPage>}
     <div className="acct-box">
       <div className="acct-h google-account-heading">
         <span className="google-account-icon" aria-hidden="true">

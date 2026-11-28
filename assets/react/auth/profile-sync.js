@@ -5,7 +5,7 @@ function isObject(value) {
 }
 
 const gameplayFields = [
-  "tasks", "water", "waterHistory", "xp", "life",
+  "tasks", "customHabitGroups", "removedDefaultHabits", "removedDefaultHabitGroups", "water", "waterHistory", "xp", "life",
   "aw", "nb", "bs", "res", "pets", "peopleMet", "seenK", "tseen",
 ];
 const missing = Symbol("missing");

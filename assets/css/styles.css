@@ -107,7 +107,8 @@ h1 {
   cursor: pointer;
 }
 
-.item input {
+.item input,
+.onboarding-habit-checkbox {
   appearance: none;
   -webkit-appearance: none;
   width: 26px;
@@ -477,6 +478,16 @@ button {
   animation: pop 0.25s ease-out;
 }
 
+#bubble.show.fading {
+  pointer-events: none;
+  animation: buddy-fade-out 0.3s ease-out forwards;
+}
+
+@keyframes buddy-fade-out {
+  to {
+    opacity: 0;
+  }
+}
 .top {
   display: flex;
   justify-content: space-between;
@@ -499,11 +510,7 @@ button {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  display: grid;
-  align-items: end;
-  justify-items: center;
-  padding: 20px 16px calc(92px + env(safe-area-inset-bottom, 0px));
-  background: rgba(24, 20, 17, 0.28);
+  display: block;
   pointer-events: none;
 }
 
@@ -511,7 +518,7 @@ button {
   display: none !important;
 }
 
-body.tour-open {
+body.tour-open:not(.tour-review) {
   overflow: hidden;
 }
 
@@ -520,23 +527,53 @@ body.tour-open > *:not(#tour) {
 }
 
 .tour-card {
-  position: relative;
-  z-index: 10001;
-  width: min(100%, 420px);
-  padding: 18px;
+  position: fixed;
+  z-index: 2;
+  left: max(16px, (100% - 420px) / 2);
+  width: min(100% - 32px, 420px);
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: 22px;
   background: var(--card);
   color: var(--ink);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
-  animation: sheetUp 0.32s cubic-bezier(0.2, 0.9, 0.3, 1);
   pointer-events: auto;
 }
 
-.tour-card-top {
-  align-self: start;
+.tour-spotlight {
+  position: fixed;
+  z-index: 1;
+  box-shadow: 0 0 0 9999px rgba(24, 20, 17, 0.4);
+  pointer-events: none;
 }
 
+.tour-spotlight[hidden] {
+  display: none;
+}
+
+.tour-spotlight::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 4px solid #ffd23f;
+  animation: tour-glow 3.5s ease-in-out infinite;
+}
+
+@keyframes tour-glow {
+  0%, 100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-spotlight::after {
+    animation: none;
+  }
+}
 .tour-top {
   display: flex;
   align-items: center;
@@ -561,29 +598,37 @@ body.tour-open > *:not(#tour) {
 }
 
 .tour-icon {
-  width: 54px;
-  height: 54px;
+  width: 36px;
+  height: 36px;
+  flex: none;
   display: grid;
   place-items: center;
-  margin: 8px auto;
   border-radius: 18px;
   background: var(--acc2);
   font-size: 28px;
 }
 
 .tour-icon svg {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
+}
+
+.tour-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 8px;
 }
 
 .tour-card h2 {
-  margin: 0 0 7px;
+  margin: 0;
   text-align: center;
   font: 700 22px Georgia, serif;
 }
 
 .tour-card p {
-  margin: 0 0 16px;
+  margin: 0 0 10px;
   color: var(--mute);
   text-align: center;
   font-size: 14px;
@@ -603,18 +648,8 @@ body.tour-open > *:not(#tour) {
   grid-column: 1/-1;
 }
 
-.tour-highlight {
-  position: relative;
-  z-index: auto !important;
-  border-radius: 14px;
-  outline: 3px solid #ffd23f;
-  outline-offset: 4px;
-  box-shadow: none !important;
-  filter: none !important;
-}
-
-.tour-highlight.tour-interactive {
-  outline: 4px solid #ffd23f;
+.tour-highlight.tour-interactive,
+.tour-highlight.tour-scrollable {
   pointer-events: auto !important;
 }
 
@@ -622,14 +657,6 @@ body.tour-open > *:not(#tour) {
   opacity: 0.5;
 }
 
-@media (max-height: 620px) {
-  .tour {
-    padding-bottom: 76px;
-  }
-  .tour-card {
-    padding: 14px;
-  }
-}
 .sb {
   position: absolute;
   bottom: -6px;
@@ -3683,7 +3710,7 @@ main {
 
 .gtiles {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 6px;
 }
@@ -3706,6 +3733,11 @@ main {
 .gt svg {
   width: 28px;
   height: 28px;
+}
+
+.gt > span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .gt.on {
@@ -3811,24 +3843,6 @@ main {
 .del svg {
   width: 16px;
   height: 16px;
-}
-
-.del.arm {
-  width: auto;
-  padding: 0 10px;
-  background: #e5624a;
-  color: #fff;
-  opacity: 1;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.del.arm svg {
-  display: none;
-}
-
-.del.arm::after {
-  content: "Remove?";
 }
 
 .hl b#tnb {
@@ -4683,43 +4697,164 @@ main {
   font-size: 13px;
 }
 
-.startup-dialog {
-  width: min(440px, 100% - 32px);
-  max-height: calc(100% - 32px);
-  overflow: auto;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  background: var(--card);
-  color: var(--ink);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-}
-
-.startup-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.6);
-}
-
-.startup-dialog h2 {
+.startup-page h2 {
   margin: 0 0 10px;
   font: 700 22px Georgia, serif;
 }
 
-.startup-dialog p {
+.startup-page p {
   line-height: 1.5;
 }
 
-.startup-dialog label {
+.startup-page label {
   display: block;
   margin: 12px 0;
 }
 
-.startup-dialog select {
+.startup-page select {
   max-width: 100%;
 }
 
-.startup-dialog .ubtn {
+.startup-page .ubtn {
   margin: 4px 8px 4px 0;
   padding: 10px 14px;
+}
+
+body:has(> .startup-page) {
+  overflow: hidden;
+}
+
+body:has(> .startup-page) > :not(.startup-page, script) {
+  visibility: hidden;
+}
+
+.startup-page {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  width: 100%;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  overflow: auto;
+  padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  border: 0;
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.startup-page-content {
+  width: min(100%, 560px);
+  margin: auto;
+}
+
+.startup-page--welcome .startup-page-content,
+.startup-page--choice .startup-page-content {
+  text-align: center;
+}
+
+.startup-page .ubtn,
+.startup-page select {
+  min-height: 44px;
+}
+
+.startup-page .onboarding-fields select,
+.startup-page .onboarding-name input {
+  padding: 6px 8px;
+  font-size: 16px;
+}
+
+.startup-page .onboarding-name input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+}
+
+.onboarding-habit-list .gn {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.onboarding-habit-list .gh .ubtn {
+  flex: none;
+  margin: 0;
+}
+
+.habit-delete-confirm {
+  position: fixed;
+  inset: 0;
+  width: min(400px, 100% - 32px);
+  max-height: calc(100% - 32px);
+  margin: auto;
+  padding: 20px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  overflow: auto;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.habit-delete-confirm::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.onboarding-habit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.onboarding-habit .t {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.onboarding-habit .ubtn {
+  flex: none;
+  margin-right: 0;
+}
+
+.onboarding-habit-navigation {
+  margin-top: 16px;
+}
+
+.onboarding-habit-form fieldset {
+  min-width: 0;
+  margin: 16px 0;
+  padding: 0;
+  border: 0;
+}
+
+.onboarding-habit-form .itiles {
+  grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+}
+
+.onboarding-habit-form .it {
+  min-height: 44px;
+}
+
+.onboarding-habit-form input,
+.onboarding-habit-form select {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 16px;
 }
 
 .onboarding-avatar {
@@ -5321,9 +5456,13 @@ body :is(p, small, .how) :is(b, strong),
   font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif !important;
 }
 
-body .startup-dialog,
-body .startup-dialog * {
+body .startup-page,
+body .startup-page * {
   font-family: "Tiny5", monospace !important;
+}
+
+body .startup-page .onboarding-habit small {
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif !important;
 }
 
 h1 {

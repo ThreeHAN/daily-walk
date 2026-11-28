@@ -12,6 +12,12 @@ async function clickHabit(page, id) {
   await page.locator(`input[data-id="${id}"]`).evaluate((input) => input.click());
 }
 
+async function freezeClock(page) {
+  const time = Date.now();
+  await page.clock.install({ time });
+  await page.clock.pauseAt(time + 5000);
+}
+
 async function habitState(page) {
   return page.evaluate(() => ({
     xp: S.xp,
@@ -66,6 +72,208 @@ test("task and group rewards are awarded only once", async ({ page }) => {
   state = await habitState(page);
   expect(state.xp).toBe(initial.xp + 35);
   expect(state.taskAwards).toBe(initial.taskAwards + 2);
+});
+
+test("completed habits show buddy encouragement for ten seconds", async ({ page }) => {
+  await freezeClock(page);
+  const bubble = page.locator("#bubble");
+  await clickHabit(page, "wake");
+  await expect(bubble).toBeVisible();
+  await expect(bubble).toContainText("Psalm 5:3");
+  await page.clock.fastForward(9000);
+  await clickHabit(page, "cold");
+  await expect(bubble).toContainText("Galatians 5:22");
+  await page.clock.fastForward(1000);
+  await expect(bubble).toBeVisible();
+  await page.clock.fastForward(8999);
+  await expect(bubble).toBeVisible();
+  await expect(bubble).not.toHaveClass(/fading/);
+  await page.clock.fastForward(1);
+  await expect(bubble).toHaveClass(/fading/);
+  expect(await bubble.evaluate((element) => getComputedStyle(element).animationName)).toBe("buddy-fade-out");
+  const opacity = await bubble.evaluate((element) => {
+    const animation = element.getAnimations()[0];
+    animation.pause();
+    animation.currentTime = 150;
+    return Number(getComputedStyle(element).opacity);
+  });
+  expect(opacity).toBeGreaterThan(0);
+  expect(opacity).toBeLessThan(1);
+  await page.clock.fastForward(300);
+  await expect(bubble).toBeHidden();
+  await clickHabit(page, "cold");
+  await expect(bubble).toBeHidden();
+  await clickHabit(page, "cold");
+  await expect(bubble).toBeVisible();
+  const latestMessage = await bubble.textContent();
+  await bubble.evaluate((element) => element.click());
+  await expect(bubble).toBeHidden();
+  await page.locator("#av").evaluate((element) => element.click());
+  await expect(bubble).toHaveText(latestMessage);
+  await page.clock.fastForward(10000);
+  await expect(bubble).toBeVisible();
+});
+
+test("buddy rotates task-related reflections across checks and reloads", async ({ page }) => {
+  const bubble = page.locator("#bubble");
+  await clickHabit(page, "wake");
+  const first = await bubble.textContent();
+  await clickHabit(page, "wake");
+  await clickHabit(page, "wake");
+  const second = await bubble.textContent();
+  expect(second).not.toBe(first);
+  expect(second).toContain("Jesus");
+  expect(second).toContain("Philippians 2:4");
+  await page.reload();
+  await continueLocally(page);
+  await clickHabit(page, "wake");
+  await clickHabit(page, "wake");
+  const third = await bubble.textContent();
+  expect(new Set([first, second, third]).size).toBe(3);
+  expect(third).toContain("Christ");
+  const wakeMessages = new Set([first, second, third]);
+  for (let i = 3; i < 15; i++) {
+    await clickHabit(page, "wake");
+    await clickHabit(page, "wake");
+    wakeMessages.add(await bubble.textContent());
+  }
+  expect(wakeMessages.size).toBe(15);
+  await clickHabit(page, "wake");
+  await clickHabit(page, "wake");
+  await expect(bubble).toHaveText(first);
+
+  await page.evaluate(() => {
+    S.tasks.push({ id: "c123", g: "morning", t: "Practice music" });
+    render();
+  });
+  const customMessages = [];
+  for (let i = 0; i < 3; i++) {
+    if (i) await clickHabit(page, "c123");
+    await clickHabit(page, "c123");
+    const text = await bubble.textContent();
+    expect(text).toContain("Practice music");
+    expect(text).toMatch(/God|Jesus|Christ/);
+    customMessages.push(text);
+  }
+  expect(new Set(customMessages).size).toBe(3);
+});
+
+test("buddy reflection positions are separate for each profile", async ({ page }) => {
+  const messages = await page.evaluate(() => {
+    const original = CUR_UID;
+    const task = { id: "custom", t: "Practice music" };
+    const first = nextBuddyMessage(task);
+    CUR_UID = "another-profile";
+    const other = nextBuddyMessage(task);
+    CUR_UID = original;
+    const next = nextBuddyMessage(task);
+    return { first, other, next };
+  });
+  expect(messages.other).toBe(messages.first);
+  expect(messages.next).not.toBe(messages.first);
+});
+
+test("buddy keeps varying messages when its local history cannot be saved", async ({ page }) => {
+  const warnings = [];
+  page.on("console", (message) => {
+    if (message.type() === "warning") warnings.push(message.text());
+  });
+  await page.evaluate(() => {
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key.includes(":buddy-message:")) throw new Error("Storage unavailable");
+      return setItem.call(this, key, value);
+    };
+  });
+  await clickHabit(page, "wake");
+  const first = await page.locator("#bubble").textContent();
+  await clickHabit(page, "wake");
+  await clickHabit(page, "wake");
+  await expect(page.locator("#bubble")).not.toHaveText(first);
+  expect(warnings.some((warning) => warning.includes("Could not save buddy message position"))).toBe(true);
+});
+
+test("late buddy responses cannot replace a newer task or extend its timer", async ({ page }) => {
+  await freezeClock(page);
+  await page.evaluate(() => {
+    window.claude = {
+      use: async () => () => new Promise((resolve) => { window.resolveCheer = resolve; }),
+    };
+    S.tasks.push({ id: "c123", g: "morning", t: "Practice music" });
+    render();
+  });
+  const bubble = page.locator("#bubble");
+  await clickHabit(page, "c123");
+  await expect(bubble).toContainText("Practice music");
+  await expect.poll(() => page.evaluate(() => typeof window.resolveCheer)).toBe("function");
+  await clickHabit(page, "wake");
+  await page.evaluate(() => window.resolveCheer({ text: "Older response" }));
+  await expect(bubble).toContainText("Psalm 5:3");
+  await page.clock.fastForward(10000);
+  await page.clock.fastForward(300);
+  await expect(bubble).toBeHidden();
+
+  await clickHabit(page, "c123");
+  await page.evaluate(() => { window.resolveCheer = null; });
+  await clickHabit(page, "c123");
+  await expect.poll(() => page.evaluate(() => typeof window.resolveCheer)).toBe("function");
+  await page.clock.fastForward(9000);
+  await page.evaluate(() => window.resolveCheer({ text: "Fresh encouragement" }));
+  await expect(bubble).toContainText("Fresh encouragement");
+  await page.clock.fastForward(1000);
+  await page.clock.fastForward(300);
+  await expect(bubble).toBeHidden();
+
+  await clickHabit(page, "c123");
+  await page.evaluate(() => { window.resolveCheer = null; });
+  await clickHabit(page, "c123");
+  await expect.poll(() => page.evaluate(() => typeof window.resolveCheer)).toBe("function");
+  await page.clock.fastForward(10000);
+  await page.evaluate(() => window.resolveCheer({ text: "Too late" }));
+  await expect(bubble).toHaveClass(/fading/);
+  await expect(bubble).toContainText("Practice music");
+  await page.clock.fastForward(300);
+  await expect(bubble).toBeHidden();
+  await page.locator("#av").evaluate((element) => element.click());
+  await expect(bubble).toContainText("Practice music");
+});
+
+test("a new completed habit cancels a fading buddy message", async ({ page }) => {
+  await freezeClock(page);
+  const bubble = page.locator("#bubble");
+  await clickHabit(page, "wake");
+  await page.clock.fastForward(10000);
+  await expect(bubble).toHaveClass(/fading/);
+  await clickHabit(page, "cold");
+  await expect(bubble).toContainText("Galatians 5:22");
+  await expect(bubble).not.toHaveClass(/fading/);
+  await page.clock.fastForward(300);
+  await expect(bubble).toBeVisible();
+  await page.clock.fastForward(9700);
+  await expect(bubble).toHaveClass(/fading/);
+  await page.clock.fastForward(300);
+  await expect(bubble).toBeHidden();
+});
+
+test("buddy dismissal respects reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await freezeClock(page);
+  await clickHabit(page, "wake");
+  await page.clock.fastForward(10000);
+  const bubble = page.locator("#bubble");
+  await expect(bubble).toHaveClass(/fading/);
+  const duration = await bubble.evaluate((element) => parseFloat(getComputedStyle(element).animationDuration));
+  expect(duration).toBeLessThan(0.01);
+  await page.clock.fastForward(300);
+  await expect(bubble).toBeHidden();
+});
+
+test("buddy encouragement does not prevent checking another task on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.locator('input[data-id="wake"]').click();
+  await expect(page.locator("#bubble")).toBeVisible();
+  await page.locator('input[data-id="cold"]').click();
+  await expect(page.locator("#bubble")).toContainText("Galatians 5:22");
 });
 
 test("finishing all habits persists progress and rewards across reloads", async ({
@@ -167,18 +375,18 @@ test("dashboard bridge prepares a consistent snapshot without changing saved sta
   });
 });
 
-test("the React water card preserves its tutorial target and icon while updating", async ({ page }) => {
+test("the React water card preserves the water and journal tutorial target and icon while updating", async ({ page }) => {
   const card = page.locator("#water-card");
   await expect(card).toHaveAttribute("data-react-root", "");
   await expect(card.locator(".xh b .ic svg")).toHaveCount(1);
   await page.evaluate(() => {
-    window.waterTarget = document.getElementById("cups");
+    window.waterTarget = document.getElementById("water-journal");
     window.waterTarget.classList.add("tour-highlight");
   });
   await page.locator('#cups button[aria-label="Cup 3"]').evaluate((button) => button.click());
   await expect(page.locator("#wn")).toHaveText("3 / 8 cups");
-  await expect(page.locator("#cups")).toHaveClass(/tour-highlight/);
-  expect(await page.evaluate(() => window.waterTarget === document.getElementById("cups"))).toBe(true);
+  await expect(page.locator("#water-journal")).toHaveClass(/tour-highlight/);
+  expect(await page.evaluate(() => window.waterTarget === document.getElementById("water-journal"))).toBe(true);
   await page.evaluate(() => { hydrate(); iconize(document.body); });
   await expect(card.locator(".xh b .ic svg")).toHaveCount(1);
 });
@@ -199,6 +407,7 @@ test("the water goal opens the group and checks the habit without clicking its c
   await expect(page.locator('input[data-id="water"]')).toHaveCount(0);
   await page.locator('#cups button[aria-label="Cup 8"]').evaluate((button) => button.click());
   await expect(page.locator('input[data-id="water"]')).toBeChecked();
+  await expect(page.locator("#bubble")).toContainText("John 4:14");
   await expect(page.locator("#wn")).toHaveText("8 / 8 cups");
   await expect(page.locator("#cups .full")).toHaveCount(8);
   await expect(page.locator('#cups button[aria-label="Cup 8"]')).toHaveClass(/pop/);
@@ -595,7 +804,38 @@ test("a new habit is highlighted and can still be removed", async ({ page }) => 
   await expect(row).toHaveClass(/newrow/);
   const remove = row.getByRole("button", { name: "Remove habit" });
   await remove.evaluate((button) => button.click());
-  await remove.evaluate((button) => button.click());
+  const confirm = page.getByRole("dialog", { name: "Are you sure?" });
+  await expect(confirm).toContainText("Delete Take a walk?");
+  const bounds = await confirm.boundingBox();
+  const viewport = page.viewportSize();
+  expect(Math.abs(bounds.x + bounds.width / 2 - viewport.width / 2)).toBeLessThan(2);
+  expect(Math.abs(bounds.y + bounds.height / 2 - viewport.height / 2)).toBeLessThan(2);
+  await confirm.getByRole("button", { name: "Keep habit" }).click();
+  await expect(row).toHaveCount(1);
+  await remove.click();
+  await confirm.getByRole("button", { name: "Confirm delete" }).click();
+  await expect(row).toHaveCount(0);
+});
+
+test("a failed habit deletion keeps the confirmation open for retry", async ({ page }) => {
+  await page.locator("#fab").click();
+  await page.locator("#hn").fill("Take a walk");
+  await page.locator("#hadd").click();
+  const row = page.locator("#list .item").filter({ hasText: "Take a walk" });
+  await row.getByRole("button", { name: "Remove habit" }).click();
+  const dialog = page.getByRole("dialog", { name: "Are you sure?" });
+  await page.evaluate(() => {
+    window.originalStorageSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key.includes(":u:")) throw new Error("Write blocked");
+      return window.originalStorageSetItem.call(this, key, value);
+    };
+  });
+  await dialog.getByRole("button", { name: "Confirm delete" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Could not save the deletion");
+  expect(await page.evaluate(() => S.tasks.some((task) => task.t === "Take a walk"))).toBe(true);
+  await page.evaluate(() => { Storage.prototype.setItem = window.originalStorageSetItem; });
+  await dialog.getByRole("button", { name: "Confirm delete" }).click();
   await expect(row).toHaveCount(0);
 });
 

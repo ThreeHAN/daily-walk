@@ -1,11 +1,11 @@
 const { test, expect } = require("@playwright/test");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
+const { reachStartupChoice } = require("./helpers/onboarding");
 
 test("level-up content updates for unlocks, empty rewards, and max level", async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
-  await page.getByRole("button", { name: "Ready", exact: true }).click();
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await reachStartupChoice(page);
   await page.getByRole("button", { name: "Continue locally" }).click();
   await page.getByRole("button", { name: "Skip", exact: true }).click();
   await expect(page.locator("#lu")).toHaveAttribute("data-react-root", "");

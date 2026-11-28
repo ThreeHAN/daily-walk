@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { continueLocally } = require("./helpers/onboarding");
+const { continueLocally, reachStartupChoice } = require("./helpers/onboarding");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 
@@ -391,6 +391,12 @@ test("OAuth callback errors are visible without changing local profiles", async 
 
 test("direct file usage keeps profiles available without offering sign-in", async ({ page }) => {
   await page.goto(pathToFileURL(path.join(root, "index.html")).href);
+  await reachStartupChoice(page);
+  const startup = page.getByRole("main", { name: "Welcome to Daily Walk" });
+  await expect(startup).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(startup).toContainText("Sign-in requires the hosted site or local development server");
+  await expect(startup.getByRole("button", { name: "Sign in with Google" })).toHaveCount(0);
   await continueLocally(page);
   await openAccounts(page);
   await expect(page.locator("#google-auth")).toContainText("Sign-in requires the hosted site or local development server");

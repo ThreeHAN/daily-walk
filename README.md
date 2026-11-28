@@ -246,7 +246,13 @@ weekly chart receives current tasks and per-day checks from the legacy state own
   is granted at most once per day, even if a habit is unchecked and rechecked.
   XP also contributes to the active town's progress. Habit check changes carry
   per-day, per-habit timestamps; resetting the checklist records an uncheck for
-  each habit.
+  each habit. Completing a habit automatically shows the buddy's Christian
+  encouragement for 10 seconds before it fades away. The buddy cycles through
+  task-related reflections, remembering the next one locally for each profile
+  and task (the rotation is not synced or backed up); completing another replaces
+  the message and restarts the timer.
+  Tap the message to dismiss it or the buddy to read it again. Removing a custom
+  habit from the checklist requires a centered confirmation.
 - Your traveler is a pixel-art person, based on the supplied knight sprite.
   The same customizable artwork appears in the wardrobe, profile, and towns.
   The profile's **Wardrobe & traveler** includes an **Appearance** tab for
@@ -269,7 +275,8 @@ weekly chart receives current tasks and per-day checks from the legacy state own
   pixel-art visual style, including habit category and bottom navigation icons.
   Headings and primary labels use the pixel font; descriptions and other
   supporting text use a readable system font. The opening sign-in and
-  onboarding screens keep the pixel font throughout.
+  onboarding screens keep the pixel font, except habit descriptions, which match
+  the readable text in the checklist.
   Bottom navigation buttons keep their appearance when switching tabs; the
   current page is identified for assistive technology.
   The world map has pixel land and spins horizontally; drag side to side and
@@ -330,11 +337,19 @@ weekly chart receives current tasks and per-day checks from the legacy state own
   and saves it. `hydrateState()` supplies missing fields and migrates older
   data. Preserve existing storage keys and backup compatibility when changing
   the state shape, and test migrations against older saves.
-- A new browser starts with a welcome screen and avatar editor, followed by
-  Google sign-in or local mode and the guided tour. Avatar choices are kept
-  temporarily in the browser tab until a new profile is created; signing into
-  an existing cloud profile opens it unchanged. Existing local profiles skip
-  these new-user steps.
+- A new browser starts with full-screen, non-modal welcome, avatar and habit
+  setup pages, then Google sign-in or local mode and the guided tour. Avatar
+  setup requires a name for a new profile, which can be changed later. Habit setup
+  previews the presets in checklist-style groups and lets players edit, delete,
+  or add habits, pick illustrated icons, and create or delete groups. Deleting a
+  group also deletes its habits after a centered confirmation; at least one group
+  must remain. Custom groups remain
+  available in the checklist and new-habit editor; checking habits off begins
+  after setup. Changes are kept
+  temporarily in the browser tab and applied only to a newly created profile;
+  signing into an existing cloud profile opens it unchanged. Existing local
+  profiles skip these new-user steps. Renaming a preset detaches its original
+  advice and schedule; a renamed water habit is no longer checked by the water goal.
 - Google sign-in is optional and available in the main profile menu on the
   hosted site or local HTTP server. At launch, signed-out users choose Google
   sign-in or a local profile. Sign-in opens the account's existing cloud profile
@@ -360,8 +375,17 @@ weekly chart receives current tasks and per-day checks from the legacy state own
   `file://` usage remains available without sign-in. The Supabase project URL
   and publishable key in `google-auth.jsx` are public; never add secret or
   service-role keys to the browser bundle.
-- The guided tour scrolls to each highlighted button and waits for the user to
-  activate it before continuing. Completion is stored per profile; users can
+- The guided tour scrolls to each button, keeps it clear in a slowly flashing
+  gold spotlight, and keeps the outline inside the visible area above the fixed
+  navigation when page content extends behind it. The prompt stays away from
+  the action. Reduced-motion
+  settings keep the spotlight still. Once an action opens a highlighted section,
+  players can scroll through it if it does not fit alongside the prompt, while
+  the tour continues to block other actions. The water and journal step highlights
+  both cards together. Fully visible sections stay in place.
+  It waits for the user to activate each
+  button before continuing; habit creation is covered in setup rather than
+  repeated in the tour. Completion is stored per profile; users can
   skip or reopen it from their profile.
 
 ## Supabase database foundation

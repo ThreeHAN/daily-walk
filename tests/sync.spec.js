@@ -205,6 +205,40 @@ test("two browsers merge independent edits after reconnecting", async ({ browser
   }
 });
 
+test("custom habit groups and removed presets sync to another browser", async ({ browser }) => {
+  const cloud = new Map();
+  const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
+  try {
+    const [first, second] = await Promise.all(contexts.map((context) => context.newPage()));
+    await setup(first, cloud);
+    const id = Array.from(cloud.keys())[0];
+    await setup(second, cloud);
+    await second.getByRole("button", { name: "Choose cloud profile" }).click();
+    await second.getByLabel("Cloud profile").selectOption(id);
+    await second.getByRole("button", { name: "Connect profile" }).click();
+    await expect(second.locator("#google-auth")).toContainText("Profile is up to date.");
+    await first.evaluate(() => {
+      S.customHabitGroups = [{ id: "g123", n: "Family", e: "star", c: "#b8863b" }];
+      S.removedDefaultHabits = ["water"];
+      S.removedDefaultHabitGroups = ["more"];
+      S.tasks = S.tasks.filter((task) => task.id !== "water").map((task) =>
+        task.id === "wake" ? { ...task, g: "g123", editedDuringSetup: true } : task);
+      save();
+    });
+    await first.getByRole("button", { name: "Sync now" }).click();
+    await expect(first.locator("#google-auth")).toContainText("Profile uploaded.");
+    await second.getByRole("button", { name: "Sync now" }).click();
+    await expect(second.locator("#google-auth")).toContainText("Profile downloaded.");
+    const restored = await second.evaluate(() => hydrateState(JSON.parse(JSON.stringify(readStoredProfile(CUR_UID)))));
+    expect(restored.customHabitGroups[0].n).toBe("Family");
+    expect(restored.removedDefaultHabitGroups).toEqual(["more"]);
+    expect(restored.tasks.find((task) => task.id === "wake").g).toBe("g123");
+    expect(restored.tasks.some((task) => task.id === "water")).toBe(false);
+  } finally {
+    await Promise.all(contexts.map((context) => context.close()));
+  }
+});
+
 test("two browsers preserve separate habit unchecks and recompute the day", async ({ browser }) => {
   const cloud = new Map();
   const contexts = await Promise.all([browser.newContext(), browser.newContext()]);

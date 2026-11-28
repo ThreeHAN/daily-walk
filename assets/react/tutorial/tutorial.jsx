@@ -3,17 +3,21 @@ import { createRoot } from "../shared/react-root.js";
 
 const root = createRoot(document.getElementById("tour"));
 
-function Tutorial({ step, index, total, ready, cardTop, icon, onBack, onNext, onSkip }) {
+function Tutorial({ step, index, total, ready, icon, onBack, onNext, onSkip }) {
   return (
-    <div className={"tour-card" + (cardTop ? " tour-card-top" : "")}
+    <>
+    <div className="tour-spotlight" id="tour-spotlight" aria-hidden="true" />
+    <div className="tour-card"
       role="dialog" aria-labelledby="tour-title" aria-describedby="tour-text">
       <div className="tour-top">
         <span className="tour-step" id="tour-step">{index + 1} of {total}</span>
         <button className="tour-skip" id="tour-skip" type="button" onClick={onSkip}>Skip</button>
       </div>
-      <div className="tour-icon" id="tour-icon" aria-hidden="true"
-        dangerouslySetInnerHTML={{ __html: icon(step.icon) }} />
-      <h2 id="tour-title">{step.title}</h2>
+      <div className="tour-heading">
+        <div className="tour-icon" id="tour-icon" aria-hidden="true"
+          dangerouslySetInnerHTML={{ __html: icon(step.icon) }} />
+        <h2 id="tour-title">{step.title}</h2>
+      </div>
       <p id="tour-text">{ready ? step.after : step.before}</p>
       <div className="tour-actions">
         <button className="ubtn sec" id="tour-back" type="button" hidden={index === 0} onClick={onBack}>Back</button>
@@ -22,6 +26,7 @@ function Tutorial({ step, index, total, ready, cardTop, icon, onBack, onNext, on
         </button>
       </div>
     </div>
+    </>
   );
 }
 

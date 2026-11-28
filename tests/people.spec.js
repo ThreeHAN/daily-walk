@@ -171,6 +171,7 @@ test("profile fills the viewport and returns to the previous page", async ({ pag
     expect((await back.boundingBox()).y).toBe(menuPosition.y);
     await page.locator("#go-wd").click();
     await expect(page.locator("#v-wd")).toBeVisible();
+    await selectWardrobe(page, "Appearance");
     await expect(back).toHaveAttribute("aria-label", "Back to profile menu");
     await expect(profile.locator("button.back:visible")).toHaveCount(1);
     const before = await back.boundingBox();
@@ -1084,7 +1085,7 @@ test("the people index preserves search during updates and resets it when reopen
 
 test("the guided tour can still open and highlight the people index", async ({ page }) => {
   await page.evaluate(() => startTour());
-  for (let step = 0; step < 6; step++) {
+  for (let step = 0; step < 5; step++) {
     await page.locator(".tour-interactive").click();
     await expect(page.locator("#tour-next")).toBeEnabled();
     await page.locator("#tour-next").click();
@@ -1096,6 +1097,212 @@ test("the guided tour can still open and highlight the people index", async ({ p
   await expect(page.locator("#ix .sheet")).toHaveClass(/tour-highlight/);
   await click(page, "#tour-skip");
   await expect(page.locator("#ix")).not.toHaveClass(/show/);
+});
+
+test("the guided tour allows scrolling highlighted habits, world map and people", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 600 });
+  await page.evaluate(() => {
+    S.peopleMet = Array.from({ length: 30 }, (_, index) => ({
+      id: `person-${index}`, name: `Person ${index}`, town: "meadow", look: structuredClone(S.p),
+    }));
+    startTour();
+  });
+  async function scrollHighlight(selector, scroller) {
+    await page.locator(selector).evaluate((target) => Promise.all(
+      target.getAnimations().filter((animation) => Number.isFinite(animation.effect.getComputedTiming().endTime))
+        .map((animation) => animation.finished),
+    ));
+    const point = await page.locator(selector).evaluate((target) => {
+      const bounds = target.getBoundingClientRect();
+      for (let y = Math.max(10, bounds.top + 10); y < Math.min(innerHeight - 10, bounds.bottom - 10); y += 10) {
+        for (let x = Math.max(10, bounds.left + 10); x < Math.min(innerWidth - 10, bounds.right - 10); x += 10) {
+          if (target.contains(document.elementFromPoint(x, y))) return { x, y };
+        }
+      }
+      throw new Error("No unobstructed area in highlighted section");
+    });
+    const before = await page.evaluate((id) => id ? document.querySelector(id).scrollTop : window.scrollY, scroller);
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.wheel(0, 300);
+    await expect.poll(() => page.evaluate((id) => id ? document.querySelector(id).scrollTop : window.scrollY, scroller))
+      .toBeGreaterThan(before);
+  }
+  await page.locator(".tour-interactive").click();
+  await expect(page.locator("#tour-next")).toBeEnabled();
+  await scrollHighlight("#list", null);
+  await page.evaluate(() => document.querySelector('.nv[data-p="t"]').click());
+  await expect(page.locator("#pg-h")).toBeVisible();
+  for (let step = 0; step < 4; step++) {
+    await page.locator("#tour-next").click();
+    await page.locator(".tour-interactive").click();
+    await expect(page.locator("#tour-next")).toBeEnabled();
+  }
+  await expect(page.locator("#tour-title")).toHaveText("Explore the world");
+  await scrollHighlight("#gl .glb", "#gl");
+  await page.locator("#tour-next").click();
+  await page.locator(".tour-interactive").click();
+  await expect(page.locator("#tour-next")).toBeEnabled();
+  await expect(page.locator("#tour-title")).toHaveText("People you meet");
+  await scrollHighlight("#ix .sheet", "#ix .sheet");
+  await page.locator("#tour-next").click();
+  await expect(page.locator("#tour-next")).toBeDisabled();
+  await expect(page.locator(".tour-interactive")).toHaveAttribute("id", "go-wd");
+  await page.locator("#tour-skip").click();
+  await expect(page.locator("body")).not.toHaveClass(/tour-review/);
+});
+
+test("the tour locks fully visible sections and unlocks them when the viewport is too short", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.evaluate(() => { S.peopleMet = []; startTour(); });
+  for (let step = 0; step < 3; step++) {
+    await page.locator(".tour-interactive").click();
+    await expect(page.locator("#tour-next")).toBeEnabled();
+    if (step < 2) await page.locator("#tour-next").click();
+  }
+  async function expectLocked(selector) {
+    const target = page.locator(selector);
+    await expect(target).toHaveClass(/tour-highlight/);
+    await expect(target).not.toHaveClass(/tour-scrollable/);
+    await expect(page.locator("body")).not.toHaveClass(/tour-review/);
+    const bounds = await target.boundingBox();
+    expect(bounds.height).toBeLessThan(812);
+    const before = await page.evaluate(() => window.scrollY);
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await page.mouse.wheel(0, 400);
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => window.scrollY)).toBe(before);
+  }
+  await expect(page.locator("#tour-title")).toHaveText("Water and journal");
+  await expectLocked("#water-journal");
+  await page.locator("#tour-next").click();
+  await page.locator(".tour-interactive").click();
+  await expect(page.locator("#tour-next")).toBeEnabled();
+  await expect(page.locator("#tour-title")).toHaveText("Helping your town");
+  await expectLocked("#scene");
+  await page.setViewportSize({ width: 375, height: 200 });
+  await expect(page.locator("#scene")).toHaveClass(/tour-scrollable/);
+  await expect(page.locator("body")).toHaveClass(/tour-review/);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(page.locator("#scene")).not.toHaveClass(/tour-scrollable/);
+  await expect(page.locator("body")).not.toHaveClass(/tour-review/);
+  for (let step = 0; step < 2; step++) {
+    await page.locator("#tour-next").click();
+    await page.locator(".tour-interactive").click();
+    await expect(page.locator("#tour-next")).toBeEnabled();
+  }
+  const people = page.locator("#ix .sheet");
+  await expect(page.locator("#tour-title")).toHaveText("People you meet");
+  await expect(people).not.toHaveClass(/tour-scrollable/);
+  const peopleBounds = await people.boundingBox();
+  await page.mouse.move(peopleBounds.x + peopleBounds.width / 2, peopleBounds.y + 20);
+  await page.mouse.wheel(0, 400);
+  await page.waitForTimeout(100);
+  expect(await people.evaluate((element) => element.scrollTop)).toBe(0);
+  await page.locator("#tour-skip").click();
+});
+
+test("the water and journal tour highlights both cards and keeps them viewable on a short screen", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 480 });
+  await page.evaluate(() => startTour());
+  for (let step = 0; step < 3; step++) {
+    await page.locator(".tour-interactive").click();
+    await expect(page.locator("#tour-next")).toBeEnabled();
+    if (step < 2) await page.locator("#tour-next").click();
+  }
+  const section = page.locator("#water-journal");
+  await expect(section).toHaveClass(/tour-highlight/);
+  await expect(section).toHaveClass(/tour-scrollable/);
+  await expect(section.locator("#water-card .xh")).toBeVisible();
+  await expect(section.locator("#journal .xh")).toBeAttached();
+  expect(await page.locator(".tour-card").evaluate((card) => card.scrollHeight <= card.clientHeight + 1)).toBe(true);
+  expect(await section.locator("#water-card .xh").evaluate((heading) => {
+    const bounds = heading.getBoundingClientRect();
+    const card = document.querySelector(".tour-card").getBoundingClientRect();
+    const light = document.querySelector("#tour-spotlight").getBoundingClientRect();
+    return bounds.top >= light.top && bounds.bottom <= light.bottom &&
+      (bounds.bottom <= card.top || bounds.top >= card.bottom);
+  })).toBe(true);
+
+  const point = await section.evaluate((target) => {
+    const footerTop = document.querySelector("#nav").getBoundingClientRect().top;
+    for (let y = 20; y < footerTop - 20; y += 10) {
+      for (let x = 20; x < innerWidth - 20; x += 10) {
+        if (target.contains(document.elementFromPoint(x, y))) return { x, y };
+      }
+    }
+    throw new Error("No unobstructed area in the water and journal section");
+  });
+  await page.mouse.move(point.x, point.y);
+  const before = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 250);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
+  await expect.poll(() => page.locator("#jsave").evaluate((button) => {
+    const bounds = button.getBoundingClientRect();
+    const card = document.querySelector(".tour-card").getBoundingClientRect();
+    const light = document.querySelector("#tour-spotlight").getBoundingClientRect();
+    return bounds.top >= light.top && bounds.bottom <= light.bottom &&
+      (bounds.bottom <= card.top || bounds.top >= card.bottom);
+  })).toBe(true);
+  await page.locator("#tour-next").click();
+  await expect(page.locator("#tour-title")).toHaveText("Helping your town");
+  await page.locator("#tour-skip").click();
+});
+
+test.describe("touchscreen tour", () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 375, height: 812 } });
+
+  test("swipes scroll highlighted habits, water and journal, and people without changing pages", async ({ page }) => {
+    await page.evaluate(() => {
+      S.peopleMet = Array.from({ length: 30 }, (_, index) => ({
+        id: `person-${index}`, name: `Person ${index}`, town: "meadow", look: structuredClone(S.p),
+      }));
+      startTour();
+    });
+    const cdp = await page.context().newCDPSession(page);
+    async function swipeHighlight(selector, scroller) {
+      const point = await page.locator(selector).evaluate((target) => {
+        for (let y = innerHeight - 30; y >= 130; y -= 10) {
+          for (let x = 20; x < innerWidth - 20; x += 10) {
+            if (target.contains(document.elementFromPoint(x, y)) &&
+                target.contains(document.elementFromPoint(x, y - 100))) return { x, y };
+          }
+        }
+        throw new Error("No unobstructed area for swiping the highlighted section");
+      });
+      const before = await page.evaluate((id) => id ? document.querySelector(id).scrollTop : window.scrollY, scroller);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
+      for (let distance = 20; distance <= 100; distance += 20) {
+        await cdp.send("Input.dispatchTouchEvent", {
+          type: "touchMove", touchPoints: [{ x: point.x, y: point.y - distance }],
+        });
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await expect.poll(() => page.evaluate((id) => id ? document.querySelector(id).scrollTop : window.scrollY, scroller))
+        .toBeGreaterThan(before);
+    }
+    await page.locator(".tour-interactive").click();
+    await expect(page.locator("#tour-next")).toBeEnabled();
+    await swipeHighlight("#list", null);
+    await expect(page.locator("#pg-h")).toBeVisible();
+    for (let step = 0; step < 2; step++) {
+      await page.locator("#tour-next").click();
+      await page.locator(".tour-interactive").click();
+      await expect(page.locator("#tour-next")).toBeEnabled();
+    }
+    await expect(page.locator("#tour-title")).toHaveText("Water and journal");
+    await page.setViewportSize({ width: 375, height: 480 });
+    await expect(page.locator("#water-journal")).toHaveClass(/tour-scrollable/);
+    await swipeHighlight("#water-journal", null);
+    await page.setViewportSize({ width: 375, height: 812 });
+    for (let step = 0; step < 3; step++) {
+      await page.locator("#tour-next").click();
+      await page.locator(".tour-interactive").click();
+      await expect(page.locator("#tour-next")).toBeEnabled();
+    }
+    await expect(page.locator("#tour-title")).toHaveText("People you meet");
+    await swipeHighlight("#ix .sheet", "#ix .sheet");
+    await page.locator("#tour-skip").click();
+  });
 });
 
 test("the expanded tour guides every feature, preserves progress, and can be replayed", async ({ page }) => {
@@ -1111,11 +1318,15 @@ test("the expanded tour guides every feature, preserves progress, and can be rep
     return progress;
   });
   const titles = [
-    "Your daily checklist", "Add your own habits", "XP, levels and streaks",
+    "Your daily checklist", "XP, levels and streaks",
     "Water and journal", "Helping your town", "Explore the world",
     "People you meet", "Your traveler and gear", "Levels and rewards",
     "Ranks and friend codes", "Profiles and backups",
   ];
+  expect(await page.locator("#tour-spotlight").evaluate((element) => ({
+    background: getComputedStyle(element).backgroundColor,
+    duration: getComputedStyle(element, "::after").animationDuration,
+  }))).toEqual({ background: "rgba(0, 0, 0, 0)", duration: "3.5s" });
   for (const [index, title] of titles.entries()) {
     await expect(page.locator("#tour-title")).toHaveText(title);
     await expect(page.locator("#tour-step")).toHaveText(`${index + 1} of ${titles.length}`);
@@ -1127,6 +1338,19 @@ test("the expanded tour guides every feature, preserves progress, and can be rep
     expect(bounds.y).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
     expect(bounds.y + bounds.height).toBeLessThanOrEqual(568);
+    const card = await page.locator(".tour-card").boundingBox();
+    expect(card.y + card.height <= bounds.y || bounds.y + bounds.height <= card.y).toBe(true);
+    await expect.poll(() => target.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      const light = document.getElementById("tour-spotlight").getBoundingClientRect();
+      return Math.max(Math.abs(light.left - bounds.left), Math.abs(light.top - bounds.top),
+        Math.abs(light.width - bounds.width), Math.abs(light.height - bounds.height));
+    })).toBeLessThan(1);
+    expect(await target.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      const hit = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
+      return element.contains(hit);
+    })).toBe(true);
     await target.click();
     await expect(page.locator("#tour-next")).toBeEnabled();
     await expect(page.locator(".tour-highlight")).toBeVisible();
@@ -1159,6 +1383,132 @@ test("the expanded tour guides every feature, preserves progress, and can be rep
   expect(errors).toEqual([]);
 });
 
+test("the tour spotlight respects reduced motion and follows viewport changes", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate(() => startTour());
+  const spotlight = page.locator("#tour-spotlight");
+  await expect(spotlight).toBeVisible();
+  expect(await spotlight.evaluate((element) => getComputedStyle(element, "::after").animationName)).toBe("none");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect.poll(async () => {
+    const target = await page.locator(".tour-interactive").boundingBox();
+    const light = await spotlight.boundingBox();
+    return Math.abs(target.x - light.x) < 1 && Math.abs(target.y - light.y) < 1;
+  }).toBe(true);
+  await page.locator("#tour-skip").click();
+});
+
+test("the flashing spotlight outline stays on screen when its target is clipped", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 480 });
+  await page.evaluate(() => startTour());
+  await page.locator(".tour-interactive").click();
+  await expect(page.locator("#tour-next")).toBeEnabled();
+  const target = page.locator("#list");
+  await target.evaluate((element) => { element.style.width = "500px"; });
+  const spotlight = page.locator("#tour-spotlight");
+  await expect.poll(() => spotlight.evaluate((element) => {
+    const targetBounds = document.querySelector("#list").getBoundingClientRect();
+    const light = element.getBoundingClientRect();
+    const footer = document.querySelector("#nav").getBoundingClientRect();
+    return Math.max(
+      Math.abs(light.left - Math.max(0, targetBounds.left)),
+      Math.abs(light.right - Math.min(innerWidth, targetBounds.right)),
+      Math.abs(light.top - Math.max(0, targetBounds.top)),
+      Math.abs(light.bottom - Math.min(footer.top, targetBounds.bottom)),
+    );
+  })).toBeLessThan(1);
+  const outline = await spotlight.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const style = getComputedStyle(element, "::after");
+    const animation = element.getAnimations({ subtree: true }).find((item) => item.animationName === "tour-glow");
+    animation.pause();
+    animation.currentTime = 0;
+    const dim = Number(getComputedStyle(element, "::after").opacity);
+    animation.currentTime = 1750;
+    const bright = Number(getComputedStyle(element, "::after").opacity);
+    return {
+      bounds: { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom },
+      inset: [style.top, style.right, style.bottom, style.left],
+      border: style.borderTopWidth,
+      dim, bright,
+    };
+  });
+  expect(outline.bounds.right).toBe(320);
+  expect(outline.bounds.top).toBe(0);
+  expect(outline.inset).toEqual(["0px", "0px", "0px", "0px"]);
+  expect(outline.border).toBe("4px");
+  expect(outline.bright - outline.dim).toBeGreaterThan(0.5);
+  await page.locator("#tour-skip").click();
+});
+
+test("the spotlight stops above the footer for page content but not for navigation or overlays", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 480 });
+  await page.evaluate(() => startTour());
+  const spotlight = page.locator("#tour-spotlight");
+  const footer = page.locator("#nav");
+  const button = page.locator('.nv[data-p="h"]');
+  await expect.poll(async () => {
+    const light = await spotlight.boundingBox();
+    const target = await button.boundingBox();
+    return Math.abs(light.y + light.height - target.y - target.height);
+  }).toBeLessThan(1);
+  await button.click();
+  await expect(page.locator("#tour-next")).toBeEnabled();
+  async function expectAboveFooter() {
+    await expect.poll(async () => {
+      const light = await spotlight.boundingBox();
+      const nav = await footer.boundingBox();
+      return Math.abs(light.y + light.height - nav.y);
+    }).toBeLessThan(1);
+  }
+  await expectAboveFooter();
+  const scrollPoint = await page.locator("#list").evaluate((target) => {
+    const footerTop = document.querySelector("#nav").getBoundingClientRect().top;
+    for (let y = footerTop - 20; y > 20; y -= 10) {
+      for (let x = 20; x < innerWidth - 20; x += 10) {
+        if (target.contains(document.elementFromPoint(x, y))) return { x, y };
+      }
+    }
+    throw new Error("No unobstructed area in the checklist");
+  });
+  const previousScroll = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(scrollPoint.x, scrollPoint.y);
+  await page.mouse.wheel(0, 120);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(previousScroll);
+  await expectAboveFooter();
+  await page.setViewportSize({ width: 375, height: 600 });
+  await expectAboveFooter();
+  for (let step = 0; step < 4; step++) {
+    await page.locator("#tour-next").click();
+    await page.locator(".tour-interactive").click();
+    await expect(page.locator("#tour-next")).toBeEnabled();
+  }
+  await expect(page.locator("#tour-title")).toHaveText("Explore the world");
+  await expect.poll(async () => {
+    const light = await spotlight.boundingBox();
+    const nav = await footer.boundingBox();
+    return light.y + light.height - nav.y;
+  }).toBeGreaterThan(1);
+  await page.locator("#tour-skip").click();
+});
+
+test("tour action targets remain unobstructed on a short mobile screen", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 480 });
+  await page.evaluate(() => startTour());
+  for (let step = 0; step < 10; step++) {
+    const target = page.locator(".tour-interactive");
+    const card = page.locator(".tour-card");
+    await expect.poll(async () => {
+      const bounds = await target.boundingBox();
+      const prompt = await card.boundingBox();
+      return prompt.y + prompt.height <= bounds.y || bounds.y + bounds.height <= prompt.y;
+    }).toBe(true);
+    await target.click();
+    await page.locator("#tour-next").click();
+  }
+  await expect(page.locator("#tour")).toBeHidden();
+});
+
 test("the tour starts for an unfinished profile and skipping remains saved", async ({ page }) => {
   await page.evaluate(() => {
     S.tutorialDone = false;
@@ -1185,12 +1535,12 @@ test("the tour accepts keyboard activation and blocks unrelated buttons", async 
   await page.keyboard.press("Enter");
   await expect(page.locator("#tour-next")).toBeEnabled();
   await page.locator("#tour-next").click();
-  await expect(page.locator("#fab")).toBeFocused();
+  await expect(page.locator("#prof")).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.locator("#hm")).toHaveClass(/show/);
+  await expect(page.locator("#pm")).toHaveClass(/show/);
   await expect(page.locator("#tour-next")).toBeEnabled();
   await page.locator("#tour-skip").click();
-  await expect(page.locator("#hm")).not.toHaveClass(/show/);
+  await expect(page.locator("#pm")).not.toHaveClass(/show/);
 });
 
 test("the people index records only people tapped and keeps encounters across towns", async ({ page }) => {

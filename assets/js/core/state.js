@@ -87,6 +87,14 @@ const DEFAULTS = [
     tip: "Galatians 6:10 says to do good to everyone as you have the chance. Jesus said serving others is serving Him (Matthew 25:40), so small kindnesses are real worship.",
   },
 ];
+const G = [
+  { id: "morning", n: "Morning", e: "sun", c: "#f5a623" },
+  { id: "nutrition", n: "Nutrition", e: "salad", c: "#4cae6a" },
+  { id: "exercise", n: "Exercise", e: "dumbbell", c: "#e5624a" },
+  { id: "cleaning", n: "Cleaning", e: "broom", c: "#4a90d9" },
+  { id: "faith", n: "Faith & Kindness", e: "pray", c: "#9a6bd6" },
+  { id: "more", n: "My Habits", e: "star", c: "#b8863b" },
+];
 const K_LEGACY = "dailywalk_admin_max:legacy";
 const K_USERS = "dailywalk_admin_max:users:v3";
 const K_CUR = "dailywalk_admin_max:cur:v3";
@@ -460,14 +468,33 @@ function freshState(userName) {
 function hydrateState(raw) {
   const base = freshState("");
   const s = raw && typeof raw === "object" ? Object.assign(base, raw) : base;
-  if (!Array.isArray(s.tasks) || !s.tasks.length)
+  if (s.removedDefaultHabitGroups !== undefined &&
+      (!Array.isArray(s.removedDefaultHabitGroups) ||
+       s.removedDefaultHabitGroups.some((id) => !G.some((group) => group.id === id)) ||
+       new Set(s.removedDefaultHabitGroups).size !== s.removedDefaultHabitGroups.length ||
+       s.removedDefaultHabitGroups.length === G.length && !s.customHabitGroups?.length))
+    throw new Error("Invalid removed habit groups.");
+  if (s.removedDefaultHabits !== undefined &&
+      (!Array.isArray(s.removedDefaultHabits) ||
+       s.removedDefaultHabits.some((id) => !DEFAULTS.some((task) => task.id === id)) ||
+       new Set(s.removedDefaultHabits).size !== s.removedDefaultHabits.length))
+    throw new Error("Invalid removed habit list.");
+  if (s.customHabitGroups !== undefined &&
+      (!Array.isArray(s.customHabitGroups) ||
+       s.customHabitGroups.some((group) => !group || !/^g\d+$/.test(group.id) ||
+         typeof group.n !== "string" || !group.n.trim() || group.n.length > 40 ||
+         typeof group.e !== "string" || !/^[a-z]+$/.test(group.e) ||
+         typeof group.c !== "string" || !/^#[0-9a-f]{6}$/i.test(group.c)) ||
+       new Set(s.customHabitGroups.map((group) => group.id)).size !== s.customHabitGroups.length))
+    throw new Error("Invalid custom habit groups.");
+  if (!Array.isArray(s.tasks) || (!s.tasks.length && !Array.isArray(s.removedDefaultHabits)))
     s.tasks = DEFAULTS.map((d) => ({ ...d }));
   DEFAULTS.forEach((d) => {
     const t = s.tasks.find((x) => x.id === d.id);
-    if (t) {
+    if (t && !t.editedDuringSetup) {
       t.g = d.g;
       if (d.m) t.m = d.m;
-    } else s.tasks.push({ ...d });
+    } else if (!t && !(s.removedDefaultHabits || []).includes(d.id)) s.tasks.push({ ...d });
   });
   s.checks = s.checks && typeof s.checks === "object" ? s.checks : {};
   s.days = s.days && typeof s.days === "object" ? s.days : {};
@@ -573,11 +600,7 @@ try {
   S = newPlayerState("Player 1");
   USERS = [{ id: CUR_UID, label: S.p.name || "Player 1" }];
 }
-const G = [
-  { id: "morning", n: "Morning", e: "sun", c: "#f5a623" },
-  { id: "nutrition", n: "Nutrition", e: "salad", c: "#4cae6a" },
-  { id: "exercise", n: "Exercise", e: "dumbbell", c: "#e5624a" },
-  { id: "cleaning", n: "Cleaning", e: "broom", c: "#4a90d9" },
-  { id: "faith", n: "Faith & Kindness", e: "pray", c: "#9a6bd6" },
-  { id: "more", n: "My Habits", e: "star", c: "#b8863b" },
-];
+function habitGroupsForState(state) {
+  return [...G.filter((group) => !(state.removedDefaultHabitGroups || []).includes(group.id)),
+    ...(state.customHabitGroups || [])];
+}

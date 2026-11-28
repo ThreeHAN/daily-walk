@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "../shared/react-root.js";
 import { IconText } from "../shared/icon-text.jsx";
+import { DeleteConfirmation } from "../shared/delete-confirmation.jsx";
 
 const root = createRoot(document.getElementById("list"));
 let renderId = 0;
@@ -11,17 +12,6 @@ function HabitRow({ task, checks, effects, icon, iconTextParts, defaultIcons, gr
   const hour = now.getHours() + now.getMinutes() / 60;
   const isNow = task.m && hour >= task.m[0] && hour < task.m[1] && !checks[task.id];
   const custom = /^c\d+$/.test(String(task.id));
-
-  function remove(event) {
-    event.stopPropagation();
-    const button = event.currentTarget;
-    if (button.classList.contains("arm")) {
-      onRemove(task);
-    } else {
-      button.classList.add("arm");
-      setTimeout(() => button.classList.remove("arm"), 2600);
-    }
-  }
 
   return (
     <div className={"item" + (checks[task.id] ? " done" : "") +
@@ -34,7 +24,7 @@ function HabitRow({ task, checks, effects, icon, iconTextParts, defaultIcons, gr
         <span className="t"><IconText text={task.t} icon={icon} iconTextParts={iconTextParts} />{isNow && <> <span className="nowb">NOW</span></>}{task.s && <small><IconText text={task.s} icon={icon} iconTextParts={iconTextParts} /></small>}</span>
       </label>
       {custom && <button type="button" className="del" aria-label="Remove habit"
-        dangerouslySetInnerHTML={{ __html: icon("trash") }} onClick={remove} />}
+        dangerouslySetInnerHTML={{ __html: icon("trash") }} onClick={() => onRemove(task)} />}
     </div>
   );
 }
@@ -73,14 +63,22 @@ function HabitGroup({ group, tasks, checks, effects, closed, firstRender, index,
 }
 
 function HabitList({ groups, tasks, checks, closedGroups, effects, firstRender, previousWidths, onToggle, ...rowProps }) {
+  const [target, setTarget] = useState(null);
+  const [error, setError] = useState("");
   let index = 0;
-  return groups.map((group) => {
+  return <>{groups.map((group) => {
     const groupTasks = tasks.filter((task) => (task.g || "more") === group.id);
     if (!groupTasks.length) return null;
     return <HabitGroup key={group.id} group={group} tasks={groupTasks} checks={checks}
       closed={!!closedGroups[group.id]} effects={effects} firstRender={firstRender}
-      index={index++} previousWidths={previousWidths} onToggle={onToggle} {...rowProps} />;
-  });
+      index={index++} previousWidths={previousWidths} onToggle={onToggle} {...rowProps}
+      onRemove={(task) => { setError(""); setTarget(task); }} />;
+  })}
+    {target && <DeleteConfirmation target={{ type: "habit", name: target.t }} storageError={error}
+      onCancel={() => setTarget(null)} onConfirm={() => {
+        if (!rowProps.onRemove(target)) setError("Could not save the deletion. Check browser storage and try again.");
+      }} />}
+  </>;
 }
 
 export function render(props) {
