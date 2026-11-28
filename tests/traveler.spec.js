@@ -3,6 +3,11 @@ const { continueLocally } = require("./helpers/onboarding");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 
+async function selectWardrobe(page, name) {
+  await page.getByRole("group", { name: "Wardrobe categories" })
+    .getByRole("button", { name, exact: true }).click();
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
   await continueLocally(page);
@@ -182,6 +187,7 @@ test("town gear unlocks from saved town progress and equips at any level", async
   await cap.evaluate((button) => button.click());
   expect(await page.evaluate(() => S.p.hat)).toBe("none");
   await cap.evaluate((button) => button.click());
+  await page.getByRole("group", { name: "Wardrobe categories" }).getByRole("button", { name: "Accessories" }).click();
   await expect(scarf).toBeEnabled();
   await scarf.evaluate((button) => button.click());
   await page.reload();
@@ -217,20 +223,20 @@ test("wardrobe items fill rows within each clothing category", async ({ page }) 
 
   for (const width of [320, 1000]) {
     await page.setViewportSize({ width, height: 720 });
-    await page.locator("#wtabs button").filter({ hasText: "Town gear" }).evaluate((button) => button.click());
+    await selectWardrobe(page, "Hats");
     for (const name of ["Hats", "Pants", "Shoes"]) {
+      await page.getByRole("group", { name: "Wardrobe categories" }).getByRole("button", { name, exact: true }).click();
       const group = page.locator(".wardrobe-gear-group").filter({ has: page.getByRole("heading", { name, exact: true }) });
       await expect(group.locator(".pgrid")).toHaveCount(1);
       await expectFilledRows(group.locator(".pgrid"));
     }
 
-    await page.locator("#wtabs button").filter({ hasText: "Bottoms" }).evaluate((button) => button.click());
+    await selectWardrobe(page, "Pants");
     await page.getByRole("button", { name: /Wayfarer pants/ }).evaluate((button) => button.click());
     await expect(page.locator('#wbody [data-k="Pants color"]')).toBeVisible();
-    const grids = page.locator("#wbody > .pgrid");
-    await expect(grids).toHaveCount(2);
-    await expectFilledRows(grids.nth(0));
-    await expectFilledRows(grids.nth(1));
+    await expectFilledRows(page.locator(".wardrobe-gear-group:visible .pgrid"));
+    await selectWardrobe(page, "Shoes");
+    await expectFilledRows(page.locator(".wardrobe-gear-group:visible .pgrid"));
   }
 });
 
@@ -245,17 +251,17 @@ test("town gear groups clothing and unlocks distinct pants and boots alongside o
   if (await page.locator("#sp").isVisible()) await page.locator("#spgo").click();
   await page.locator("#prof").click();
   await page.locator("#go-wd").click();
-  await expect(page.locator("#wtabs button").filter({ hasText: /^🎩 Hats$/ })).toHaveCount(0);
+  await expect(page.getByRole("combobox", { name: "Wardrobe category" })).toHaveCount(0);
   await expect(page.locator("#wbody .wardrobe-gear-group h4"))
     .toHaveText(["Hats", "Tops", "Pants", "Shoes", "Accessories"]);
   expect(await page.evaluate(() => {
     const sheet = document.querySelector("#pm .sheet");
     return sheet.scrollWidth <= sheet.clientWidth;
   })).toBe(true);
-  const pants = page.locator("#wbody .wardrobe-gear-group").filter({ has: page.getByRole("heading", { name: "Pants", exact: true }) });
-  const shoes = page.locator("#wbody .wardrobe-gear-group").filter({ has: page.getByRole("heading", { name: "Shoes", exact: true }) });
-  const hats = page.locator("#wbody .wardrobe-gear-group").filter({ has: page.getByRole("heading", { name: "Hats", exact: true }) });
-  const tops = page.locator("#wbody .wardrobe-gear-group").filter({ has: page.getByRole("heading", { name: "Tops", exact: true }) });
+  const pants = page.locator("#wbody .wardrobe-gear-group").filter({ has: page.getByText("Pants", { exact: true }) });
+  const shoes = page.locator("#wbody .wardrobe-gear-group").filter({ has: page.getByText("Shoes", { exact: true }) });
+  const hats = page.locator("#wbody .wardrobe-gear-group").filter({ has: page.getByText("Hats", { exact: true }) });
+  const tops = page.locator("#wbody .wardrobe-gear-group").filter({ has: page.getByText("Tops", { exact: true }) });
   await expect(hats.locator(".chip")).toHaveCount(0);
   await expect(hats.getByRole("button", { name: /Midnight top hat/ })).toHaveClass(/pcard/);
   for (const name of ["Trailblazer cap", "Dune Ranger hat", "Starweaver hat", "Skykeeper crown"]) {
@@ -264,16 +270,25 @@ test("town gear groups clothing and unlocks distinct pants and boots alongside o
   for (const name of ["Halo", "Headphones", "Party", "Beanie"]) {
     await expect(hats.getByRole("button", { name: new RegExp(name, "i") })).toHaveCount(0);
   }
-  await expect(tops.getByRole("button", { name: /T-shirt/ })).toHaveClass(/pcard/);
-  await expect(tops.getByRole("button", { name: /^None/ })).toHaveCount(0);
-  await expect(pants.getByRole("button", { name: /^(None|No pants)/ })).toHaveCount(0);
   await expect(pants.locator(".pcard")).toHaveCount(4);
   await expect(shoes.locator(".pcard")).toHaveCount(5);
   await expect(page.locator('#wbody [data-k="Color"], #wbody [data-k="Pants color"], #wbody [data-k="Shoe color"]')).toHaveCount(0);
+  const categories = page.getByRole("group", { name: "Wardrobe categories" });
+  await expect(categories.getByRole("button", { name: "Hats" })).toHaveAttribute("aria-pressed", "true");
+  await expect(hats).toBeVisible();
+  await expect(pants).toBeHidden();
+  await categories.getByRole("button", { name: "Tops" }).click();
+  await expect(tops.getByRole("button", { name: /T-shirt/ })).toHaveClass(/pcard/);
+  await expect(tops.getByRole("button", { name: /^None/ })).toHaveCount(0);
   await tops.getByRole("button", { name: /T-shirt/ }).click();
   await expect(tops.locator('[data-k="Color"]')).toBeVisible();
   await tops.locator('[data-k="Color"]').getByRole("button", { name: "Red", exact: true }).click();
   expect(await page.evaluate(() => S.p.topColor)).toBe("red");
+  await expect(categories.getByRole("button", { name: "Tops" })).toHaveAttribute("aria-pressed", "true");
+  await categories.getByRole("button", { name: "Pants" }).click();
+  await expect(hats).toBeHidden();
+  await expect(pants).toBeVisible();
+  await expect(pants.getByRole("button", { name: /^(None|No pants)/ })).toHaveCount(0);
   const trail = pants.getByRole("button", { name: /Trailblazer trousers/ });
   await expect(trail).toBeDisabled();
   await expect(trail).toContainText("Meadow Valley");
@@ -294,6 +309,7 @@ test("town gear groups clothing and unlocks distinct pants and boots alongside o
   expect(new Set(pantsArt).size).toBe(3);
   const shoeArt = [];
   const shoeHeights = [];
+  await categories.getByRole("button", { name: "Shoes" }).click();
   for (const name of ["Sunstride boots", "Woodland boots", "Crystalstride boots"]) {
     await shoes.getByRole("button", { name: new RegExp(name) }).click();
     await expect(shoes.locator('[data-k="Shoe color"]')).toBeVisible();
@@ -309,16 +325,18 @@ test("town gear groups clothing and unlocks distinct pants and boots alongside o
   expect(await page.evaluate(() => [S.p.pantsStyle, S.p.shoeStyle])).toEqual(["winter", "crystal"]);
   await page.locator("#prof").click();
   await page.locator("#go-wd").click();
+  await categories.getByRole("button", { name: "Pants" }).click();
   await page.getByRole("button", { name: /Frostguard trousers/ }).click();
+  await categories.getByRole("button", { name: "Shoes" }).click();
   await page.getByRole("button", { name: /Crystalstride boots/ }).click();
   expect(await page.evaluate(() => [S.p.pantsStyle, S.p.shoeStyle])).toEqual(["classic", "classic"]);
-  await page.getByRole("button", { name: /Tops/, exact: false }).first().click();
+  await selectWardrobe(page, "Tops");
   await expect(page.locator("#wbody .pcard").filter({ hasText: /^None/ })).toHaveCount(0);
   await expect(page.locator('#wbody [data-k="Color"]')).toHaveCount(0);
-  await page.getByRole("button", { name: /Bottoms/ }).click();
+  await selectWardrobe(page, "Pants");
   await expect(page.locator("#wbody .pcard").filter({ hasText: /No pants/ })).toHaveCount(0);
   await expect(page.locator('#wbody [data-k="Pants color"], #wbody [data-k="Shoe color"]')).toHaveCount(0);
-  await page.getByRole("button", { name: /Extras/ }).click();
+  await selectWardrobe(page, "Extras");
   await expect(page.locator("#wbody .pcard").filter({ hasText: /scarf/i })).toHaveCount(1);
 });
 

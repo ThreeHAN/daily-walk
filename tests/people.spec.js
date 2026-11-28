@@ -12,9 +12,14 @@ async function click(page, selector) {
   await page.locator(selector).evaluate((element) => element.click());
 }
 
+async function selectWardrobe(page, name) {
+  await page.getByRole("group", { name: "Wardrobe categories" })
+    .getByRole("button", { name, exact: true }).click();
+}
+
 async function openAppearance(page) {
   await click(page, "#go-wd");
-  await page.locator("#wtabs button").filter({ hasText: "Appearance" }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Appearance");
 }
 
 test("all People Index buttons show the book and open the index", async ({ page }) => {
@@ -68,20 +73,332 @@ test("profile combines appearance and town gear in one wardrobe", async ({ page 
   expect(iconStyles.star).toBeGreaterThan(iconStyles.wardrobe);
   await click(page, "#go-wd");
   await expect(page.locator("#wbody")).toContainText("Hats");
-  await page.locator("#wtabs button").filter({ hasText: "Appearance" }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Appearance");
   await expect(page.locator('#wbody [data-k="Gender"]')).toBeVisible();
-  await page.locator("#wtabs button").filter({ hasText: "Town gear" }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Hats");
   await expect(page.locator("#wbody")).toContainText("Hats");
-  await click(page, "#v-wd [data-back]");
+  await click(page, "#profile-header button");
   await click(page, "#go-lv");
   await expect(page.locator("#v-lv")).toBeVisible();
-  await click(page, "#v-lv [data-back]");
+  await click(page, "#profile-header button");
   await click(page, "#go-info");
   await expect(page.locator("#v-info")).toBeVisible();
-  await click(page, "#v-info [data-back]");
+  await click(page, "#profile-header button");
   await expect(page.locator('#go-tour [data-i="tour-map"] svg path[fill="#f3dfaa"]')).toHaveCount(1);
   await click(page, "#go-tour");
   await expect(page.locator("#tour")).toBeVisible();
+});
+
+test("wardrobe shows available items before locked ones in each category", async ({ page }) => {
+  await page.evaluate(() => {
+    S.xp = LV_START(2);
+    S.days = {};
+    S.pets = { bunny: 1 };
+    S.nb.xp = {};
+    for (const eco of ["sky", "snowy", "crystal"]) {
+      const id = NBK.find((town) => (NB[town].eco || town) === eco);
+      S.nb.xp[id] = 3000;
+    }
+    S.p.hat = "none";
+    S.p.topStyle = "tee";
+    S.p.ex = {};
+    S.p.pet = "none";
+    curStreak = 0;
+  });
+  await click(page, "#prof");
+  await click(page, "#go-wd");
+  for (const [category, available, locked] of [
+    ["Hats", "Skykeeper crown", "Midnight top hat"],
+    ["Tops", "Vanguard tunic", "Ranger striped shirt"],
+    ["Pants", "Frostguard trousers", "Trailblazer trousers"],
+    ["Shoes", "Crystalstride boots", "Sunstride boots"],
+    ["Accessories", "Frostwind scarf", "Harbor shades"],
+    ["Warrior gear", "Vanguard tunic", "Apprentice sword"],
+    ["Face", "Sage glasses", "Harbor shades"],
+    ["Extras", "Crystalwind cape", "Dapper bow tie"],
+    ["Pets", "Meadow Bunny", "Firefly"],
+  ]) {
+    await selectWardrobe(page, category);
+    const cards = page.locator("#wbody .pcard:visible");
+    const names = await cards.locator("b").allTextContents();
+    expect(names.indexOf(available), category).toBeGreaterThanOrEqual(0);
+    expect(names.indexOf(locked), category).toBeGreaterThan(names.indexOf(available));
+    await expect(cards.filter({ hasText: available })).not.toHaveClass(/lk/);
+    await expect(cards.filter({ hasText: locked })).toHaveClass(/lk/);
+  }
+  await page.evaluate(() => { S.pets.chick = 1; buildWd(); });
+  const petNames = await page.locator("#wbody .pcard b").allTextContents();
+  expect(petNames.indexOf("Little Chick")).toBeLessThan(petNames.indexOf("Firefly"));
+  await page.locator("#wbody .pcard").filter({ hasText: "Little Chick" }).click();
+  expect(await page.evaluate(() => S.p.pet)).toBe("chick");
+
+  await selectWardrobe(page, "Pants");
+  await page.evaluate(() => {
+    const meadow = NBK.find((town) => (NB[town].eco || town) === "meadow");
+    S.nb.xp[meadow] = 3000;
+    buildWd();
+  });
+  const pantsNames = await page.locator("#wbody .pcard:visible b").allTextContents();
+  expect(pantsNames.indexOf("Trailblazer trousers")).toBeLessThan(pantsNames.indexOf("Harbor cargo pants"));
+  await page.locator("#wbody .pcard:visible").filter({ hasText: "Trailblazer trousers" }).click();
+  expect(await page.evaluate(() => S.p.pantsStyle)).toBe("trail");
+
+  await selectWardrobe(page, "Hats");
+  await page.evaluate(() => { S.p.hat = "knight"; buildWd(); });
+  const hats = page.locator("#wbody .pcard:visible");
+  const hatNames = await hats.locator("b").allTextContents();
+  expect(hatNames.indexOf("Sentinel helmet")).toBeLessThan(hatNames.indexOf("Midnight top hat"));
+  await hats.filter({ hasText: "Sentinel helmet" }).click();
+  await expect(hats.filter({ hasText: "Sentinel helmet" })).toBeDisabled();
+});
+
+test("profile fills the viewport and returns to the previous page", async ({ page }) => {
+  for (const viewport of [{ width: 320, height: 720 }, { width: 1100, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    await page.locator("#prof").click();
+    const profile = page.locator("#pm");
+    const bounds = await profile.boundingBox();
+    expect(bounds.x).toBe(0);
+    expect(bounds.y).toBe(0);
+    expect(bounds.width).toBe(viewport.width);
+    expect(bounds.height).toBe(viewport.height);
+    await expect(page.getByRole("region", { name: "Profile" })).toBeVisible();
+    await expect(profile.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator("#go-wd")).toBeVisible();
+    const back = profile.locator("#profile-header button");
+    const menuPosition = await back.boundingBox();
+    await profile.locator(".sheet").evaluate((sheet) => { sheet.scrollTop = sheet.scrollHeight; });
+    expect((await back.boundingBox()).y).toBe(menuPosition.y);
+    await page.locator("#go-wd").click();
+    await expect(page.locator("#v-wd")).toBeVisible();
+    await expect(back).toHaveAttribute("aria-label", "Back to profile menu");
+    await expect(profile.locator("button.back:visible")).toHaveCount(1);
+    const before = await back.boundingBox();
+    const scrollTop = await profile.locator(".sheet").evaluate((sheet) => {
+      sheet.scrollTop = sheet.scrollHeight;
+      return sheet.scrollTop;
+    });
+    if (viewport.width === 320) expect(scrollTop).toBeGreaterThan(0);
+    const after = await back.boundingBox();
+    expect(after.x).toBe(before.x);
+    expect(after.y).toBe(before.y);
+    expect(after.x).toBeLessThan(20);
+    await back.click();
+    await expect(page.locator("#v-menu")).toBeVisible();
+    await expect(back).toHaveAttribute("aria-label", "Back from profile");
+    await back.click();
+    await expect(profile).not.toBeVisible();
+    await expect(page.locator("#pg-h")).toBeVisible();
+  }
+});
+
+test("profile Back returns from each section and exits from the menu with the keyboard", async ({ page }) => {
+  for (const selector of ["#go-wd", "#go-lv", "#go-info"]) {
+    await page.locator("#prof").click();
+    await page.locator(selector).click();
+    await expect(page.locator("#pm button.back:visible")).toHaveCount(1);
+    await page.getByRole("button", { name: "Back to profile menu" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#v-menu")).toBeVisible();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#pm")).not.toBeVisible();
+    await expect(page.locator("#pg-h")).toBeVisible();
+  }
+});
+
+test.describe("mobile profile", () => {
+  test.use({ viewport: { width: 375, height: 667 }, isMobile: true, hasTouch: true });
+
+  test("keeps the Back button visible and tappable after scrolling", async ({ page }) => {
+    await page.locator("#prof").tap();
+    const sheet = page.locator("#pm .sheet");
+    const back = page.getByRole("button", { name: "Back from profile" });
+    const before = await back.boundingBox();
+    const scrollTop = await sheet.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+      return element.scrollTop;
+    });
+    expect(scrollTop).toBeGreaterThan(0);
+    const after = await back.boundingBox();
+    expect(after.x).toBe(before.x);
+    expect(after.y).toBe(before.y);
+    await back.tap();
+    await expect(page.locator("#pm")).not.toBeVisible();
+    await expect(page.locator("#pg-h")).toBeVisible();
+  });
+
+  test("edits appearance with touch-sized controls and a live preview", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.locator("#prof").tap();
+    await page.locator("#go-wd").tap();
+    await selectWardrobe(page, "Appearance");
+    const group = page.getByRole("group", { name: "Skin color" });
+    const choices = group.getByRole("button");
+    const first = choices.first();
+    const last = choices.last();
+    expect((await first.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    await first.tap();
+    const preview = page.locator(".wardrobe-preview .pv");
+    const original = await preview.innerHTML();
+    const label = await last.innerText();
+    await last.tap();
+    await expect(last).toHaveAttribute("aria-pressed", "true");
+    await expect(group.locator(".wardrobe-choice-heading span")).toHaveText(label);
+    await expect.poll(() => preview.innerHTML()).not.toBe(original);
+    const skin = await page.evaluate(() => S.p.skin);
+    expect(await page.locator("#pm .sheet").evaluate((sheet) => sheet.scrollWidth <= sheet.clientWidth)).toBe(true);
+    await page.reload();
+    await continueLocally(page);
+    expect(await page.evaluate(() => S.p.skin)).toBe(skin);
+  });
+
+  test("centers the traveler above the items and hides mobile unlock details", async ({ page }) => {
+    await page.evaluate(() => { S.p.pet = "none"; paint(); });
+    await page.locator("#prof").tap();
+    await page.locator("#go-wd").tap();
+    await expect(page.getByRole("region", { name: "Wardrobe" })).toBeVisible();
+    await expect(page.locator("#v-wd h3")).toHaveCount(0);
+    await expect(page.getByText("Help towns to earn gear", { exact: false })).toHaveCount(0);
+    await expect(page.getByText("Scroll categories to see more options")).toHaveCount(0);
+    const locked = page.locator("#wbody .pcard.lk:not(.on) small").first();
+    await expect(locked).toHaveCount(1);
+    for (const { width, height } of [
+      { width: 320, height: 568 }, { width: 320, height: 720 },
+      { width: 375, height: 720 }, { width: 480, height: 720 }, { width: 900, height: 720 },
+    ]) {
+      await page.setViewportSize({ width, height });
+      const { preview, stage, items, traveler } = await page.evaluate(() => {
+        document.querySelector("#pm .sheet").scrollTop = 0;
+        const bounds = (selector) => document.querySelector(selector).getBoundingClientRect().toJSON();
+        return {
+          preview: bounds(".wardrobe-preview"),
+          stage: bounds(".wardrobe-preview .stage"),
+          items: bounds("#wbody"),
+          traveler: bounds(".wardrobe-preview .pixel-person"),
+        };
+      });
+      expect(preview.x).toBe(0);
+      expect(preview.width).toBe(width);
+      expect(stage.height / height).toBeLessThanOrEqual(0.43);
+      expect(Math.abs(traveler.x + traveler.width / 2 - width / 2)).toBeLessThan(3);
+      expect(traveler.height / height).toBeGreaterThan(0.25);
+      expect(traveler.height / height).toBeLessThan(0.30);
+      expect(traveler.y).toBeGreaterThanOrEqual(stage.y);
+      expect(traveler.y + traveler.height).toBeLessThanOrEqual(stage.y + stage.height + 1);
+      expect(items.y).toBeCloseTo(preview.y + preview.height, 0);
+      expect(await locked.evaluate((element) => getComputedStyle(element).clipPath))
+        .toBe(width <= 600 ? "inset(50%)" : "none");
+      expect(await page.locator("#pm .sheet").evaluate((sheet) => sheet.scrollWidth <= sheet.clientWidth)).toBe(true);
+    }
+  });
+
+  test("filters town gear below the preview on a short mobile screen", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.locator("#prof").tap();
+    await page.locator("#go-wd").tap();
+    const categories = page.getByRole("group", { name: "Wardrobe categories" });
+    const room = await page.evaluate(() => {
+      const sheet = document.querySelector("#pm .sheet").getBoundingClientRect();
+      const preview = document.querySelector(".wardrobe-preview").getBoundingClientRect();
+      const firstCard = document.querySelector("#wbody .pcard").getBoundingClientRect();
+      return { available: sheet.bottom - preview.bottom, firstCardBottom: firstCard.bottom, sheetBottom: sheet.bottom };
+    });
+    expect(room.available).toBeGreaterThanOrEqual(140);
+    expect(room.firstCardBottom).toBeLessThanOrEqual(room.sheetBottom);
+    await expect(categories.getByRole("button")).toHaveText([
+      "Hats", "Tops", "Pants", "Shoes", "Accessories", "Appearance", "Warrior gear", "Pets", "Face", "Extras",
+    ]);
+    await expect(page.getByRole("combobox", { name: "Wardrobe category" })).toHaveCount(0);
+    await expect(categories.getByRole("button", { name: "Hats" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: /Trailblazer cap/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /No shoes/ })).toHaveCount(0);
+    await categories.getByRole("button", { name: "Shoes" }).tap();
+    const noShoes = page.getByRole("button", { name: /No shoes/ });
+    await noShoes.tap();
+    await expect(noShoes).toHaveAttribute("aria-pressed", "true");
+    await expect(categories.getByRole("button", { name: "Shoes" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: /Trailblazer cap/ })).toHaveCount(0);
+    await categories.getByRole("button", { name: "Hats" }).tap();
+    const pinned = await page.evaluate(() => {
+      const sheet = document.querySelector("#pm .sheet");
+      sheet.scrollTop = sheet.scrollHeight;
+      const bounds = sheet.getBoundingClientRect();
+      const sub = document.querySelector(".wardrobe-subcategories").getBoundingClientRect();
+      return {
+        scrolled: sheet.scrollTop > 0,
+        subVisible: sub.top >= bounds.top && sub.bottom <= bounds.bottom,
+      };
+    });
+    expect(pinned).toEqual({ scrolled: true, subVisible: true });
+    await categories.getByRole("button", { name: "Hats" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(categories.getByRole("button", { name: "Hats" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: /Trailblazer cap/ })).toBeVisible();
+    expect(await page.locator("#pm .sheet").evaluate((sheet) => sheet.scrollWidth <= sheet.clientWidth)).toBe(true);
+    await categories.getByRole("button", { name: "Appearance" }).tap();
+    await expect(categories).toBeVisible();
+    await expect(categories.getByRole("button", { name: "Appearance" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("group", { name: "Gender" })).toBeVisible();
+  });
+
+  test("uses readable item text while keeping category labels pixel-styled", async ({ page }) => {
+    await page.locator("#prof").tap();
+    await page.locator("#go-wd").tap();
+    const categories = page.getByRole("group", { name: "Wardrobe categories" });
+    const font = (locator) => locator.evaluate((element) => getComputedStyle(element).fontFamily);
+    expect(await font(categories.getByRole("button", { name: "Hats" }))).toContain("Tiny5");
+    expect(await font(page.locator("#wbody .wardrobe-gear-group:visible h4"))).toContain("Tiny5");
+    const card = page.getByRole("button", { name: /No hat/ });
+    expect(await font(card.locator("b"))).not.toContain("Tiny5");
+    expect(await font(card.locator("small"))).not.toContain("Tiny5");
+    await categories.getByRole("button", { name: "Appearance" }).tap();
+    const gender = page.getByRole("group", { name: "Gender" });
+    expect(await font(gender.locator(".wardrobe-choice-heading b"))).toContain("Tiny5");
+    expect(await font(gender.getByRole("button", { name: "Female" }))).not.toContain("Tiny5");
+  });
+
+  test("keeps wardrobe section headings clear on small screens in both themes", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.locator("#prof").tap();
+    await page.locator("#go-wd").tap();
+    await selectWardrobe(page, "Appearance");
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((value) => { document.documentElement.dataset.theme = value; }, theme);
+      const headings = await page.locator("#wbody .wardrobe-choice-heading b").evaluateAll((elements) =>
+        elements.map((element) => {
+          const style = getComputedStyle(element);
+          const bounds = element.getBoundingClientRect();
+          const container = element.parentElement.getBoundingClientRect();
+          return {
+            size: parseFloat(style.fontSize),
+            font: style.fontFamily,
+            color: style.color,
+            ink: getComputedStyle(document.documentElement).getPropertyValue("--ink").trim(),
+            fits: bounds.left >= container.left && bounds.right <= container.right + 1,
+          };
+        }),
+      );
+      expect(headings).toHaveLength(5);
+      for (const heading of headings) {
+        expect(heading.size).toBeGreaterThanOrEqual(18);
+        expect(heading.font).toContain("Tiny5");
+        expect(heading.color).toBe(await page.evaluate((color) => {
+          const element = document.createElement("span");
+          element.style.color = color;
+          document.body.append(element);
+          const resolved = getComputedStyle(element).color;
+          element.remove();
+          return resolved;
+        }, heading.ink));
+        expect(heading.fits).toBe(true);
+      }
+      expect(await page.locator("#pm .sheet").evaluate((sheet) => sheet.scrollWidth <= sheet.clientWidth)).toBe(true);
+    }
+    await selectWardrobe(page, "Hats");
+    const gearHeading = page.locator("#wbody .wardrobe-gear-group:visible h4");
+    expect(await gearHeading.evaluate((element) => parseFloat(getComputedStyle(element).fontSize)))
+      .toBeGreaterThanOrEqual(18);
+  });
 });
 
 test("profile menu buttons remain interactive through navigation and reopening", async ({ page }) => {
@@ -93,7 +410,7 @@ test("profile menu buttons remain interactive through navigation and reopening",
     await page.locator(button).focus();
     await page.keyboard.press("Enter");
     await expect(page.locator(panel)).toBeVisible();
-    await page.locator(`${panel} [data-back]`).click();
+    await page.locator("#profile-header button").click();
   }
   await page.locator("#go-ix").click();
   await expect(page.locator("#ix")).toHaveClass(/show/);
@@ -141,10 +458,10 @@ test("profile refresh batches view data and keeps preparation free of pet writes
   expect(result).toEqual({
     updates: [
       ["banner", "view"],
-      ["panels", "tabs", "view", "wardrobeLevel"],
+      ["panels", "tabs", "view"],
       ["levels", "view"],
       ["info", "view"],
-      ["panels", "tabs", "wardrobeLevel"],
+      ["panels", "tabs"],
     ],
     preparationUnchanged: true,
     unlocked: true,
@@ -152,7 +469,7 @@ test("profile refresh batches view data and keeps preparation free of pet writes
   });
 });
 
-test("wardrobe tabs retain selection and icons across repeated updates", async ({ page }) => {
+test("wardrobe categories retain selection across repeated updates", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.evaluate(() => { S.tutorialDone = true; S.splash = today(); save(); });
@@ -160,23 +477,23 @@ test("wardrobe tabs retain selection and icons across repeated updates", async (
   await continueLocally(page);
   await click(page, "#prof");
   await click(page, "#go-wd");
-  const tabs = page.locator("#wtabs button");
-  await expect(tabs).toHaveCount(8);
-  const gear = tabs.filter({ hasText: "Town gear" });
-  const appearance = tabs.filter({ hasText: "Appearance" });
-  await expect(gear).toHaveAttribute("aria-pressed", "true");
-  await appearance.click();
+  const categories = page.getByRole("group", { name: "Wardrobe categories" });
+  const hats = categories.getByRole("button", { name: "Hats", exact: true });
+  const appearance = categories.getByRole("button", { name: "Appearance", exact: true });
+  await expect(categories.getByRole("button")).toHaveCount(10);
+  await expect(hats).toHaveAttribute("aria-pressed", "true");
+  await appearance.focus();
+  await page.keyboard.press("Enter");
   await expect(appearance).toHaveAttribute("aria-pressed", "true");
-  await expect(gear).toHaveAttribute("aria-pressed", "false");
+  await expect(appearance).toBeFocused();
   await expect(page.locator('#wbody [data-k="Gender"]')).toBeVisible();
   await page.locator('#wbody [data-k="Gender"] button').first().click();
   await expect(appearance).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#wtabs .ic svg")).toHaveCount(5);
-  await gear.click();
-  await expect(gear).toHaveAttribute("aria-pressed", "true");
-  await click(page, "#v-wd [data-back]");
+  await hats.click();
+  await expect(hats).toHaveAttribute("aria-pressed", "true");
+  await click(page, "#profile-header button");
   await click(page, "#go-wd");
-  await expect(gear).toHaveAttribute("aria-pressed", "true");
+  await expect(hats).toHaveAttribute("aria-pressed", "true");
   expect(errors).toEqual([]);
 });
 
@@ -188,14 +505,14 @@ test("React wardrobe panels preserve focus and refresh after switching tabs", as
   const male = page.locator('#wbody [data-k="Gender"]').getByRole("button", { name: "Male", exact: true });
   await male.evaluate((button) => button.click());
   await expect(male).toBeFocused();
-  await click(page, "#wtabs button:nth-child(3)");
+  await selectWardrobe(page, "Hats");
   await expect(page.locator("#wbody .wardrobe-gear-group")).toHaveCount(5);
-  await page.locator("#wtabs button").filter({ hasText: "Face" }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Face");
   const eyes = page.locator('#wbody [data-k="Eyes"]').getByRole("button", { name: "Wink", exact: true });
   await eyes.evaluate((button) => button.click());
   await expect(eyes).toBeFocused();
   await expect(eyes).toHaveAttribute("aria-pressed", "true");
-  await page.locator("#wtabs button").filter({ hasText: "Appearance" }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Appearance");
   await expect(male).toHaveAttribute("aria-pressed", "true");
   expect(errors).toEqual([]);
 });
@@ -280,7 +597,7 @@ test("levels and rewards reflect XP thresholds when reopened and after reload", 
   await expect(rows.nth(1).locator("span:last-child .ic svg")).toHaveCount(1);
 
   await page.evaluate(() => { S.xp = 80; save(); });
-  await click(page, "#v-lv [data-back]");
+  await click(page, "#profile-header button");
   await click(page, "#go-lv");
   await expect(rows.nth(0)).toHaveClass(/past/);
   await expect(rows.nth(1)).toHaveClass(/cur/);
@@ -360,21 +677,15 @@ test("supplied level titles load and fit throughout the traveler journey", async
   await click(page, "#go-lv");
   await expect(page.locator("#lvlist .level-title")).toHaveCount(10);
   await expect(page.locator('#lvlist .level-title[data-level="7"] img')).toHaveAttribute("src", "assets/svg/level-titles/level-7.svg");
-  await click(page, "#v-lv [data-back]");
+  await click(page, "#profile-header button");
   await page.evaluate(() => { S.xp = LV_START(7); save(); drawHero(); });
   await expect(page.locator('#lvt img')).toHaveAttribute("src", "assets/svg/level-titles/level-7.svg");
   await click(page, "#pdone");
   await click(page, "#prof");
   await expect(page.locator('#mst .level-title img')).toHaveAttribute("src", "assets/svg/level-titles/level-7.svg");
   await click(page, "#go-wd");
-  await expect(page.locator('#wardrobe-level .level-title')).toHaveAttribute("data-level", "7");
-  await expect(page.locator('#wardrobe-level img')).toHaveAttribute("src", "assets/svg/level-titles/level-7.svg");
-  const wardrobeFits = await page.evaluate(() => {
-    const title = document.querySelector("#wardrobe-level img").getBoundingClientRect();
-    const container = document.querySelector("#wardrobe-level").getBoundingClientRect();
-    return title.left >= container.left && title.right <= container.right;
-  });
-  expect(wardrobeFits).toBe(true);
+  await expect(page.locator("#v-wd .level-title")).toHaveCount(0);
+  await expect(page.locator("#v-wd").getByText("Lv 7", { exact: true })).toHaveCount(0);
   await page.evaluate(() => levelUp(7));
   await expect(page.locator("#lut .level-title")).toHaveAttribute("data-level", "7");
   await expect(page.locator('#lut img')).toHaveAttribute("src", "assets/svg/level-titles/level-7.svg");
@@ -425,7 +736,7 @@ test("customizes and persists a pixel traveler and their clothes", async ({ page
   await choose("Hair type", "Curly");
   await choose("Hair color", "Auburn");
   await choose("Eye color", "Green");
-  await page.getByRole("button", { name: /Tops/ }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Tops");
   await page.locator("#wbody .pcard").filter({ hasText: "T-shirt" })
     .evaluate((button) => button.click());
   await choose("Color", "Red");
@@ -462,7 +773,7 @@ test("saved blush is preserved without rendering or offering it", async ({ page 
   }))).toEqual({ saved: true, matchesWithoutBlush: true, announced: false });
   await click(page, "#prof");
   await click(page, "#go-wd");
-  await page.locator("#wtabs button").filter({ hasText: "Extras" }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Extras");
   await expect(page.locator("#wbody")).not.toContainText(/blush/i);
 });
 
@@ -490,7 +801,7 @@ test("pixel artwork responds to appearance and gear choices throughout the app",
   }
   expect(new Set(images).size).toBe(5);
 
-  await page.locator("#wtabs button").filter({ hasText: "Face" }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Face");
   const eyes = [];
   for (const style of ["Normal", "Round", "Happy", "Wink"]) {
     await select("Eyes", style);
@@ -509,12 +820,13 @@ test("pixel artwork responds to appearance and gear choices throughout the app",
   }
   expect(new Set(eyes).size).toBe(4);
 
-  await page.locator("#wtabs button").filter({ hasText: "Appearance" }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Appearance");
   await select("Eye color", "Green");
   await expect(preview.locator('.eyes rect[x="9"][width="2"]')).toHaveAttribute("fill", "#5c8c68");
 
-  await page.locator("#wtabs button").filter({ hasText: "Town gear" }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Hats");
   await page.getByRole("button", { name: /Sentinel helmet/ }).evaluate((button) => button.click());
+  await page.getByRole("group", { name: "Wardrobe categories" }).getByRole("button", { name: "Tops" }).click();
   await page.getByRole("button", { name: /Vanguard tunic/ }).evaluate((button) => button.click());
   await expect(preview.locator('.person-hat rect[x="11"][y="2"][width="2"][height="5"]')).toHaveAttribute("fill", "#8996a6");
   const artwork = await preview.innerHTML();
@@ -525,10 +837,11 @@ test("pixel artwork responds to appearance and gear choices throughout the app",
   expect(await page.locator('#walkers .w[aria-label="Your traveler"] .bod').innerHTML()).toBe(artwork);
 });
 
-test("keeps the preview alongside the options and preserves old gender values until changed", async ({ page }) => {
+test("keeps the preview above the options and preserves old gender values until changed", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await page.evaluate(() => {
     S.p.gender = "nonbinary";
+    S.tutorialDone = true;
     save();
   });
   await click(page, "#prof");
@@ -537,9 +850,7 @@ test("keeps the preview alongside the options and preserves old gender values un
   await expect(choices).toHaveText(["Female", "Male"]);
   const preview = await page.locator(".wardrobe-preview").boundingBox();
   const options = await page.locator("#wbody").boundingBox();
-  expect(preview.x + preview.width).toBeLessThanOrEqual(options.x);
-  expect(preview.y).toBeLessThan(options.y + options.height);
-  expect(options.y).toBeLessThan(preview.y + preview.height);
+  expect(preview.y + preview.height).toBeLessThanOrEqual(options.y);
   expect(await page.evaluate(() => {
     const sheet = document.querySelector("#pm .sheet");
     return sheet.scrollWidth <= sheet.clientWidth;
@@ -558,8 +869,9 @@ test("keeps the preview alongside the options and preserves old gender values un
   await expect(page.locator("#buddy")).toBeVisible();
   await click(page, "#prof");
   await openAppearance(page);
-  await page.getByRole("button", { name: "Male", exact: true })
-    .evaluate((button) => button.click());
+  const male = page.getByRole("button", { name: "Male", exact: true });
+  await male.click();
+  await expect(male).toHaveAttribute("aria-pressed", "true");
   await page.reload();
   await continueLocally(page);
   expect(await page.evaluate(() => S.p.gender)).toBe("male");
@@ -614,7 +926,7 @@ test("gender can be changed repeatedly with distinct appearance and without chan
   await openAppearance(page);
   await page.getByRole("button", { name: "Female", exact: true }).click();
   expect(await page.evaluate(() => S.p.gender)).toBe("female");
-  await click(page, "#v-wd [data-back]");
+  await click(page, "#profile-header button");
   await click(page, "#pdone");
   await click(page, "#ubar");
   await click(page, "#uadd");
@@ -656,7 +968,7 @@ test("habit levels unlock optional warrior gear and keep equipped gear on reload
   });
   await click(page, "#prof");
   await click(page, "#go-wd");
-  await page.getByRole("button", { name: /Warrior gear/ }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Warrior gear");
   await expect(page.locator("#wbody button").filter({ hasText: "Vanguard tunic" })).toBeDisabled();
   await expect(page.locator("#wbody button").filter({ hasText: "Apprentice sword" })).toBeDisabled();
   await click(page, "#pdone");
@@ -664,7 +976,7 @@ test("habit levels unlock optional warrior gear and keep equipped gear on reload
   expect(await page.evaluate(() => [lvOf(S.xp), S.p.topStyle])).toEqual([2, "tee"]);
   await click(page, "#prof");
   await click(page, "#go-wd");
-  await page.getByRole("button", { name: /Warrior gear/ }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Warrior gear");
   await page.locator("#wbody button").filter({ hasText: "Vanguard tunic" }).evaluate((button) => button.click());
   expect(await page.evaluate(() => S.p.topStyle)).toBe("tunic");
   const levels = await page.evaluate(() => WARRIOR_GEAR.map(([slot, value, , level]) => {
@@ -705,7 +1017,7 @@ test("equipped warrior armor and helmet can be removed and re-equipped", async (
   if (await page.locator("#sp").isVisible()) await page.locator("#spgo").click();
   await page.locator("#prof").click();
   await page.locator("#go-wd").click();
-  await page.getByRole("button", { name: /Warrior gear/ }).click();
+  await selectWardrobe(page, "Warrior gear");
   const armor = page.locator("#wbody button").filter({ hasText: "Sentinel armor" });
   const helmet = page.locator("#wbody button").filter({ hasText: "Sentinel helmet" });
   await expect(armor).toHaveAttribute("aria-pressed", "true");
@@ -720,7 +1032,7 @@ test("equipped warrior armor and helmet can be removed and re-equipped", async (
   expect(await page.evaluate(() => [S.p.topStyle, S.p.hat])).toEqual(["tee", "none"]);
   await page.locator("#prof").click();
   await page.locator("#go-wd").click();
-  await page.getByRole("button", { name: /Warrior gear/ }).click();
+  await selectWardrobe(page, "Warrior gear");
   await armor.click();
   await helmet.click();
   expect(await page.evaluate(() => [S.p.topStyle, S.p.hat])).toEqual(["armor", "knight"]);

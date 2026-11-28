@@ -13,8 +13,23 @@ body {
 
 body,
 body * {
-  font-family: "Tiny5", monospace !important;
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif !important;
   border-radius: 0 !important;
+}
+
+body :is(h1, h2, h3, h4, h5, h6, button, label, b, strong, .gn, .item .t, .gt > span, .vh, .level-title, .ftier, .lut1, .lut2, .tvn) {
+  font-family: "Tiny5", monospace !important;
+}
+
+body :is(p, small, .how) :is(b, strong),
+#wbody .pcard b,
+#wbody .chip {
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif !important;
+}
+
+body .startup-dialog,
+body .startup-dialog * {
+  font-family: "Tiny5", monospace !important;
 }
 
 h1 {

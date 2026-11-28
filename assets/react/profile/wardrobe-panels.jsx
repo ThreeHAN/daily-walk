@@ -1,10 +1,18 @@
 import { Fragment } from "react";
 import { IconText } from "../shared/icon-text.jsx";
 
+function availableFirst(items, isAvailable) {
+  return [...items.filter(isAvailable), ...items.filter((item) => !isAvailable(item))];
+}
+
 function ChoiceSection({ title, options, value, popping, onSelect }) {
+  const selected = options.find(([id]) => id === value);
   return (
-    <div className="fl">
-      {title}
+    <div className="fl wardrobe-choice" role="group" aria-label={title}>
+      <div className="wardrobe-choice-heading">
+        <b>{title}</b>
+        <span aria-live="polite">{selected ? selected[1] : "Choose an option"}</span>
+      </div>
       <div className="chips" data-k={title}>
         {options.map(([id, label, color]) => (
           <button key={id} type="button"
@@ -21,7 +29,7 @@ function ChoiceSection({ title, options, value, popping, onSelect }) {
 function CardGrid({ cards, text }) {
   return (
     <div className="pgrid">
-      {cards.map((item) => (
+      {availableFirst(cards, (item) => !item.locked || item.selected).map((item) => (
         <button type="button" key={item.id}
           className={"pcard" + (item.selected ? " on" : "") + (item.locked ? " lk" : "")}
           disabled={item.locked && !item.selected} aria-pressed={item.selected}
@@ -33,14 +41,13 @@ function CardGrid({ cards, text }) {
   );
 }
 
-function ClothingBlocks({ blocks, text }) {
+function ClothingBlocks({ blocks, text, selectedGroup }) {
   return blocks.map((block, index) => {
-    if (block.type === "note") return <div key={index} className="fl">{text(block.text)}</div>;
-    if (block.type === "heading") return <h4 key={index}>{text(block.title)}</h4>;
     if (block.type === "choice") return <ChoiceSection key={index} {...block.section} />;
     if (block.type === "grid") return <CardGrid key={index} cards={block.cards} text={text} />;
     if (block.type === "group") return (
-      <section key={block.title} className="wardrobe-gear-group">
+      <section key={block.title} className="wardrobe-gear-group"
+        hidden={selectedGroup !== undefined && selectedGroup !== block.title}>
         <h4>{text(block.title)}</h4>
         <ClothingBlocks blocks={block.blocks} text={text} />
       </section>
@@ -49,10 +56,9 @@ function ClothingBlocks({ blocks, text }) {
   });
 }
 
-export function WardrobePanels({ tab, sections, glasses, gear, blocks, pets, best, icon, iconTextParts, onPet }) {
+export function WardrobePanels({ tab, sections, glasses, gear, blocks, selectedGroup, pets, best, icon, iconTextParts, onPet }) {
   const text = (value) => <IconText text={value} icon={icon} iconTextParts={iconTextParts} />;
-  if (tab === "gear" || tab === "tops" || tab === "bottoms")
-    return <ClothingBlocks blocks={blocks} text={text} />;
+  if (tab === "gear") return <ClothingBlocks blocks={blocks} text={text} selectedGroup={selectedGroup} />;
   if (tab === "warrior" || tab === "extras") {
     return (
       <>
@@ -75,7 +81,7 @@ export function WardrobePanels({ tab, sections, glasses, gear, blocks, pets, bes
             <div style={{ height: 34, display: "grid", placeItems: "center", fontSize: 20, color: "var(--mute)" }}>∅</div>
             <b>No Pet</b><small>Rest on your own</small>
           </button>
-          {pets.items.map((pet) => (
+          {availableFirst(pets.items, (pet) => pet.unlocked).map((pet) => (
             <button type="button" key={pet.id}
               className={"pcard" + (pet.selected ? " on" : "") + (pet.unlocked ? "" : " lk")}
               onClick={(event) => onPet(pet, event.currentTarget)}>

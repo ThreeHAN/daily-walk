@@ -115,16 +115,19 @@ function levelUp(n) {
   }, 700);
 }
 let wTab = "gear";
+let wGearGroup = "Hats";
 let colorEditor = null;
 const TABS = [
-  ["person", "🧑 Appearance"],
-  ["warrior", "🛡️ Warrior gear"],
-  ["gear", "🎒 Town gear"],
-  ["pets", "🐾 Pets"],
-  ["tops", "👕 Tops"],
-  ["bottoms", "👖 Bottoms"],
-  ["face", "😎 Face"],
-  ["extras", "✨ Extras"],
+  ["gear:Hats", "Hats"],
+  ["gear:Tops", "Tops"],
+  ["gear:Pants", "Pants"],
+  ["gear:Shoes", "Shoes"],
+  ["gear:Accessories", "Accessories"],
+  ["person", "Appearance"],
+  ["warrior", "Warrior gear"],
+  ["pets", "Pets"],
+  ["face", "Face"],
+  ["extras", "Extras"],
 ];
 const APPEARANCE_OPTIONS = {
   gender: [["female", "Female"], ["male", "Male"]],
@@ -307,46 +310,38 @@ function wardrobePanelProps(tab, p) {
         },
       };
     });
-  } else if (tab === "gear" || tab === "tops" || tab === "bottoms") {
-    if (tab === "tops") props.blocks = topSections(p);
-    else if (tab === "bottoms") {
-      props.blocks = [
-        { type: "heading", title: "Pants" }, ...pantsSections(p),
-        { type: "heading", title: "Shoes" }, ...shoeSections(p),
-      ];
-    } else {
-      const rewards = Object.values(TOWN_GEAR);
-      props.blocks = [
-        { type: "note", text: "Help towns to earn gear. Tap an equipped reward to remove it." },
-        ...[
-          ["Hats", ["hat"]],
-          ["Tops", ["topStyle"]],
-          ["Pants", ["pantsStyle"]],
-          ["Shoes", ["shoeStyle"]],
-          ["Accessories", ["glasses", "ex"]],
-        ].map(([title, slots]) => {
-          let blocks = [];
-          if (title === "Hats") {
-            const cards = optionCards(HATS.filter(([value]) =>
-              !rewards.some((gear) => gear.slot === "hat" && gear.value === value)).map(([value, name]) =>
-              [value, value === "none" ? "No hat" : name]), p.hat, (v) => {
-              colorEditor = null;
-              setP("hat", v === p.hat ? "none" : v);
-            }, "hat");
-            blocks = [{ type: "grid", cards }];
-          } else if (title === "Tops") blocks = topSections(p);
-          else if (title === "Pants") blocks = pantsSections(p);
-          else if (title === "Shoes") blocks = shoeSections(p);
-          const items = rewards.filter((gear) => slots.includes(gear.slot));
-          if (items.length) {
-            const cards = townGearCards(items, p);
-            if (title === "Hats") blocks[0].cards.push(...cards);
-            else blocks.push({ type: "grid", cards });
-          }
-          return { type: "group", title, blocks };
-        }),
-      ];
-    }
+  } else if (tab === "gear") {
+    props.selectedGroup = wGearGroup;
+    const rewards = Object.values(TOWN_GEAR);
+    props.blocks = [
+      ...[
+        ["Hats", ["hat"]],
+        ["Tops", ["topStyle"]],
+        ["Pants", ["pantsStyle"]],
+        ["Shoes", ["shoeStyle"]],
+        ["Accessories", ["glasses", "ex"]],
+      ].map(([title, slots]) => {
+        let blocks = [];
+        if (title === "Hats") {
+          const cards = optionCards(HATS.filter(([value]) =>
+            !rewards.some((gear) => gear.slot === "hat" && gear.value === value)).map(([value, name]) =>
+            [value, value === "none" ? "No hat" : name]), p.hat, (v) => {
+            colorEditor = null;
+            setP("hat", v === p.hat ? "none" : v);
+          }, "hat");
+          blocks = [{ type: "grid", cards }];
+        } else if (title === "Tops") blocks = topSections(p);
+        else if (title === "Pants") blocks = pantsSections(p);
+        else if (title === "Shoes") blocks = shoeSections(p);
+        const items = rewards.filter((gear) => slots.includes(gear.slot));
+        if (items.length) {
+          const cards = townGearCards(items, p);
+          if (title === "Hats") blocks[0].cards.push(...cards);
+          else blocks.push({ type: "grid", cards });
+        }
+        return { type: "group", title, blocks };
+      }),
+    ];
   } else if (tab === "pets") {
     props.best = Math.max(curStreak, streakBest());
     props.pets = {
@@ -384,22 +379,19 @@ function wardrobePanelProps(tab, p) {
 function wardrobeViewProps() {
   const tabs = {
     tabs: TABS,
-    selected: wTab,
-    popping: popTok && popTok.startsWith("tab:") ? popTok.slice(4) : null,
-    icon: icoSvg,
-    iconTextParts,
+    selected: wTab === "gear" ? "gear:" + wGearGroup : wTab,
     onSelect: (v) => {
-      popTok = "tab:" + v;
-      wTab = v;
-      colorEditor = null;
+      const gear = v.startsWith("gear:");
+      const nextTab = gear ? "gear" : v;
+      if (nextTab !== wTab) colorEditor = null;
+      if (gear) wGearGroup = v.slice(5);
+      wTab = nextTab;
       rerun($("wbody"), "fx");
       buildWd();
     },
   };
-  const wardrobeLevel = lvOf(S.xp);
   return {
     tabs,
-    wardrobeLevel: { level: wardrobeLevel, title: ttl(wardrobeLevel) },
     panels: wardrobePanelProps(wTab, S.p),
   };
 }
@@ -512,7 +504,6 @@ function refreshProfile(v, animate = false, navigate = false) {
   if (navigate) update.view = v;
   DailyWalkReact.renderProfile(update);
   if (v === "wd") {
-    $("wtabs").dataset.k = "tab";
     popTok = null;
   }
   if (v === "info") renderUsers();
@@ -525,11 +516,16 @@ function fillInfo(animate) {
 }
 function view(v) {
   refreshProfile(v, v === "info", true);
+  $("pm").querySelector(".sheet").scrollTop = 0;
   rerun($("v-" + v), "fx");
 }
 function openProfile() {
   view("menu");
   $("pm").classList.add("show");
+}
+function closeProfile() {
+  $("pm").classList.remove("show");
+  hop();
 }
 function initProfile() {
   const actions = profileBridge.actions;
@@ -546,6 +542,8 @@ function initProfile() {
     },
   });
   DailyWalkReact.renderProfile({
+    onClose: closeProfile,
+    onBackToMenu: () => view("menu"),
     menu: {
       icon: icoSvg,
       actions: {
@@ -559,14 +557,5 @@ function initProfile() {
     },
   });
   $("hero").onclick = () => $("prof").click();
-  document.querySelectorAll("[data-back]").forEach((b) => {
-    b.onclick = () => view("menu");
-  });
-  $("pdone").onclick = () => {
-    $("pm").classList.remove("show");
-    hop();
-  };
-  $("pm").onclick = (e) => {
-    if (e.target === $("pm")) $("pm").classList.remove("show");
-  };
+  $("pdone").onclick = closeProfile;
 }

@@ -49,7 +49,7 @@ test("Google sign-in is above Done on the main profile menu", async ({ page }) =
   await page.locator("#go-info").evaluate((button) => button.click());
   await expect(page.locator("#google-auth")).toBeHidden();
   await expect(page.locator("#v-info #ulist")).toBeVisible();
-  await page.locator("#v-info [data-back]").evaluate((button) => button.click());
+  await page.locator("#profile-header button").evaluate((button) => button.click());
   await expect(page.locator("#google-auth")).toBeVisible();
 });
 

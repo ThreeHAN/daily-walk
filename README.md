@@ -190,9 +190,13 @@ The streak and level-up overlays render in React. Collection and profile
 logic retain celebration timing, flame animation, and dismissal effects; the
 streak Continue button stays mounted for the guided tour.
 
-The profile shell renders its banner, menu, info, wardrobe tabs, wardrobe
-panels, level list, and wardrobe level title through one root and portals into
-the existing screen containers. Profile modal pets, account list, and sign-in remain
+The full-screen profile view opens over the current page. Its always-visible
+Back button returns from a section to the profile menu, then closes the profile;
+Done also closes the main menu.
+Its scrollable content remains centered on wider screens, except for the
+edge-to-edge wardrobe. The profile shell renders its banner, menu, info, wardrobe categories, wardrobe
+panels, and level list through one root and portals into
+the existing screen containers. Profile pets, account list, and sign-in remain
 independent roots. The shell controls which existing profile view is
 visible; avatar artwork and account controls remain owned by legacy code.
 `profileBridge` supplies current profile snapshots and actions to the profile
@@ -250,9 +254,22 @@ weekly chart receives current tasks and per-day checks from the legacy state own
   independently. Gender can be changed at any time and changes the face and
   body without changing the other appearance choices. Saves and backups with
   the old gender lock are unlocked when loaded.
-  Clothing, pets, and earned gear are available in the same wardrobe.
+  Clothing, pets, and earned gear are available in the same wardrobe. An
+  edge-to-edge layout places a compact, centered live preview directly above the
+  choices and keeps it and the category row visible while scrolling. The row below the
+  traveler combines appearance, pets, and other sections with filters for hats,
+  tops, pants, shoes, and accessories. The
+  slightly smaller traveler preview stays at a fixed scale when changing gear. Choices show
+  their current selection with larger pixel-styled section headings and provide
+  touch-sized controls on mobile. Available items and pets appear before locked
+  ones in each category, with equipped items kept accessible; locked-item
+  unlock details are visually hidden on mobile but remain available to assistive
+  technology.
 - The interface, shared icons, town scenery, world map, and streak flame use a
   pixel-art visual style, including habit category and bottom navigation icons.
+  Headings and primary labels use the pixel font; descriptions and other
+  supporting text use a readable system font. The opening sign-in and
+  onboarding screens keep the pixel font throughout.
   Bottom navigation buttons keep their appearance when switching tabs; the
   current page is identified for assistive technology.
   The world map has pixel land and spins horizontally; drag side to side and

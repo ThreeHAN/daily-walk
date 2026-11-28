@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>Daily Walk</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=google-icon-1" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=wardrobe-preview-area-1" />
   </head>
   <body>
     <div id="buddy">
@@ -69,9 +69,9 @@
       <div id="lblist"></div>
       <div id="leaderboard-actions"></div>
     </main>
-    <div class="modal" id="pm">
-      <div class="sheet" role="dialog" aria-label="Profile">
-        <div class="grab"></div>
+    <div class="profile-screen" id="pm" role="region" aria-label="Profile">
+      <div class="profile-header" id="profile-header"></div>
+      <div class="sheet">
         <div id="profile-react-shell" hidden></div>
         <div id="v-menu">
           <div class="banner">
@@ -91,11 +91,7 @@
           <div id="google-auth"></div>
           <button class="done" id="pdone" type="button">Done</button>
         </div>
-        <div id="v-wd" hidden>
-          <button class="back" type="button" data-back>‹ Back</button>
-          <h3 class="vt">Wardrobe</h3>
-          <div class="chips tabs" id="wtabs"></div>
-          <div id="wardrobe-level"></div>
+        <div id="v-wd" role="region" aria-label="Wardrobe" hidden>
           <div class="wardrobe-layout">
             <div class="wardrobe-preview">
               <div class="stage sm">
@@ -109,13 +105,12 @@
                 ></svg>
                 <span class="profile-pet" id="profile-wardrobe-pet" aria-hidden="true"></span>
               </div>
-              <b>Your traveler</b>
+              <div id="wardrobe-subcategories"></div>
             </div>
             <div id="wbody"></div>
           </div>
         </div>
         <div id="v-lv" hidden>
-          <button class="back" type="button" data-back>‹ Back</button>
           <h3 class="vt">Levels &amp; rewards</h3>
           <p class="how">
             Earn XP: <b>+10</b> per habit, <b>+15</b> for finishing a group,
@@ -124,7 +119,6 @@
           <div id="lvlist"></div>
         </div>
         <div id="v-info" hidden>
-          <button class="back" type="button" data-back>‹ Back</button>
           <div class="stage sm">
             <svg
               class="pv"
@@ -194,17 +188,17 @@
     <script src="assets/js/features/buddy-art.js?v=organization-1"></script>
     <script src="assets/js/features/buddy-render.js?v=react-celebrations-1"></script>
     <script src="assets/js/features/pets.js?v=pixel-pets-1"></script>
-    <script src="assets/js/features/profile.js?v=react-celebrations-1"></script>
+    <script src="assets/js/features/profile.js?v=wardrobe-categories-1"></script>
     <script src="assets/js/features/town-data.js?v=organization-1"></script>
     <script src="assets/js/features/town-scene.js?v=react-world-scene-1"></script>
     <script src="assets/js/features/world-map.js?v=react-world-scene-1"></script>
     <script src="assets/js/features/town.js?v=react-world-scene-1"></script>
     <script src="assets/js/features/town-progress.js"></script>
-    <script src="assets/js/features/habits.js?v=react-dashboard-controls-1"></script>
+    <script src="assets/js/features/habits.js?v=profile-fullscreen-1"></script>
     <script src="assets/js/features/collection.js?v=react-celebrations-1"></script>
     <script src="assets/js/features/tutorial.js?v=react-profile-menu-1"></script>
     <script src="assets/js/core/accounts.js?v=react-account-actions-1"></script>
-    <script src="assets/js/generated/react-ui.js?v=react-world-scene-1"></script>
+    <script src="assets/js/generated/react-ui.js?v=wardrobe-owned-first-1"></script>
     <script src="assets/js/app.js?v=react-world-scene-1"></script>
   </body>
 </html>

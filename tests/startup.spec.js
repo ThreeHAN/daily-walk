@@ -116,9 +116,14 @@ test("first-time onboarding edits an avatar before choosing local mode and start
   await setup(page, new Map(), { skipOnboarding: true });
   const welcome = page.getByRole("dialog", { name: "Ready to begin your journey with Steadfast Steps?" });
   await expect(welcome).toBeVisible();
+  const font = (locator) => locator.evaluate((element) => getComputedStyle(element).fontFamily);
+  expect(await font(welcome.getByRole("heading"))).toContain("Tiny5");
+  expect(await font(welcome.getByRole("button", { name: "Ready" }))).toContain("Tiny5");
   expect(await page.evaluate(() => localStorage.getItem("dailywalk_admin_max:users:v3"))).toBeNull();
   await welcome.getByRole("button", { name: "Ready" }).click();
   const avatar = page.getByRole("dialog", { name: "Edit your avatar" });
+  expect(await font(avatar.locator("p"))).toContain("Tiny5");
+  expect(await font(avatar.getByLabel("Skin color"))).toContain("Tiny5");
   const initialPreview = await avatar.getByRole("img", { name: "Traveler preview" }).innerHTML();
   await avatar.getByLabel("Gender").selectOption("female");
   await avatar.getByLabel("Skin color").selectOption("deep");
@@ -129,6 +134,8 @@ test("first-time onboarding edits an avatar before choosing local mode and start
   await page.reload();
   await expect(avatar.getByLabel("Skin color")).toHaveValue("deep");
   await avatar.getByRole("button", { name: "Continue", exact: true }).click();
+  expect(await font(page.getByText("Sign in to use your cloud profile, or continue with a profile on this device.")))
+    .toContain("Tiny5");
   expect(await page.evaluate(() => localStorage.getItem("dailywalk_admin_max:users:v3"))).toBeNull();
   await page.getByRole("button", { name: "Continue locally" }).click();
   expect(await page.evaluate(() => {

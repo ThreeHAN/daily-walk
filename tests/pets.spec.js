@@ -4,6 +4,11 @@ const { readFileSync } = require("node:fs");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 
+async function selectWardrobe(page, name) {
+  await page.getByRole("group", { name: "Wardrobe categories" })
+    .getByRole("button", { name, exact: true }).click();
+}
+
 test("all pet sprites are pixel art and load from a direct-file app", async ({ page }) => {
   await page.goto(pathToFileURL(path.resolve(__dirname, "../index.html")).href);
   await continueLocally(page);
@@ -79,7 +84,7 @@ test("wardrobe keeps locked pets interactive and refreshes unlocked choices", as
   });
   await page.locator("#prof").evaluate((button) => button.click());
   await page.locator("#go-wd").evaluate((button) => button.click());
-  await page.locator("#wtabs button").filter({ hasText: "Pets" }).evaluate((button) => button.click());
+  await selectWardrobe(page, "Pets");
   const chick = page.locator("#wbody .pcard").filter({ hasText: "Little Chick" });
   await expect(chick).toHaveClass(/lk/);
   await expect(chick).toBeEnabled();
@@ -104,6 +109,7 @@ test("equipped pets sit beside the traveler in profile previews and update when 
     S.pets.royalpig = 1;
     S.pets.chick = 1;
     S.p.pet = "royalpig";
+    S.tutorialDone = true;
     save();
     paint();
   });
@@ -140,12 +146,33 @@ test("equipped pets sit beside the traveler in profile previews and update when 
   await checkPlacement("#v-menu .stage", "royalpig");
   await page.locator("#go-wd").evaluate((button) => button.click());
   await checkPlacement("#v-wd .stage", "royalpig");
-  await page.locator("#wtabs button").filter({ hasText: "Pets" }).evaluate((button) => button.click());
-  await page.locator("#wbody .pcard").filter({ hasText: "No Pet" }).evaluate((button) => button.click());
+  const bodyBefore = await page.locator("#v-wd .person-body").boundingBox();
+  await page.evaluate(() => { S.p.hat = "wizard"; paint(); });
+  await checkPlacement("#v-wd .stage", "royalpig");
+  const bodyAfter = await page.locator("#v-wd .person-body").boundingBox();
+  expect(bodyAfter.width).toBeCloseTo(bodyBefore.width, 2);
+  expect(bodyAfter.height).toBeCloseTo(bodyBefore.height, 2);
+  const hatRoom = await page.locator("#v-wd .stage").evaluate((stage) => {
+    const bounds = stage.getBoundingClientRect();
+    const person = stage.querySelector(".pixel-person").getBoundingClientRect();
+    return { top: person.top - bounds.top, bottom: bounds.bottom - person.bottom };
+  });
+  expect(hatRoom.top).toBeGreaterThanOrEqual(0);
+  expect(hatRoom.bottom).toBeGreaterThanOrEqual(-1);
+  await page.setViewportSize({ width: 320, height: 568 });
+  await checkPlacement("#v-wd .stage", "royalpig");
+  expect(await page.locator("#v-wd .stage").evaluate((stage) => {
+    const bounds = stage.getBoundingClientRect();
+    const person = stage.querySelector(".pixel-person").getBoundingClientRect();
+    return person.top >= bounds.top && person.bottom <= bounds.bottom + 1;
+  })).toBe(true);
+  await page.setViewportSize({ width: 320, height: 720 });
+  await selectWardrobe(page, "Pets");
+  await page.locator("#wbody .pcard").filter({ hasText: "No Pet" }).click();
   await expect(page.locator("#pm .profile-pet img, #prof .profile-pet img")).toHaveCount(0);
-  await page.locator("#wbody .pcard").filter({ hasText: "Little Chick" }).evaluate((button) => button.click());
+  await page.locator("#wbody .pcard").filter({ hasText: "Little Chick" }).click();
   await checkPlacement("#v-wd .stage", "chick");
-  await page.locator("#v-wd [data-back]").evaluate((button) => button.click());
+  await page.locator("#profile-header button").evaluate((button) => button.click());
   await page.locator("#go-info").evaluate((button) => button.click());
   await checkPlacement("#v-info .stage", "chick");
   await page.reload();

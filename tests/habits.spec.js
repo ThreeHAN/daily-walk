@@ -23,6 +23,25 @@ async function habitState(page) {
   }));
 }
 
+test("keeps titles pixel-styled and uses readable fonts for supporting text", async ({ page }) => {
+  const font = (locator) => locator.evaluate((element) => getComputedStyle(element).fontFamily);
+  const wake = page.locator('#list .item').filter({ has: page.locator('input[data-id="wake"]') });
+  await expect(wake.locator(".t")).toContainText("Wake up on time");
+  await expect(wake.locator("small")).toHaveText("Give God the first minutes");
+  expect(await font(wake.locator(".t"))).toContain("Tiny5");
+  expect(await font(wake.locator("small"))).not.toContain("Tiny5");
+  expect(await font(page.locator("#list .gn").first())).toContain("Tiny5");
+  await page.locator("#prof").click();
+  const wardrobe = page.locator("#go-wd");
+  expect(await font(wardrobe.locator("b"))).toContain("Tiny5");
+  expect(await font(wardrobe.locator("div > span"))).not.toContain("Tiny5");
+  await page.locator("#profile-header button").click();
+  await page.locator('button[data-p="t"]').click();
+  expect(await font(page.locator("#wbtn b"))).toContain("Tiny5");
+  expect(await font(page.locator("#wsub"))).not.toContain("Tiny5");
+  expect(await font(page.locator("#vtx"))).not.toContain("Tiny5");
+});
+
 test("task and group rewards are awarded only once", async ({ page }) => {
   const initial = await habitState(page);
 
@@ -560,6 +579,11 @@ test("swipes update React navigation and ignore gestures inside a modal", async 
   await expect(page.locator("#pg-h")).toHaveClass(/\bsl\b/);
   await expect(page.locator('.nv[data-p="h"]')).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#fab")).toBeVisible();
+  await page.locator("#prof").click();
+  await swipe("#profile-menu", 200, 80);
+  await expect(page.locator("#pg-h")).toBeVisible();
+  await expect(page.locator("#pm")).toBeVisible();
+  await page.locator("#pdone").click();
 });
 
 test("a new habit is highlighted and can still be removed", async ({ page }) => {

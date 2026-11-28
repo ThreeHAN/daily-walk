@@ -112,6 +112,40 @@ h1 {
   border-radius: 28px 28px 0 0;
   max-height: 92vh;
 }
+.profile-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: none;
+  background: var(--bg);
+}
+.profile-screen.show {
+  display: flex;
+  flex-direction: column;
+}
+.profile-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 0;
+}
+.profile-screen .sheet {
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  max-height: none;
+  border-radius: 0;
+  padding: 8px
+    max(16px, calc((100% - 560px) / 2))
+    calc(18px + env(safe-area-inset-bottom, 0px));
+  box-shadow: none;
+}
+.profile-screen:has(#v-wd:not([hidden])) .sheet {
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
+}
 .grab {
   width: 44px;
   height: 5px;
@@ -195,10 +229,7 @@ h1 {
   right: 22px;
 }
 .wardrobe-layout {
-  display: grid;
-  grid-template-columns: minmax(94px, 138px) minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
+  min-width: 0;
 }
 body:has(#pm.show #v-wd:not([hidden])) #buddy {
   visibility: hidden;
@@ -211,41 +242,59 @@ body:has(#pm.show #v-wd:not([hidden])) #buddy {
 .wardrobe-preview .head-pet {
   animation: none;
 }
-.wardrobe-preview {
+.wardrobe-layout .wardrobe-preview {
   position: sticky;
-  top: 8px;
+  top: 0;
+  z-index: 2;
   text-align: center;
   color: var(--ink);
   background: linear-gradient(160deg, var(--acc2), var(--card));
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 10px 5px 14px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 .wardrobe-preview .stage {
-  width: 100%;
+  width: min(100%, 48vh);
+  height: 42vh;
+  overflow: clip;
+}
+.wardrobe-preview .stage .pv {
+  position: absolute;
+  bottom: -4vh;
+  left: 50%;
+  width: auto;
+  max-width: none;
+  height: 50vh;
+  transform: translateX(-50%);
+}
+.wardrobe-preview .stage:has(.profile-pet img) .pv {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.wardrobe-preview .stage.sm .profile-pet {
+  right: 3px;
+  bottom: 0;
+  width: 36px;
+  height: 36px;
 }
 .wardrobe-preview .stage::before {
   background: var(--card);
-}
-.wardrobe-preview b,
-.wardrobe-preview span {
-  display: block;
-  font-size: 12px;
-}
-.wardrobe-preview span {
-  color: var(--mute);
-  margin-top: 3px;
 }
 .wardrobe-layout #wbody {
   min-width: 0;
   margin-top: 0;
 }
-#v-wd .tabs {
-  margin: 8px 0 16px;
+.wardrobe-preview .wardrobe-subcategories {
+  margin: 0;
+  border-radius: 0;
   scrollbar-width: thin;
 }
+.wardrobe-subcategories .chip {
+  min-height: 44px;
+}
 #wbody .fl {
-  margin: 0 0 12px;
+  margin: 0;
   padding: 12px;
   background: var(--card);
   border: 1px solid var(--line);
@@ -254,19 +303,62 @@ body:has(#pm.show #v-wd:not([hidden])) #buddy {
 #wbody .chips {
   margin-top: 9px;
 }
+#wbody .wardrobe-choice-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 8px;
+  color: var(--ink);
+}
+#wbody .wardrobe-choice-heading b,
+#wbody h4 {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.wardrobe-choice-heading span {
+  color: var(--mute);
+}
 #wbody .chip {
+  min-height: 44px;
   max-width: 100%;
   flex-wrap: wrap;
   overflow-wrap: anywhere;
   white-space: normal;
   text-align: left;
 }
+#wbody .chip i {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+@media (max-width: 600px) {
+  #wbody .pcard.lk:not(.on) small {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  #wbody .fl {
+    padding: 10px;
+  }
+  #wbody .chip {
+    padding: 8px;
+  }
+}
 #wbody .chip:focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
 }
 .wardrobe-gear-group {
-  margin: 18px 0;
+  margin: 0;
+  padding: 8px;
 }
 .wardrobe-gear-group h4 {
   margin: 0 0 8px;
@@ -447,15 +539,6 @@ body:has(#pm.show #v-wd:not([hidden])) #buddy {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-#wardrobe-level {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  margin: 4px 0 12px;
-}
-#wardrobe-level .wardrobe-level-number {
-  font-size: 14px;
 }
 #hero .hl {
   flex-wrap: wrap;

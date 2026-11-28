@@ -105,7 +105,7 @@ function initHabits() {
       sx = t.clientX;
       sy = t.clientY;
       sok = !e.target.closest(
-        ".modal,.splash,.lvup,.cs,.gl,.tv,.tabs,.lb-tabs,input,select",
+        ".modal,.profile-screen,.splash,.lvup,.cs,.gl,.tv,.tabs,.lb-tabs,input,select",
       );
     },
     { passive: true },

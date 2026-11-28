@@ -141,7 +141,7 @@ test("two browsers sync in both directions and back up overlapping edits", async
     expect(await second.evaluate(() => S.p.name)).toBe("Local backup");
     await second.locator("#ulist .uitem").filter({ hasText: "Player 1" })
       .getByRole("button", { name: "Switch" }).evaluate((button) => button.click());
-    await second.locator("#v-info [data-back]").evaluate((button) => button.click());
+    await second.locator("#profile-header button").evaluate((button) => button.click());
 
     await first.evaluate(() => {
       S.p.name = "Cloud update";
@@ -919,7 +919,7 @@ test("inactive overlapping edits do not block syncing the active profile", async
   remote.profile.profile.name = "First remote";
   firstSnapshot.p.name = "First remote";
   remote.profile.progress._dailyWalkSyncSnapshot = firstSnapshot;
-  await page.locator("#v-info [data-back]").evaluate((button) => button.click());
+  await page.locator("#profile-header button").evaluate((button) => button.click());
   await page.context().setOffline(false);
   await expect.poll(() => cloud.get(secondCloudId).profile.profile.name).toBe("Second offline");
   await expect.poll(() => cloud.get(firstCloudId).profile.profile.name).toBe("First offline");

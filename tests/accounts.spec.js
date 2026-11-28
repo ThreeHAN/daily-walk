@@ -206,7 +206,7 @@ test("profile info updates names and stats without losing focus or profile data"
     .locator(".uinf").evaluate((element) => element.click());
   await expect(name).toHaveValue("Walker");
   await expect(buddy).toHaveValue("Pal ⭐");
-  await click(page, "#v-info [data-back]");
+  await click(page, "#profile-header button");
   await expect(page.locator("#mt")).toContainText("Pal");
   await expect(page.locator("#mp3")).toContainText("Walker");
   await click(page, "#go-info");
